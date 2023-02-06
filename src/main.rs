@@ -224,9 +224,15 @@ fn handle_window_event(window: &mut glfw::Window, event: glfw::WindowEvent) {
             let mut polygon_mode = [0];
             gl::GetIntegerv(gl::POLYGON_MODE, polygon_mode.as_mut_ptr());
             match polygon_mode[0] as u32 {
-                gl::FILL => gl::PolygonMode(gl::FRONT_AND_BACK, gl::LINE),
-                gl::LINE => gl::PolygonMode(gl::FRONT_AND_BACK, gl::FILL),
-                _ => panic!("Unknown polygon mode"),
+                gl::FILL => {
+                    gl::PolygonMode(gl::FRONT_AND_BACK, gl::LINE);
+                    println!("PolygonMode: LINE");
+                }
+                gl::LINE => {
+                    gl::PolygonMode(gl::FRONT_AND_BACK, gl::FILL);
+                    println!("PolygonMode: FILL");
+                }
+                _ => panic!("PolygonMode: Unknown"),
             }
         },
         // event for resizing the window
