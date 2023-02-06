@@ -98,10 +98,27 @@ fn main() {
         shader
     };
 
-    if unsafe { gl::GetError() } != gl::NO_ERROR {
-        panic!("Failed to compile vertex shader. Error: {}", unsafe {
-            gl::GetError()
-        });
+    // vertex shader compile check
+    let mut success = gl::FALSE as GLint;
+    unsafe {
+        gl::GetShaderiv(vertex_shader, gl::COMPILE_STATUS, &mut success);
+    }
+    if success != gl::TRUE as GLint {
+        let mut len = 0;
+        unsafe {
+            gl::GetShaderiv(vertex_shader, gl::INFO_LOG_LENGTH, &mut len);
+        }
+        let error_msg = vec![0; len as usize];
+        let error_msg = unsafe {
+            gl::GetShaderInfoLog(
+                vertex_shader,
+                len,
+                std::ptr::null_mut(),
+                error_msg.as_ptr() as *mut GLchar,
+            );
+            std::str::from_utf8(&error_msg).unwrap().to_owned()
+        };
+        panic!("Failed to compile vertex shader. Error: {}", error_msg);
     }
 
     // fragment shader source
@@ -120,10 +137,27 @@ fn main() {
         shader
     };
 
-    if unsafe { gl::GetError() } != gl::NO_ERROR {
-        panic!("Failed to compile fragment shader. Error: {}", unsafe {
-            gl::GetError()
-        });
+    // fragment shader compile error check with log
+    let mut success = gl::FALSE as GLint;
+    unsafe {
+        gl::GetShaderiv(fragment_shader, gl::COMPILE_STATUS, &mut success);
+    }
+    if success != gl::TRUE as GLint {
+        let mut len = 0;
+        unsafe {
+            gl::GetShaderiv(fragment_shader, gl::INFO_LOG_LENGTH, &mut len);
+        }
+        let error_msg = vec![0; len as usize];
+        let error_msg = unsafe {
+            gl::GetShaderInfoLog(
+                fragment_shader,
+                len,
+                std::ptr::null_mut(),
+                error_msg.as_ptr() as *mut GLchar,
+            );
+            std::str::from_utf8(&error_msg).unwrap().to_owned()
+        };
+        panic!("Failed to compile fragment shader. Error: {}", error_msg);
     }
 
     // shader program
