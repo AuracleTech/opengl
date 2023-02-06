@@ -229,16 +229,6 @@ fn handle_window_event(window: &mut glfw::Window, event: glfw::WindowEvent) {
                 _ => panic!("Unknown polygon mode"),
             }
         },
-        // E toggles culling
-        glfw::WindowEvent::Key(Key::E, _, Action::Press, _) => unsafe {
-            let mut cull_face = [0];
-            gl::GetIntegerv(gl::CULL_FACE_MODE, cull_face.as_mut_ptr());
-            match cull_face[0] as u32 {
-                gl::BACK => gl::Disable(gl::CULL_FACE),
-                gl::FRONT => gl::Enable(gl::CULL_FACE),
-                _ => panic!("Unknown cull face mode"),
-            }
-        },
         // event for resizing the window
         glfw::WindowEvent::FramebufferSize(width, height) => unsafe {
             gl::Viewport(0, 0, width, height);
