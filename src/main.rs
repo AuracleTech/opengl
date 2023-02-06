@@ -213,14 +213,6 @@ fn main() {
             last_time = current_time;
         }
     }
-
-    // cleanup
-    unsafe {
-        gl::DeleteVertexArrays(1, &vao);
-        gl::DeleteBuffers(1, &vbo);
-        gl::DeleteBuffers(1, &ebo);
-        gl::DeleteProgram(shader_program);
-    }
 }
 
 fn handle_window_event(window: &mut glfw::Window, event: glfw::WindowEvent) {
