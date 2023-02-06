@@ -117,20 +117,20 @@ dependencies = [
 ]
 
 [[package]]
-name = "osus"
-version = "0.1.0"
-dependencies = [
- "gl",
- "glfw",
-]
-
-[[package]]
 name = "raw-window-handle"
 version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ed7e3d950b66e19e0c372f3fa3fbbcf85b1746b571f74e0c2af6042a5c93420a"
 dependencies = [
  "cty",
+]
+
+[[package]]
+name = "revenant"
+version = "0.1.0"
+dependencies = [
+ "gl",
+ "glfw",
 ]
 
 [[package]]
