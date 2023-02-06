@@ -83,15 +83,7 @@ fn main() {
     }
 
     // vertex shader source
-    static VERTEX_SHADER_SRC: &'static str = r#"
-        #version 330 core
-        layout (location = 0) in vec3 aPos;
-        
-        void main()
-        {
-            gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);
-        }
-    "#;
+    const VERTEX_SHADER_SRC: &'static str = include_str!("shaders/vertex.glsl");
 
     // vertex shader
     let vertex_shader = unsafe {
@@ -113,15 +105,7 @@ fn main() {
     }
 
     // fragment shader source
-    static FRAGMENT_SHADER_SRC: &'static str = r#"
-        #version 330 core
-        out vec4 FragColor;
-        
-        void main()
-        {
-            FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);
-        } 
-    "#;
+    static FRAGMENT_SHADER_SRC: &'static str = include_str!("shaders/fragment.glsl");
 
     // fragment shader
     let fragment_shader = unsafe {
