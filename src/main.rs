@@ -105,7 +105,7 @@ fn main() {
     }
 
     // fragment shader source
-    static FRAGMENT_SHADER_SRC: &'static str = include_str!("shaders/fragment.glsl");
+    const FRAGMENT_SHADER_SRC: &'static str = include_str!("shaders/fragment.glsl");
 
     // fragment shader
     let fragment_shader = unsafe {
