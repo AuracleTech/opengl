@@ -116,9 +116,8 @@ fn main() {
                 std::ptr::null_mut(),
                 error_msg.as_ptr() as *mut GLchar,
             );
-            std::str::from_utf8(&error_msg)
-                .expect("ShaderInfoLog not valid utf8")
-                .to_owned()
+            // NOTE from_utf8 Result<> can be Err so do not use .expect() here
+            std::str::from_utf8(&error_msg).unwrap().to_owned()
         };
         panic!("Failed to compile vertex shader. Error: {}", error_msg);
     }
@@ -157,9 +156,8 @@ fn main() {
                 std::ptr::null_mut(),
                 error_msg.as_ptr() as *mut GLchar,
             );
-            std::str::from_utf8(&error_msg)
-                .expect("ShaderInfoLog not valid utf8")
-                .to_owned()
+            // NOTE from_utf8 Result<> can be Err so do not use .expect() here
+            std::str::from_utf8(&error_msg).unwrap().to_owned()
         };
         panic!("Failed to compile fragment shader. Error: {}", error_msg);
     }
