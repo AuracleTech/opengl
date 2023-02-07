@@ -219,17 +219,22 @@ fn main() {
     let mut last_time = glfw.get_time();
     let mut nb_frames = 0;
 
+    // uniform location
+    let uniform_location =
+        unsafe { gl::GetUniformLocation(shader_program, "our_color\0".as_ptr() as *const GLchar) };
+    if uniform_location == -1 {
+        panic!("Failed to get uniform location");
+    }
+
     // main loop
     while !window.should_close() {
+        // uniform calculation
+        let time_value = glfw.get_time() as f32;
+        let our_color = (time_value.sin() / 2.0) + 0.5;
+
         // render
         unsafe {
-            let time_value = glfw.get_time() as f32;
-            let our_color = (time_value.sin() / 2.0) + 0.5;
-            let uniform_location =
-                gl::GetUniformLocation(shader_program, "our_color\0".as_ptr() as *const GLchar);
-            if uniform_location == -1 {
-                panic!("Failed to get uniform location");
-            }
+            // uniform update
             gl::Uniform4f(uniform_location, 0.0, our_color, 0.0, 1.0);
 
             // clear the screen
