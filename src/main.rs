@@ -5,7 +5,7 @@ use gl::types::*;
 use glfw::{Action, Context, Key};
 
 fn main() {
-    let mut glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
+    let mut glfw = glfw::init(glfw::FAIL_ON_ERRORS).expect("Failed to initialize GLFW.");
 
     let (mut window, events) = glfw
         .create_window(
@@ -116,7 +116,9 @@ fn main() {
                 std::ptr::null_mut(),
                 error_msg.as_ptr() as *mut GLchar,
             );
-            std::str::from_utf8(&error_msg).unwrap().to_owned()
+            std::str::from_utf8(&error_msg)
+                .expect("ShaderInfoLog not valid utf8")
+                .to_owned()
         };
         panic!("Failed to compile vertex shader. Error: {}", error_msg);
     }
@@ -155,7 +157,9 @@ fn main() {
                 std::ptr::null_mut(),
                 error_msg.as_ptr() as *mut GLchar,
             );
-            std::str::from_utf8(&error_msg).unwrap().to_owned()
+            std::str::from_utf8(&error_msg)
+                .expect("ShaderInfoLog not valid utf8")
+                .to_owned()
         };
         panic!("Failed to compile fragment shader. Error: {}", error_msg);
     }
