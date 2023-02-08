@@ -116,28 +116,34 @@ fn main() {
         shader
     };
 
-    // vertex shader compile check
-    let mut success = gl::FALSE as GLint;
+    if vertex_shader == 0 {
+        panic!("Failed to create vertex shader.");
+    }
+
+    // vertex shader compile verification
+    let mut success = 0;
     unsafe {
         gl::GetShaderiv(vertex_shader, gl::COMPILE_STATUS, &mut success);
     }
-    if success != gl::TRUE as GLint {
-        let mut len = 0;
+    if success == 0 {
+        let mut log_length = 0;
         unsafe {
-            gl::GetShaderiv(vertex_shader, gl::INFO_LOG_LENGTH, &mut len);
+            gl::GetShaderiv(vertex_shader, gl::INFO_LOG_LENGTH, &mut log_length);
         }
-        let error_msg = vec![0; len as usize];
-        let error_msg = unsafe {
+        let mut log = Vec::with_capacity(log_length as usize);
+        unsafe {
             gl::GetShaderInfoLog(
                 vertex_shader,
-                len,
+                log_length,
                 std::ptr::null_mut(),
-                error_msg.as_ptr() as *mut GLchar,
+                log.as_mut_ptr() as *mut GLchar,
             );
-            // NOTE from_utf8 Result<> can be Err so do not use .expect() here
-            std::str::from_utf8(&error_msg).unwrap().to_owned()
-        };
-        panic!("Failed to compile vertex shader. Error: {}", error_msg);
+            log.set_len(log_length as usize);
+        }
+        panic!(
+            "Failed to compile vertex shader: {}",
+            String::from_utf8(log).expect("Vertex shader log is not valid UTF-8.")
+        );
     }
 
     // fragment shader source
