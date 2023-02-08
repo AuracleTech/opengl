@@ -1,11 +1,20 @@
 use gl::types::{GLchar, GLenum, GLuint};
 use std::ffi::CString;
 
+/**
+ * A shader object.
+ * @field id The OpenGL ID of the shader.
+ */
 pub struct Shader {
     pub id: GLuint,
 }
 
 impl Shader {
+    /**
+     * Create a new shader from source code.
+     * @param source The source code for the shader.
+     * @param shader_type The type of shader to create.
+     */
     pub fn new(source: &str, shader_type: GLenum) -> Shader {
         let id = unsafe { gl::CreateShader(shader_type) };
 
