@@ -201,10 +201,34 @@ fn main() {
         program
     };
 
-    if unsafe { gl::GetError() } != gl::NO_ERROR {
-        panic!("Failed to link shader program. Error: {}", unsafe {
-            gl::GetError()
-        });
+    if shader_program == 0 {
+        panic!("Failed to create shader program");
+    }
+
+    // shader program link verification
+    let mut success = 0;
+    unsafe {
+        gl::GetProgramiv(shader_program, gl::LINK_STATUS, &mut success);
+    }
+    if success == 0 {
+        let mut log_length = 0;
+        unsafe {
+            gl::GetProgramiv(shader_program, gl::INFO_LOG_LENGTH, &mut log_length);
+        }
+        let mut log = Vec::with_capacity(log_length as usize);
+        unsafe {
+            gl::GetProgramInfoLog(
+                shader_program,
+                log_length,
+                std::ptr::null_mut(),
+                log.as_mut_ptr() as *mut GLchar,
+            );
+            log.set_len(log_length as usize);
+        }
+        panic!(
+            "Failed to link shader program: {}",
+            String::from_utf8(log).expect("Shader program log is not valid UTF-8.")
+        );
     }
 
     // cleanup compiled shaders
