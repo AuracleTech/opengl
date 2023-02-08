@@ -20,6 +20,10 @@ jobs:
         run: sudo apt-get install -y libxrandr-dev
       - name: Install libxinerama Development Package
         run: sudo apt-get install -y libxinerama-dev
+      - name: Install libxcursor Development Package
+        run: sudo apt-get install -y libxcursor-dev
+      - name: Install libxi Development Package
+        run: sudo apt-get install -y libxi-dev
       - uses: actions/checkout@v3
       - name: Build
         run: cargo build --verbose
