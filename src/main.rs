@@ -23,23 +23,23 @@ fn main() {
         )
         .expect("Failed to create GLFW window.");
 
-    gl::load_with(|symbol| window.get_proc_address(symbol) as *const _);
-
-    window.set_key_polling(true);
-    window.make_current();
-
     // verify opengl version is 3.3 or higher
     let version = window.get_context_version();
     if version.major < 3 || (version.major == 3 && version.minor < 3) {
         panic!("OpenGL version 3.3 or higher is required.");
     }
 
+    gl::load_with(|symbol| window.get_proc_address(symbol) as *const _);
+
+    window.set_key_polling(true);
+    window.make_current();
+
     // get max vertex attributes (min 16 on OpenGL 3.3+)
+    // TODO check if current_vertex_attribs <= max_vertex_attribs before initializing each vertex attributes
     let mut max_vertex_attribs = 0;
     unsafe {
         gl::GetIntegerv(gl::MAX_VERTEX_ATTRIBS, &mut max_vertex_attribs);
     }
-    // TODO check if current_vertex_attribs <= max_vertex_attribs before initializing each vertex attributes
 
     // vertex data (Triangle with RGB colors for each vertex)
     // static VERTEX_DATA: [GLfloat; 9] = [
