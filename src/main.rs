@@ -27,14 +27,8 @@ fn main() {
     window.set_key_polling(true);
     window.make_current();
 
-    // get current opengl version from window.get_context_version
-    let version = window.get_context_version();
-    println!(
-        "OpenGL version: {}.{}.{}",
-        version.major, version.minor, version.patch
-    );
-
     // verify opengl version is 3.3 or higher
+    let version = window.get_context_version();
     if version.major < 3 || (version.major == 3 && version.minor < 3) {
         panic!("OpenGL version 3.3 or higher is required.");
     }
