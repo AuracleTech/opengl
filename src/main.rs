@@ -3,6 +3,7 @@ extern crate glfw;
 
 use gl::types::*;
 use glfw::{Action, Context, Key};
+use std::ffi::CString;
 
 fn main() {
     let mut glfw = glfw::init(glfw::FAIL_ON_ERRORS).expect("Failed to initialize GLFW.");
@@ -38,15 +39,29 @@ fn main() {
     unsafe {
         gl::GetIntegerv(gl::MAX_VERTEX_ATTRIBS, &mut max_vertex_attribs);
     }
-    dbg!(max_vertex_attribs);
+    // TODO check if current_vertex_attribs <= max_vertex_attribs before initializing each vertex attributes
 
-    // vertex data
-    static VERTEX_DATA: [GLfloat; 12] = [
-        0.5, 0.5, 0.0, // top right
-        0.5, -0.5, 0.0, // bottom right
-        -0.5, -0.5, 0.0, // bottom left
-        -0.5, 0.5, 0.0, // top left
+    // vertex data (Triangle with RGB colors for each vertex)
+    // static VERTEX_DATA: [GLfloat; 9] = [
+    //     0.5, -0.5, 0.0, // bottom right
+    //     -0.5, -0.5, 0.0, // bottom left
+    //     0.0, 0.5, 0.0, // top
+    // ];
+    static VERTEX_DATA: [GLfloat; 18] = [
+        0.5, -0.5, 0.0, 1.0, 0.0, 0.0, // bottom right
+        -0.5, -0.5, 0.0, 0.0, 1.0, 0.0, // bottom left
+        0.0, 0.5, 0.0, 0.0, 0.0, 1.0, // top
     ];
+
+    // vertex data (Rectangle from 2 triangles)
+    // static VERTEX_DATA: [GLfloat; 12] = [
+    //     0.5, 0.5, 0.0, // top right
+    //     0.5, -0.5, 0.0, // bottom right
+    //     -0.5, -0.5, 0.0, // bottom left
+    //     -0.5, 0.5, 0.0, // top left
+    // ];
+    // element buffer data (EBO) (Rectangle from 2 triangles)
+    // static EBO_INDEX_DATA: [GLuint; 6] = [0, 1, 3, 1, 2, 3];
 
     // vertex buffer object (VBO)
     let mut vbo = 0;
@@ -67,48 +82,56 @@ fn main() {
         gl::GenVertexArrays(1, &mut vao);
         gl::BindVertexArray(vao);
         gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
+        // position attribute
         gl::VertexAttribPointer(
             0,
             3,
             gl::FLOAT,
             gl::FALSE,
-            (3 * std::mem::size_of::<GLfloat>()) as GLsizei,
+            (6 * std::mem::size_of::<GLfloat>()) as GLsizei,
             std::ptr::null(),
         );
         gl::EnableVertexAttribArray(0);
+        // color attribute
+        gl::VertexAttribPointer(
+            1,
+            3,
+            gl::FLOAT,
+            gl::FALSE,
+            (6 * std::mem::size_of::<GLfloat>()) as GLsizei,
+            (3 * std::mem::size_of::<GLfloat>()) as *const GLvoid,
+        );
+        gl::EnableVertexAttribArray(1);
     }
-
-    // element buffer data
-    static EBO_INDEX_DATA: [GLuint; 6] = [0, 1, 3, 1, 2, 3];
 
     // element buffer object (EBO) uses VBO
-    let mut ebo = 0;
-    unsafe {
-        gl::GenBuffers(1, &mut ebo);
-        gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, ebo);
-        gl::BufferData(
-            gl::ELEMENT_ARRAY_BUFFER,
-            (EBO_INDEX_DATA.len() * std::mem::size_of::<GLuint>()) as GLsizeiptr,
-            EBO_INDEX_DATA.as_ptr() as *const GLvoid,
-            gl::STATIC_DRAW,
-        );
-    }
+    // let mut ebo = 0;
+    // unsafe {
+    //     gl::GenBuffers(1, &mut ebo);
+    //     gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, ebo);
+    //     gl::BufferData(
+    //         gl::ELEMENT_ARRAY_BUFFER,
+    //         (EBO_INDEX_DATA.len() * std::mem::size_of::<GLuint>()) as GLsizeiptr,
+    //         EBO_INDEX_DATA.as_ptr() as *const GLvoid,
+    //         gl::STATIC_DRAW,
+    //     );
+    // }
 
     // vertex shader source
-    const VERTEX_SHADER_SRC: &'static str = include_str!("shaders/vertex.glsl");
+    static VERTEX_SHADER_SRC: &str = include_str!("shaders/vertex.glsl");
 
     // vertex shader
-    let vertex_shader = unsafe {
-        let shader = gl::CreateShader(gl::VERTEX_SHADER);
+    let vertex_shader = unsafe { gl::CreateShader(gl::VERTEX_SHADER) };
+    let c_str_vertex_shader_src = CString::new(VERTEX_SHADER_SRC.as_bytes()).unwrap();
+    unsafe {
         gl::ShaderSource(
-            shader,
+            vertex_shader,
             1,
-            [VERTEX_SHADER_SRC.as_ptr() as *const GLchar].as_ptr(),
+            &c_str_vertex_shader_src.as_ptr(),
             std::ptr::null(),
         );
-        gl::CompileShader(shader);
-        shader
-    };
+        gl::CompileShader(vertex_shader);
+    }
 
     if vertex_shader == 0 {
         panic!("Failed to create vertex shader.");
@@ -144,17 +167,17 @@ fn main() {
     const FRAGMENT_SHADER_SRC: &'static str = include_str!("shaders/fragment.glsl");
 
     // fragment shader
-    let fragment_shader = unsafe {
-        let shader = gl::CreateShader(gl::FRAGMENT_SHADER);
+    let fragment_shader = unsafe { gl::CreateShader(gl::FRAGMENT_SHADER) };
+    let c_str_fragment_shader_src = CString::new(FRAGMENT_SHADER_SRC.as_bytes()).unwrap();
+    unsafe {
         gl::ShaderSource(
-            shader,
+            fragment_shader,
             1,
-            [FRAGMENT_SHADER_SRC.as_ptr() as *const GLchar].as_ptr(),
+            &c_str_fragment_shader_src.as_ptr(),
             std::ptr::null(),
         );
-        gl::CompileShader(shader);
-        shader
-    };
+        gl::CompileShader(fragment_shader);
+    }
 
     if fragment_shader == 0 {
         panic!("Failed to create fragment shader.");
@@ -241,20 +264,8 @@ fn main() {
             gl::STATIC_DRAW,
         );
     }
-    // vertex attribute pointers
-    unsafe {
-        gl::VertexAttribPointer(
-            0,
-            3,
-            gl::FLOAT,
-            gl::FALSE,
-            (3 * std::mem::size_of::<GLfloat>()) as GLsizei,
-            std::ptr::null(),
-        );
-        gl::EnableVertexAttribArray(0);
-    }
 
-    // define clear color
+    // opengl setup
     unsafe {
         gl::ClearColor(0.3, 0.3, 0.5, 1.0);
         gl::UseProgram(shader_program);
@@ -268,28 +279,33 @@ fn main() {
     let mut nb_frames = 0;
 
     // uniform location
-    let uniform_location =
-        unsafe { gl::GetUniformLocation(shader_program, "our_color\0".as_ptr() as *const GLchar) };
-    if uniform_location == -1 {
-        panic!("Failed to get uniform location");
-    }
+    // let uniform_location =
+    //     unsafe { gl::GetUniformLocation(shader_program, "our_color\0".as_ptr() as *const GLchar) };
+    // if uniform_location == -1 {
+    //     panic!("Failed to get uniform location");
+    // }
 
     // main loop
     while !window.should_close() {
         // uniform calculation
-        let time_value = glfw.get_time() as f32;
-        let our_color = (time_value.sin() / 2.0) + 0.5;
+        // let time_value = glfw.get_time() as f32;
+        // let our_color = (time_value.sin() / 2.0) + 0.5;
 
         // render
         unsafe {
             // uniform update
-            gl::Uniform4f(uniform_location, 0.0, our_color, 0.0, 1.0);
+            // gl::Uniform4f(uniform_location, 0.0, our_color, 0.0, 1.0);
 
             // clear the screen
             gl::Clear(gl::COLOR_BUFFER_BIT);
 
             gl::BindVertexArray(vao);
-            gl::DrawElements(gl::TRIANGLES, 6, gl::UNSIGNED_INT, std::ptr::null());
+            // VAO draw
+            gl::DrawArrays(gl::TRIANGLES, 0, 3);
+
+            // EBO draw
+            // gl::BindVertexArray(ebo);
+            // gl::DrawElements(gl::TRIANGLES, 6, gl::UNSIGNED_INT, std::ptr::null());
         }
 
         // call events and swap the buffers
