@@ -1,9 +1,11 @@
 extern crate gl;
 extern crate glfw;
 
+mod shader;
+
 use gl::types::*;
 use glfw::{Action, Context, Key};
-use std::ffi::CString;
+use shader::Shader;
 
 fn main() {
     let mut glfw = glfw::init(glfw::FAIL_ON_ERRORS).expect("Failed to initialize GLFW.");
@@ -117,103 +119,19 @@ fn main() {
     //     );
     // }
 
-    // vertex shader source
-    static VERTEX_SHADER_SRC: &str = include_str!("shaders/vertex.glsl");
-
     // vertex shader
-    let vertex_shader = unsafe { gl::CreateShader(gl::VERTEX_SHADER) };
-    let c_str_vertex_shader_src = CString::new(VERTEX_SHADER_SRC.as_bytes()).unwrap();
-    unsafe {
-        gl::ShaderSource(
-            vertex_shader,
-            1,
-            &c_str_vertex_shader_src.as_ptr(),
-            std::ptr::null(),
-        );
-        gl::CompileShader(vertex_shader);
-    }
-
-    if vertex_shader == 0 {
-        panic!("Failed to create vertex shader.");
-    }
-
-    // vertex shader compile verification
-    let mut success = 0;
-    unsafe {
-        gl::GetShaderiv(vertex_shader, gl::COMPILE_STATUS, &mut success);
-    }
-    if success == 0 {
-        let mut log_length = 0;
-        unsafe {
-            gl::GetShaderiv(vertex_shader, gl::INFO_LOG_LENGTH, &mut log_length);
-        }
-        let mut log = Vec::with_capacity(log_length as usize);
-        unsafe {
-            gl::GetShaderInfoLog(
-                vertex_shader,
-                log_length,
-                std::ptr::null_mut(),
-                log.as_mut_ptr() as *mut GLchar,
-            );
-            log.set_len(log_length as usize);
-        }
-        panic!(
-            "Failed to compile vertex shader: {}",
-            String::from_utf8(log).expect("Vertex shader log is not valid UTF-8.")
-        );
-    }
-
-    // fragment shader source
-    const FRAGMENT_SHADER_SRC: &'static str = include_str!("shaders/fragment.glsl");
+    static VERTEX_SHADER_SRC: &str = include_str!("shaders/vertex.glsl");
+    let vertex_shader = Shader::new(VERTEX_SHADER_SRC, gl::VERTEX_SHADER);
 
     // fragment shader
-    let fragment_shader = unsafe { gl::CreateShader(gl::FRAGMENT_SHADER) };
-    let c_str_fragment_shader_src = CString::new(FRAGMENT_SHADER_SRC.as_bytes()).unwrap();
-    unsafe {
-        gl::ShaderSource(
-            fragment_shader,
-            1,
-            &c_str_fragment_shader_src.as_ptr(),
-            std::ptr::null(),
-        );
-        gl::CompileShader(fragment_shader);
-    }
-
-    if fragment_shader == 0 {
-        panic!("Failed to create fragment shader.");
-    }
-
-    // fragment shader compile verification
-    let mut success = 0;
-    unsafe {
-        gl::GetShaderiv(fragment_shader, gl::COMPILE_STATUS, &mut success);
-    }
-    if success == 0 {
-        let mut log_length = 0;
-        unsafe {
-            gl::GetShaderiv(fragment_shader, gl::INFO_LOG_LENGTH, &mut log_length);
-        }
-        let mut log = Vec::with_capacity(log_length as usize);
-        unsafe {
-            gl::GetShaderInfoLog(
-                fragment_shader,
-                log_length,
-                std::ptr::null_mut(),
-                log.as_mut_ptr() as *mut GLchar,
-            );
-            log.set_len(log_length as usize);
-        }
-        panic!(
-            "Failed to compile fragment shader: {}",
-            String::from_utf8(log).expect("Fragment shader log is not valid UTF-8.")
-        );
-    }
+    const FRAGMENT_SHADER_SRC: &'static str = include_str!("shaders/fragment.glsl");
+    let fragment_shader = Shader::new(FRAGMENT_SHADER_SRC, gl::FRAGMENT_SHADER);
 
     // shader program
     let shader_program = unsafe {
         let program = gl::CreateProgram();
-        gl::AttachShader(program, vertex_shader);
-        gl::AttachShader(program, fragment_shader);
+        gl::AttachShader(program, vertex_shader.id);
+        gl::AttachShader(program, fragment_shader.id);
         gl::LinkProgram(program);
         program
     };
@@ -250,8 +168,8 @@ fn main() {
 
     // cleanup compiled shaders
     unsafe {
-        gl::DeleteShader(vertex_shader);
-        gl::DeleteShader(fragment_shader);
+        gl::DeleteShader(vertex_shader.id);
+        gl::DeleteShader(fragment_shader.id);
     }
 
     // copy vertex data to buffer
