@@ -27,7 +27,19 @@ fn main() {
     window.set_key_polling(true);
     window.make_current();
 
-    // get max vertex attributes (min 16 on OpenGL 3.3)
+    // get current opengl version from window.get_context_version
+    let version = window.get_context_version();
+    println!(
+        "OpenGL version: {}.{}.{}",
+        version.major, version.minor, version.patch
+    );
+
+    // verify opengl version is 3.3 or higher
+    if version.major < 3 || (version.major == 3 && version.minor < 3) {
+        panic!("OpenGL version 3.3 or higher is required.");
+    }
+
+    // get max vertex attributes (min 16 on OpenGL 3.3+)
     let mut max_vertex_attribs = 0;
     unsafe {
         gl::GetIntegerv(gl::MAX_VERTEX_ATTRIBS, &mut max_vertex_attribs);
