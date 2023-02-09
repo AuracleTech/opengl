@@ -1,10 +1,12 @@
 extern crate gl;
 extern crate glfw;
 
+mod program;
 mod shader;
 
 use gl::types::*;
 use glfw::{Action, Context, Key};
+use program::Program;
 use shader::Shader;
 
 fn main() {
@@ -130,49 +132,7 @@ fn main() {
     let fragment_shader = Shader::new(FRAGMENT_SHADER_SRC, gl::FRAGMENT_SHADER);
 
     // shader program
-    let shader_program = unsafe {
-        let program = gl::CreateProgram();
-        gl::AttachShader(program, vertex_shader.id);
-        gl::AttachShader(program, fragment_shader.id);
-        gl::LinkProgram(program);
-        program
-    };
-
-    if shader_program == 0 {
-        panic!("Failed to create shader program");
-    }
-
-    // shader program link verification
-    let mut success = 0;
-    unsafe {
-        gl::GetProgramiv(shader_program, gl::LINK_STATUS, &mut success);
-    }
-    if success == 0 {
-        let mut log_length = 0;
-        unsafe {
-            gl::GetProgramiv(shader_program, gl::INFO_LOG_LENGTH, &mut log_length);
-        }
-        let mut log = Vec::with_capacity(log_length as usize);
-        unsafe {
-            gl::GetProgramInfoLog(
-                shader_program,
-                log_length,
-                std::ptr::null_mut(),
-                log.as_mut_ptr() as *mut GLchar,
-            );
-            log.set_len(log_length as usize);
-        }
-        panic!(
-            "Failed to link shader program: {}",
-            String::from_utf8(log).expect("Shader program log is not valid UTF-8.")
-        );
-    }
-
-    // cleanup compiled shaders
-    unsafe {
-        gl::DeleteShader(vertex_shader.id);
-        gl::DeleteShader(fragment_shader.id);
-    }
+    let shader_program = Program::new(&vertex_shader, &fragment_shader);
 
     // copy vertex data to buffer
     unsafe {
@@ -186,9 +146,9 @@ fn main() {
     }
 
     // opengl setup
+    shader_program.use_program();
     unsafe {
         gl::ClearColor(0.3, 0.3, 0.5, 1.0);
-        gl::UseProgram(shader_program);
     }
 
     // swap interval
@@ -198,24 +158,10 @@ fn main() {
     let mut last_time = glfw.get_time();
     let mut nb_frames = 0;
 
-    // uniform location
-    // let uniform_location =
-    //     unsafe { gl::GetUniformLocation(shader_program, "our_color\0".as_ptr() as *const GLchar) };
-    // if uniform_location == -1 {
-    //     panic!("Failed to get uniform location");
-    // }
-
     // main loop
     while !window.should_close() {
-        // uniform calculation
-        // let time_value = glfw.get_time() as f32;
-        // let our_color = (time_value.sin() / 2.0) + 0.5;
-
         // render
         unsafe {
-            // uniform update
-            // gl::Uniform4f(uniform_location, 0.0, our_color, 0.0, 1.0);
-
             // clear the screen
             gl::Clear(gl::COLOR_BUFFER_BIT);
 
