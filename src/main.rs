@@ -43,16 +43,18 @@ fn main() {
         gl::GetIntegerv(gl::MAX_VERTEX_ATTRIBS, &mut max_vertex_attribs);
     }
 
-    // vertex data (Triangle with RGB colors for each vertex)
+    // vertex data
     // static VERTEX_DATA: [GLfloat; 9] = [
     //     0.5, -0.5, 0.0, // bottom right
     //     -0.5, -0.5, 0.0, // bottom left
     //     0.0, 0.5, 0.0, // top
     // ];
+
+    // vertex data (Triangle with RGB colors for each vertex)
     static VERTEX_DATA: [GLfloat; 18] = [
-        0.5, -0.5, 0.0, 1.0, 0.0, 0.0, // bottom right
-        -0.5, -0.5, 0.0, 0.0, 1.0, 0.0, // bottom left
-        0.0, 0.5, 0.0, 0.0, 0.0, 1.0, // top
+        0.5, -0.5, 0.0, 1.0, 1.0, 0.0, // bottom right
+        -0.5, -0.5, 0.0, 0.0, 1.0, 1.0, // bottom left
+        0.0, 0.5, 0.0, 1.0, 0.0, 1.0, // top
     ];
 
     // vertex data (Rectangle from 2 triangles)
@@ -218,7 +220,6 @@ fn main() {
             gl::Clear(gl::COLOR_BUFFER_BIT);
 
             gl::BindVertexArray(vao);
-            // VAO draw
             gl::DrawArrays(gl::TRIANGLES, 0, 3);
 
             // EBO draw
