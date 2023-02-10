@@ -35,6 +35,7 @@ fn main() {
 
     gl::load_with(|symbol| window.get_proc_address(symbol) as *const _);
 
+    window.set_framebuffer_size_polling(true);
     window.set_key_polling(true);
     window.make_current();
 
@@ -215,7 +216,7 @@ fn handle_window_event(window: &mut glfw::Window, event: glfw::WindowEvent) {
                 _ => panic!("PolygonMode: Unknown"),
             }
         },
-        // event for resizing the window
+        // resize the viewport when the window is resized
         glfw::WindowEvent::FramebufferSize(width, height) => unsafe {
             gl::Viewport(0, 0, width, height);
         },
