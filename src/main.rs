@@ -62,7 +62,7 @@ fn main() {
         _ => panic!("Image format not supported"),
     };
 
-    // set texture alignment to 1 byte
+    // set texture alignment to 1 byte because we are using 3 color channels (3 bytes) and not 4 (RGBA)
     unsafe {
         gl::PixelStorei(gl::UNPACK_ALIGNMENT, 1);
     }
