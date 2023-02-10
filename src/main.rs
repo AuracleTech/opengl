@@ -171,12 +171,10 @@ fn main() {
     }
 
     // vertex shader
-    static VERTEX_SHADER_SRC: &str = include_str!("shaders/vertex.glsl");
-    let vertex_shader = Shader::new(VERTEX_SHADER_SRC, gl::VERTEX_SHADER);
+    let vertex_shader = Shader::new(include_str!("shaders/vertex.glsl"), gl::VERTEX_SHADER);
 
     // fragment shader
-    const FRAGMENT_SHADER_SRC: &'static str = include_str!("shaders/fragment.glsl");
-    let fragment_shader = Shader::new(FRAGMENT_SHADER_SRC, gl::FRAGMENT_SHADER);
+    let fragment_shader = Shader::new(include_str!("shaders/fragment.glsl"), gl::FRAGMENT_SHADER);
 
     // shader program
     let shader_program = Program::new(&vertex_shader, &fragment_shader);
@@ -204,7 +202,7 @@ fn main() {
 
     // calculate fps declarations
     let mut last_time = glfw.get_time();
-    let mut nb_frames = 0;
+    let mut frames_rendered = 0;
 
     // main loop
     while !window.should_close() {
@@ -229,15 +227,15 @@ fn main() {
         }
 
         // calculate fps and print to console
+        frames_rendered += 1;
         let current_time = glfw.get_time();
-        nb_frames += 1;
         if current_time - last_time >= 1.0 {
             println!(
-                "{} fps {:0.3} ms/draw",
-                nb_frames,
-                1000.0 / nb_frames as f64
+                "{} fps {:0.4} ms/draw",
+                frames_rendered,
+                1000.0 / frames_rendered as f64
             );
-            nb_frames = 0;
+            frames_rendered = 0;
             last_time = current_time;
         }
     }
