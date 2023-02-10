@@ -53,12 +53,19 @@ fn main() {
         .flipv();
     let width = texture_image.width();
     let height = texture_image.height();
-    let _nr_channels = texture_image.color().channel_count();
-    dbg!(width, height, _nr_channels);
+    let nr_channels = texture_image.color().channel_count();
+    if nr_channels != 3 {
+        panic!("Texture format not supported.");
+    }
     let data = match texture_image {
         DynamicImage::ImageRgb8(texture_image) => texture_image.into_raw(),
         _ => panic!("Image format not supported"),
     };
+
+    // set texture alignment to 1 byte
+    unsafe {
+        gl::PixelStorei(gl::UNPACK_ALIGNMENT, 1);
+    }
 
     let mut texture = 0;
     unsafe {
@@ -66,11 +73,8 @@ fn main() {
         gl::GenTextures(1, &mut texture);
         gl::BindTexture(gl::TEXTURE_2D, texture);
         // set texture wrapping
-        gl::TexParameterfv(
-            gl::TEXTURE_2D,
-            gl::TEXTURE_BORDER_COLOR,
-            [1.0, 1.0, 0.0, 1.0].as_ptr(),
-        );
+        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::REPEAT as i32);
+        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::REPEAT as i32);
         // set texture filtering
         gl::TexParameteri(
             gl::TEXTURE_2D,
@@ -88,7 +92,7 @@ fn main() {
             0,
             gl::RGB,
             gl::UNSIGNED_BYTE,
-            data.as_ptr() as *const _,
+            data.as_ptr() as *const GLvoid,
         );
         // generates mipmaps
         gl::GenerateMipmap(gl::TEXTURE_2D);
@@ -121,7 +125,6 @@ fn main() {
     unsafe {
         gl::GenVertexArrays(1, &mut vao);
         gl::BindVertexArray(vao);
-        gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
         // position attribute
         gl::VertexAttribPointer(
             0,
