@@ -6,6 +6,7 @@ mod shader;
 
 use gl::types::*;
 use glfw::{Action, Context, Key};
+use image::DynamicImage;
 use program::Program;
 use shader::Shader;
 
@@ -46,29 +47,61 @@ fn main() {
         gl::GetIntegerv(gl::MAX_VERTEX_ATTRIBS, &mut max_vertex_attribs);
     }
 
+    // texture
+    let texture_image = image::open("../assets/textures/frame.jpg")
+        .expect("Failed to load texture.")
+        .flipv();
+    let width = texture_image.width();
+    let height = texture_image.height();
+    let _nr_channels = texture_image.color().channel_count();
+    dbg!(width, height, _nr_channels);
+    let data = match texture_image {
+        DynamicImage::ImageRgb8(texture_image) => texture_image.into_raw(),
+        _ => panic!("Image format not supported"),
+    };
+
+    let mut texture = 0;
+    unsafe {
+        // generate texture id
+        gl::GenTextures(1, &mut texture);
+        gl::BindTexture(gl::TEXTURE_2D, texture);
+        // set texture wrapping
+        gl::TexParameterfv(
+            gl::TEXTURE_2D,
+            gl::TEXTURE_BORDER_COLOR,
+            [1.0, 1.0, 0.0, 1.0].as_ptr(),
+        );
+        // set texture filtering
+        gl::TexParameteri(
+            gl::TEXTURE_2D,
+            gl::TEXTURE_MIN_FILTER,
+            gl::LINEAR_MIPMAP_LINEAR as i32,
+        );
+        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::LINEAR as i32);
+        // set texture data
+        gl::TexImage2D(
+            gl::TEXTURE_2D,
+            0,
+            gl::RGB as i32,
+            width as i32,
+            height as i32,
+            0,
+            gl::RGB,
+            gl::UNSIGNED_BYTE,
+            data.as_ptr() as *const _,
+        );
+        // generates mipmaps
+        gl::GenerateMipmap(gl::TEXTURE_2D);
+    }
+
     // vertex data
-    // static VERTEX_DATA: [GLfloat; 9] = [
-    //     0.5, -0.5, 0.0, // bottom right
-    //     -0.5, -0.5, 0.0, // bottom left
-    //     0.0, 0.5, 0.0, // top
-    // ];
-
-    // vertex data (Triangle with RGB colors for each vertex)
-    static VERTEX_DATA: [GLfloat; 18] = [
-        0.5, -0.5, 0.0, 1.0, 1.0, 0.0, // bottom right
-        -0.5, -0.5, 0.0, 0.0, 1.0, 1.0, // bottom left
-        0.0, 0.5, 0.0, 1.0, 0.0, 1.0, // top
+    const VERTEX_DATA: [GLfloat; 32] = [
+        // 3 positions, 3 colors, 2 texture coords
+        0.5, 0.5, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0, // top right
+        0.5, -0.5, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, // bottom right
+        -0.5, -0.5, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, // bottom left
+        -0.5, 0.5, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, // top left
     ];
-
-    // vertex data (Rectangle from 2 triangles)
-    // static VERTEX_DATA: [GLfloat; 12] = [
-    //     0.5, 0.5, 0.0, // top right
-    //     0.5, -0.5, 0.0, // bottom right
-    //     -0.5, -0.5, 0.0, // bottom left
-    //     -0.5, 0.5, 0.0, // top left
-    // ];
-    // element buffer data (EBO) (Rectangle from 2 triangles)
-    // static EBO_INDEX_DATA: [GLuint; 6] = [0, 1, 3, 1, 2, 3];
 
     // vertex buffer object (VBO)
     let mut vbo = 0;
@@ -95,7 +128,7 @@ fn main() {
             3,
             gl::FLOAT,
             gl::FALSE,
-            (6 * std::mem::size_of::<GLfloat>()) as GLsizei,
+            (8 * std::mem::size_of::<GLfloat>()) as GLsizei,
             std::ptr::null(),
         );
         gl::EnableVertexAttribArray(0);
@@ -105,24 +138,37 @@ fn main() {
             3,
             gl::FLOAT,
             gl::FALSE,
-            (6 * std::mem::size_of::<GLfloat>()) as GLsizei,
+            (8 * std::mem::size_of::<GLfloat>()) as GLsizei,
             (3 * std::mem::size_of::<GLfloat>()) as *const GLvoid,
         );
         gl::EnableVertexAttribArray(1);
+        // texture coord attribute
+        gl::VertexAttribPointer(
+            2,
+            2,
+            gl::FLOAT,
+            gl::FALSE,
+            (8 * std::mem::size_of::<GLfloat>()) as GLsizei,
+            (6 * std::mem::size_of::<GLfloat>()) as *const GLvoid,
+        );
+        gl::EnableVertexAttribArray(2);
     }
 
+    // element buffer data (EBO) (Rectangle from 2 triangles)
+    const EBO_INDEX_DATA: [GLuint; 6] = [0, 1, 3, 1, 2, 3];
+
     // element buffer object (EBO) uses VBO
-    // let mut ebo = 0;
-    // unsafe {
-    //     gl::GenBuffers(1, &mut ebo);
-    //     gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, ebo);
-    //     gl::BufferData(
-    //         gl::ELEMENT_ARRAY_BUFFER,
-    //         (EBO_INDEX_DATA.len() * std::mem::size_of::<GLuint>()) as GLsizeiptr,
-    //         EBO_INDEX_DATA.as_ptr() as *const GLvoid,
-    //         gl::STATIC_DRAW,
-    //     );
-    // }
+    let mut ebo = 0;
+    unsafe {
+        gl::GenBuffers(1, &mut ebo);
+        gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, ebo);
+        gl::BufferData(
+            gl::ELEMENT_ARRAY_BUFFER,
+            (EBO_INDEX_DATA.len() * std::mem::size_of::<GLuint>()) as GLsizeiptr,
+            EBO_INDEX_DATA.as_ptr() as *const GLvoid,
+            gl::STATIC_DRAW,
+        );
+    }
 
     // vertex shader
     static VERTEX_SHADER_SRC: &str = include_str!("shaders/vertex.glsl");
@@ -150,6 +196,7 @@ fn main() {
     shader_program.use_program();
     unsafe {
         gl::ClearColor(0.3, 0.3, 0.5, 1.0);
+        gl::BindTexture(gl::TEXTURE_2D, texture);
     }
 
     // swap interval
@@ -167,11 +214,7 @@ fn main() {
             gl::Clear(gl::COLOR_BUFFER_BIT);
 
             gl::BindVertexArray(vao);
-            gl::DrawArrays(gl::TRIANGLES, 0, 3);
-
-            // EBO draw
-            // gl::BindVertexArray(ebo);
-            // gl::DrawElements(gl::TRIANGLES, 6, gl::UNSIGNED_INT, std::ptr::null());
+            gl::DrawElements(gl::TRIANGLES, 6, gl::UNSIGNED_INT, std::ptr::null());
         }
 
         // swap buffers
