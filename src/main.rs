@@ -174,9 +174,13 @@ fn main() {
             // gl::DrawElements(gl::TRIANGLES, 6, gl::UNSIGNED_INT, std::ptr::null());
         }
 
-        // call events and swap the buffers
+        // swap buffers
         window.swap_buffers();
+
+        // poll events (keyboard, mouse, etc)
         glfw.poll_events();
+
+        // window events (resize, close, etc)
         for (_, event) in glfw::flush_messages(&events) {
             handle_window_event(&mut window, event);
         }
