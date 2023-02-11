@@ -208,22 +208,23 @@ fn handle_window_event(window: &mut glfw::Window, event: glfw::WindowEvent) {
     match event {
         // ESC closes the window
         glfw::WindowEvent::Key(Key::Escape, _, Action::Press, _) => window.set_should_close(true),
-        // W toggles wireframe mode
-        glfw::WindowEvent::Key(Key::W, _, Action::Press, _) => unsafe {
+        // W cycle through polygon modes
+        glfw::WindowEvent::Key(Key::W, _, Action::Press, _) => {
             let mut polygon_mode = [0];
-            gl::GetIntegerv(gl::POLYGON_MODE, polygon_mode.as_mut_ptr());
-            match polygon_mode[0] as u32 {
-                gl::FILL => {
-                    gl::PolygonMode(gl::FRONT_AND_BACK, gl::LINE);
-                    println!("PolygonMode: LINE");
-                }
-                gl::LINE => {
-                    gl::PolygonMode(gl::FRONT_AND_BACK, gl::FILL);
-                    println!("PolygonMode: FILL");
-                }
-                _ => panic!("PolygonMode: Unknown"),
+            unsafe {
+                gl::GetIntegerv(gl::POLYGON_MODE, polygon_mode.as_mut_ptr());
             }
-        },
+            let polygon_mode = match polygon_mode[0] as GLenum {
+                gl::FILL => gl::LINE,
+                gl::LINE => gl::POINT,
+                gl::POINT => gl::FILL,
+                _ => panic!("Unknown polygon mode"),
+            };
+            unsafe {
+                gl::PolygonMode(gl::FRONT_AND_BACK, polygon_mode);
+            }
+            println!("Polygon mode: {}", polygon_mode);
+        }
         // resize the viewport when the window is resized
         glfw::WindowEvent::FramebufferSize(width, height) => unsafe {
             gl::Viewport(0, 0, width, height);
