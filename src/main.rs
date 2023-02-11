@@ -3,12 +3,13 @@ extern crate glfw;
 
 mod program;
 mod shader;
+mod texture;
 
 use gl::types::*;
 use glfw::{Action, Context, Key};
-use image::DynamicImage;
 use program::Program;
 use shader::Shader;
+use texture::Texture;
 
 fn main() {
     let mut glfw = glfw::init(glfw::FAIL_ON_ERRORS).expect("Failed to initialize GLFW.");
@@ -51,55 +52,8 @@ fn main() {
     }
 
     // texture
-    let texture_image = image::open("../assets/textures/frame.jpg")
-        .expect("Failed to load texture.")
-        .flipv();
-    let width = texture_image.width();
-    let height = texture_image.height();
-    let nr_channels = texture_image.color().channel_count();
-    if nr_channels != 3 {
-        panic!("Texture format not supported.");
-    }
-    let data = match texture_image {
-        DynamicImage::ImageRgb8(texture_image) => texture_image.into_raw(),
-        _ => panic!("Image format not supported"),
-    };
-
-    // set texture alignment to 1 byte because we are using 3 color channels (3 bytes) and not 4 (RGBA)
-    unsafe {
-        gl::PixelStorei(gl::UNPACK_ALIGNMENT, 1);
-    }
-
-    let mut texture = 0;
-    unsafe {
-        // generate texture id
-        gl::GenTextures(1, &mut texture);
-        gl::BindTexture(gl::TEXTURE_2D, texture);
-        // set texture wrapping
-        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::REPEAT as i32);
-        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::REPEAT as i32);
-        // set texture filtering
-        gl::TexParameteri(
-            gl::TEXTURE_2D,
-            gl::TEXTURE_MIN_FILTER,
-            gl::LINEAR_MIPMAP_LINEAR as i32,
-        );
-        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::LINEAR as i32);
-        // set texture data
-        gl::TexImage2D(
-            gl::TEXTURE_2D,
-            0,
-            gl::RGB as i32,
-            width as i32,
-            height as i32,
-            0,
-            gl::RGB,
-            gl::UNSIGNED_BYTE,
-            data.as_ptr() as *const GLvoid,
-        );
-        // generates mipmaps
-        gl::GenerateMipmap(gl::TEXTURE_2D);
-    }
+    let texture_frame = Texture::new("../assets/textures/frame.jpg");
+    let texture_flume = Texture::new("../assets/textures/flume.jpg");
 
     // vertex data
     const VERTEX_DATA: [GLfloat; 32] = [
@@ -196,11 +150,17 @@ fn main() {
         );
     }
 
-    // opengl setup
+    // TODO deal with max amount of texture units
+    texture_frame.bind(0);
+    texture_flume.bind(1);
+
+    // use shader program
     shader_program.use_program();
+    // set uniform values
+    shader_program.set_uniform_int("texture_frame", 0);
+    shader_program.set_uniform_int("texture_flume", 1);
     unsafe {
         gl::ClearColor(0.3, 0.3, 0.5, 1.0);
-        gl::BindTexture(gl::TEXTURE_2D, texture);
     }
 
     // calculate fps declarations

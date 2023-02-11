@@ -4,9 +4,10 @@ in vec2 tex_coord;
 
 out vec4 frag_color;
 
-uniform sampler2D our_texture;
+uniform sampler2D texture_frame;
+uniform sampler2D texture_flume;
 
 void main()
 {
-    frag_color = texture(our_texture, tex_coord);
+    frag_color = mix(texture(texture_frame, tex_coord), texture(texture_flume, tex_coord), 0.2);
 }
