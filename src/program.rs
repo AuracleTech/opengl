@@ -106,12 +106,10 @@ impl Program {
 }
 
 fn get_uniform_location(program_id: u32, uniform_name: &str) -> i32 {
-    let name = uniform_name.as_ptr() as *const GLchar;
-    let uniform_location = unsafe { gl::GetUniformLocation(program_id, name) };
-
-    // Verify uniform location was found
-    if uniform_location < 0 {
-        panic!("Failed to find uniform {}", uniform_name);
+    let name =
+        std::ffi::CString::new(uniform_name).expect("Failed to convert uniform name to CString.");
+    match unsafe { gl::GetUniformLocation(program_id, name.as_ptr()) } {
+        -1 => panic!("Failed to find uniform location: {}", uniform_name),
+        location => location,
     }
-    uniform_location
 }
