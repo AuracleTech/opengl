@@ -40,6 +40,9 @@ fn main() {
     window.set_key_polling(true);
     window.make_current();
 
+    // swap interval
+    glfw.set_swap_interval(glfw::SwapInterval::Sync(0));
+
     // get max vertex attributes (min 16 on OpenGL 3.3+)
     // TODO check if current_vertex_attribs <= max_vertex_attribs before initializing each vertex attributes
     let mut max_vertex_attribs = 0;
@@ -199,9 +202,6 @@ fn main() {
         gl::ClearColor(0.3, 0.3, 0.5, 1.0);
         gl::BindTexture(gl::TEXTURE_2D, texture);
     }
-
-    // swap interval
-    glfw.set_swap_interval(glfw::SwapInterval::Sync(0));
 
     // calculate fps declarations
     let mut last_time = glfw.get_time();
