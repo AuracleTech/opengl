@@ -1,12 +1,14 @@
 extern crate gl;
 extern crate glfw;
 
+mod math_auracle;
 mod program;
 mod shader;
 mod texture;
 
 use gl::types::*;
 use glfw::{Action, Context, Key};
+use math_auracle::{Mat4, Vec3};
 use program::Program;
 use shader::Shader;
 use texture::Texture;
@@ -154,11 +156,19 @@ fn main() {
     texture_frame.bind(0);
     texture_flume.bind(1);
 
+    // translate, rotate and scale matrix manipulations - order matters
+    let mut manipulations = Mat4::identity();
+    manipulations.translate(Vec3::new(0.5, -0.5, 0.0));
+    manipulations.scale(Vec3::new(0.5, 0.5, 0.0));
+    manipulations.rotate(90.0, Vec3::new(0.0, 0.0, 1.0));
+
     // use shader program
     shader_program.use_program();
     // set uniform values
     shader_program.set_uniform_int("texture_frame", 0);
     shader_program.set_uniform_int("texture_flume", 1);
+    shader_program.set_uniform_mat4("manipulations", &manipulations);
+
     unsafe {
         gl::ClearColor(0.3, 0.3, 0.5, 1.0);
     }
