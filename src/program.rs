@@ -1,5 +1,6 @@
-use crate::shader::Shader;
+use crate::{math_auracle, shader::Shader};
 use gl::types::GLchar;
+use math_auracle::Mat4;
 
 /**
  * Program object.
@@ -101,6 +102,22 @@ impl Program {
     pub fn set_uniform_float(&self, uniform_name: &str, value: f32) {
         unsafe {
             gl::Uniform1f(get_uniform_location(self.id, uniform_name), value);
+        }
+    }
+
+    /**
+     * Set a uniform Mat4 value.
+     * @param uniform_name The name of the uniform to set.
+     * @param value The value to set the uniform to.
+     */
+    pub fn set_uniform_mat4(&self, uniform_name: &str, value: &Mat4) {
+        unsafe {
+            gl::UniformMatrix4fv(
+                get_uniform_location(self.id, uniform_name),
+                1,
+                gl::FALSE,
+                value.as_ptr(),
+            );
         }
     }
 }
