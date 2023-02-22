@@ -1,14 +1,14 @@
 extern crate gl;
 extern crate glfw;
 
-mod math_auracle;
+mod maths;
 mod program;
 mod shader;
 mod texture;
 
 use gl::types::*;
 use glfw::{Action, Context, Key};
-use math_auracle::{Mat4, Vec3};
+use maths::{Mat4, Vec3};
 use program::Program;
 use shader::Shader;
 use texture::Texture;

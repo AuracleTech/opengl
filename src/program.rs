@@ -1,6 +1,5 @@
-use crate::{math_auracle, shader::Shader};
+use crate::{maths::Mat4, shader::Shader};
 use gl::types::GLchar;
-use math_auracle::Mat4;
 
 /**
  * Program object.
