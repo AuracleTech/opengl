@@ -1,17 +1,20 @@
 extern crate gl;
 extern crate glfw;
 
-mod maths;
 mod program;
 mod shader;
 mod texture;
 
 use gl::types::*;
 use glfw::{Action, Context, Key};
-use maths::{Mat4, Vec3};
+use glm::Vec3;
 use program::Program;
 use shader::Shader;
 use texture::Texture;
+
+const WIN_WIDTH: u32 = 1200;
+const WIN_HEIGHT: u32 = 900;
+const WIN_ASPECT_RATIO: f32 = WIN_WIDTH as f32 / WIN_HEIGHT as f32;
 
 fn main() {
     let mut glfw = glfw::init(glfw::FAIL_ON_ERRORS).expect("Failed to initialize GLFW.");
@@ -24,8 +27,8 @@ fn main() {
 
     let (mut window, events) = glfw
         .create_window(
-            1280,
-            720,
+            WIN_WIDTH,
+            WIN_HEIGHT,
             env!("CARGO_PKG_NAME"),
             glfw::WindowMode::Windowed,
         )
@@ -58,12 +61,50 @@ fn main() {
     let texture_flume = Texture::new("../assets/textures/flume.jpg");
 
     // vertex data
-    const VERTEX_DATA: [GLfloat; 32] = [
-        // 3 positions, 3 colors, 2 texture coords
-        0.5, 0.5, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0, // top right
-        0.5, -0.5, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, // bottom right
-        -0.5, -0.5, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, // bottom left
-        -0.5, 0.5, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, // top left
+    // const VERTEX_DATA: [GLfloat; 32] = [
+    //     // 3 positions, 3 colors, 2 texture coords
+    //     0.5, 0.5, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0, // top right
+    //     0.5, -0.5, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, // bottom right
+    //     -0.5, -0.5, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, // bottom left
+    //     -0.5, 0.5, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, // top left
+    // ];
+    const VERTEX_DATA: [GLfloat; 180] = [
+        -0.5, -0.5, -0.5, 0.0, 0.0, //
+        0.5, -0.5, -0.5, 1.0, 0.0, //
+        0.5, 0.5, -0.5, 1.0, 1.0, //
+        0.5, 0.5, -0.5, 1.0, 1.0, //
+        -0.5, 0.5, -0.5, 0.0, 1.0, //
+        -0.5, -0.5, -0.5, 0.0, 0.0, //
+        -0.5, -0.5, 0.5, 0.0, 0.0, //
+        0.5, -0.5, 0.5, 1.0, 0.0, //
+        0.5, 0.5, 0.5, 1.0, 1.0, //
+        0.5, 0.5, 0.5, 1.0, 1.0, //
+        -0.5, 0.5, 0.5, 0.0, 1.0, //
+        -0.5, -0.5, 0.5, 0.0, 0.0, //
+        -0.5, 0.5, 0.5, 1.0, 0.0, //
+        -0.5, 0.5, -0.5, 1.0, 1.0, //
+        -0.5, -0.5, -0.5, 0.0, 1.0, //
+        -0.5, -0.5, -0.5, 0.0, 1.0, //
+        -0.5, -0.5, 0.5, 0.0, 0.0, //
+        -0.5, 0.5, 0.5, 1.0, 0.0, //
+        0.5, 0.5, 0.5, 1.0, 0.0, //
+        0.5, 0.5, -0.5, 1.0, 1.0, //
+        0.5, -0.5, -0.5, 0.0, 1.0, //
+        0.5, -0.5, -0.5, 0.0, 1.0, //
+        0.5, -0.5, 0.5, 0.0, 0.0, //
+        0.5, 0.5, 0.5, 1.0, 0.0, //
+        -0.5, -0.5, -0.5, 0.0, 1.0, //
+        0.5, -0.5, -0.5, 1.0, 1.0, //
+        0.5, -0.5, 0.5, 1.0, 0.0, //
+        0.5, -0.5, 0.5, 1.0, 0.0, //
+        -0.5, -0.5, 0.5, 0.0, 0.0, //
+        -0.5, -0.5, -0.5, 0.0, 1.0, //
+        -0.5, 0.5, -0.5, 0.0, 1.0, //
+        0.5, 0.5, -0.5, 1.0, 1.0, //
+        0.5, 0.5, 0.5, 1.0, 0.0, //
+        0.5, 0.5, 0.5, 1.0, 0.0, //
+        -0.5, 0.5, 0.5, 0.0, 0.0, //
+        -0.5, 0.5, -0.5, 0.0, 1.0, //
     ];
 
     // vertex buffer object (VBO)
@@ -81,56 +122,40 @@ fn main() {
 
     // vertex array object (VAO) uses VBO
     let mut vao = 0;
+    let stride = (5 * std::mem::size_of::<GLfloat>()) as GLsizei;
     unsafe {
         gl::GenVertexArrays(1, &mut vao);
         gl::BindVertexArray(vao);
         // position attribute
-        gl::VertexAttribPointer(
-            0,
-            3,
-            gl::FLOAT,
-            gl::FALSE,
-            (8 * std::mem::size_of::<GLfloat>()) as GLsizei,
-            std::ptr::null(),
-        );
+        gl::VertexAttribPointer(0, 3, gl::FLOAT, gl::FALSE, stride, std::ptr::null());
         gl::EnableVertexAttribArray(0);
-        // color attribute
+        // texture coord attribute
         gl::VertexAttribPointer(
             1,
-            3,
+            2,
             gl::FLOAT,
             gl::FALSE,
-            (8 * std::mem::size_of::<GLfloat>()) as GLsizei,
+            stride,
             (3 * std::mem::size_of::<GLfloat>()) as *const GLvoid,
         );
         gl::EnableVertexAttribArray(1);
-        // texture coord attribute
-        gl::VertexAttribPointer(
-            2,
-            2,
-            gl::FLOAT,
-            gl::FALSE,
-            (8 * std::mem::size_of::<GLfloat>()) as GLsizei,
-            (6 * std::mem::size_of::<GLfloat>()) as *const GLvoid,
-        );
-        gl::EnableVertexAttribArray(2);
     }
 
     // element buffer data (EBO) (Rectangle from 2 triangles)
-    const EBO_INDEX_DATA: [GLuint; 6] = [0, 1, 3, 1, 2, 3];
+    // const EBO_INDEX_DATA: [GLuint; 6] = [0, 1, 3, 1, 2, 3];
 
     // element buffer object (EBO) uses VBO
-    let mut ebo = 0;
-    unsafe {
-        gl::GenBuffers(1, &mut ebo);
-        gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, ebo);
-        gl::BufferData(
-            gl::ELEMENT_ARRAY_BUFFER,
-            (EBO_INDEX_DATA.len() * std::mem::size_of::<GLuint>()) as GLsizeiptr,
-            EBO_INDEX_DATA.as_ptr() as *const GLvoid,
-            gl::STATIC_DRAW,
-        );
-    }
+    // let mut ebo = 0;
+    // unsafe {
+    //     gl::GenBuffers(1, &mut ebo);
+    //     gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, ebo);
+    //     gl::BufferData(
+    //         gl::ELEMENT_ARRAY_BUFFER,
+    //         (EBO_INDEX_DATA.len() * std::mem::size_of::<GLuint>()) as GLsizeiptr,
+    //         EBO_INDEX_DATA.as_ptr() as *const GLvoid,
+    //         gl::STATIC_DRAW,
+    //     );
+    // }
 
     // vertex shader
     let vertex_shader = Shader::new(include_str!("shaders/vertex.glsl"), gl::VERTEX_SHADER);
@@ -157,17 +182,24 @@ fn main() {
     texture_flume.bind(1);
 
     // translate, rotate and scale matrix manipulations - order matters
-    let mut model = Mat4::identity();
-    // model.translate(Vec3::new(0.5, -0.5, 0.0));
-    // model.scale(Vec3::new(0.5, 0.5, 0.0));
-    model.rotate(-55.0, Vec3::new(1.0, 0.0, 0.0));
+    let model = glm::mat4(
+        1.0, 0.0, 0.0, 0.0, //
+        0.0, 1.0, 0.0, 0.0, //
+        0.0, 0.0, 1.0, 0.0, //
+        0.0, 0.0, 0.0, 1.0, //
+    );
 
     // view matrix manipulations
-    let mut view = Mat4::identity();
-    view.translate(Vec3::new(0.0, 0.0, -3.0));
+    let mut view = glm::mat4(
+        1.0, 0.0, 0.0, 0.0, //
+        0.0, 1.0, 0.0, 0.0, //
+        0.0, 0.0, 1.0, 0.0, //
+        0.0, 0.0, 0.0, 1.0, //
+    );
+    view = glm::ext::translate(&view, Vec3::new(0.0, 0.0, -3.0));
 
     // projection matrix manipulations
-    let projection = maths::perspective(45.0, 800.0 / 600.0, 0.1, 100.0);
+    let projection = glm::ext::perspective(45.0, WIN_ASPECT_RATIO, 0.1, 100.0);
 
     // use shader program
     shader_program.use_program();
@@ -185,18 +217,21 @@ fn main() {
 
     // main loop
     while !window.should_close() {
+        // update local uniform values
+        let rotation = glm::ext::rotate(&model, glfw.get_time() as f32, Vec3::new(0.5, 1.0, 0.0));
+
+        // update shader uniform values
+        shader_program.set_uniform_mat4("model", &rotation);
+        shader_program.set_uniform_mat4("view", &view);
+        shader_program.set_uniform_mat4("projection", &projection);
+
         // render
         unsafe {
-            // update uniform values
-            shader_program.set_uniform_mat4("model", &model);
-            shader_program.set_uniform_mat4("view", &view);
-            shader_program.set_uniform_mat4("projection", &projection);
-
             // clear the screen
             gl::Clear(gl::COLOR_BUFFER_BIT);
 
             gl::BindVertexArray(vao);
-            gl::DrawElements(gl::TRIANGLES, 6, gl::UNSIGNED_INT, std::ptr::null());
+            gl::DrawArrays(gl::TRIANGLES, 0, 36);
         }
 
         // swap buffers

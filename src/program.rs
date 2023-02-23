@@ -1,5 +1,6 @@
-use crate::{maths::Mat4, shader::Shader};
+use crate::shader::Shader;
 use gl::types::GLchar;
+use glm::Mat4;
 
 /**
  * Program object.
@@ -115,7 +116,7 @@ impl Program {
                 get_uniform_location(self.id, uniform_name),
                 1,
                 gl::FALSE,
-                value.as_ptr(),
+                value as *const _ as *const f32,
             );
         }
     }
