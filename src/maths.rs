@@ -1,3 +1,4 @@
+#![allow(dead_code, unused_variables)]
 pub struct Mat4 {
     pub elements: [f32; 16],
 }
@@ -56,34 +57,26 @@ impl Mat4 {
         self.elements[1 + 2 * 4] = y * z * omc - x * s;
         self.elements[2 + 2 * 4] = z * omc + c;
     }
-
-    pub fn ortho(left: f32, right: f32, bottom: f32, top: f32, near: f32, far: f32) -> Self {
-        let mut result = Self::new();
-        result.elements[0 + 0 * 4] = 2.0 / (right - left);
-        result.elements[1 + 1 * 4] = 2.0 / (top - bottom);
-        result.elements[2 + 2 * 4] = 2.0 / (near - far);
-        result.elements[0 + 3 * 4] = (left + right) / (left - right);
-        result.elements[1 + 3 * 4] = (bottom + top) / (bottom - top);
-        result.elements[2 + 3 * 4] = (far + near) / (far - near);
-        result.elements[3 + 3 * 4] = 1.0;
-        result
-    }
-
-    pub fn perspective(fov: f32, aspect_ratio: f32, near: f32, far: f32) -> Self {
-        let mut result = Self::new();
-        let q = 1.0 / (fov / 2.0).tan();
-        let a = q / aspect_ratio;
-        let b = (near + far) / (near - far);
-        let c = (2.0 * near * far) / (near - far);
-
-        result.elements[0 + 0 * 4] = a;
-        result.elements[1 + 1 * 4] = q;
-        result.elements[2 + 2 * 4] = b;
-        result.elements[2 + 3 * 4] = -1.0;
-        result.elements[3 + 2 * 4] = c;
-        result
-    }
 }
+
+// TODO perspective could impl mat4 trait
+pub fn perspective(fov: f32, aspect_ratio: f32, near: f32, far: f32) -> Mat4 {
+    let mut result = Mat4::new();
+    let q = 1.0 / (fov / 2.0).to_radians().tan();
+    let a = q / aspect_ratio;
+    let b = (near + far) / (near - far);
+    let c = (2.0 * near * far) / (near - far);
+
+    result.elements[0 + 0 * 4] = a;
+    result.elements[1 + 1 * 4] = q;
+    result.elements[2 + 2 * 4] = b;
+    result.elements[3 + 2 * 4] = -1.0;
+    result.elements[2 + 3 * 4] = c;
+
+    result
+}
+
+// TODO ortho projection
 
 pub struct Vec3 {
     pub x: f32,

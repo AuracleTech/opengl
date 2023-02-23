@@ -157,17 +157,23 @@ fn main() {
     texture_flume.bind(1);
 
     // translate, rotate and scale matrix manipulations - order matters
-    let mut manipulations = Mat4::identity();
-    manipulations.translate(Vec3::new(0.5, -0.5, 0.0));
-    manipulations.scale(Vec3::new(0.5, 0.5, 0.0));
-    manipulations.rotate(90.0, Vec3::new(0.0, 0.0, 1.0));
+    let mut model = Mat4::identity();
+    // model.translate(Vec3::new(0.5, -0.5, 0.0));
+    // model.scale(Vec3::new(0.5, 0.5, 0.0));
+    model.rotate(-55.0, Vec3::new(1.0, 0.0, 0.0));
+
+    // view matrix manipulations
+    let mut view = Mat4::identity();
+    view.translate(Vec3::new(0.0, 0.0, -3.0));
+
+    // projection matrix manipulations
+    let projection = maths::perspective(45.0, 800.0 / 600.0, 0.1, 100.0);
 
     // use shader program
     shader_program.use_program();
     // set uniform values
     shader_program.set_uniform_int("texture_frame", 0);
     shader_program.set_uniform_int("texture_flume", 1);
-    shader_program.set_uniform_mat4("manipulations", &manipulations);
 
     unsafe {
         gl::ClearColor(0.3, 0.3, 0.5, 1.0);
@@ -181,6 +187,11 @@ fn main() {
     while !window.should_close() {
         // render
         unsafe {
+            // update uniform values
+            shader_program.set_uniform_mat4("model", &model);
+            shader_program.set_uniform_mat4("view", &view);
+            shader_program.set_uniform_mat4("projection", &projection);
+
             // clear the screen
             gl::Clear(gl::COLOR_BUFFER_BIT);
 
