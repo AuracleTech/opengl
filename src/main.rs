@@ -60,6 +60,11 @@ fn main() {
     let texture_frame = Texture::new("../assets/textures/frame.jpg");
     let texture_flume = Texture::new("../assets/textures/flume.jpg");
 
+    // opengl settings
+    unsafe {
+        gl::Enable(gl::DEPTH_TEST);
+    }
+
     // vertex data
     // const VERTEX_DATA: [GLfloat; 32] = [
     //     // 3 positions, 3 colors, 2 texture coords
@@ -228,7 +233,7 @@ fn main() {
         // render
         unsafe {
             // clear the screen
-            gl::Clear(gl::COLOR_BUFFER_BIT);
+            gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
 
             gl::BindVertexArray(vao);
             gl::DrawArrays(gl::TRIANGLES, 0, 36);
