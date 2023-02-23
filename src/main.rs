@@ -125,6 +125,20 @@ fn main() {
         );
     }
 
+    // cube positions
+    let cube_positions: [glm::Vec3; 10] = [
+        glm::vec3(0.0, 0.0, 0.0),
+        glm::vec3(2.0, 5.0, -15.0),
+        glm::vec3(-1.5, -2.2, -2.5),
+        glm::vec3(-3.8, -2.0, -12.3),
+        glm::vec3(2.4, -0.4, -3.5),
+        glm::vec3(-1.7, 3.0, -7.5),
+        glm::vec3(1.3, -2.0, -2.5),
+        glm::vec3(1.5, 2.0, -2.5),
+        glm::vec3(1.5, 0.2, -1.5),
+        glm::vec3(-1.3, 1.0, -1.5),
+    ];
+
     // vertex array object (VAO) uses VBO
     let mut vao = 0;
     let stride = (5 * std::mem::size_of::<GLfloat>()) as GLsizei;
@@ -186,14 +200,6 @@ fn main() {
     texture_frame.bind(0);
     texture_flume.bind(1);
 
-    // translate, rotate and scale matrix manipulations - order matters
-    let model = glm::mat4(
-        1.0, 0.0, 0.0, 0.0, //
-        0.0, 1.0, 0.0, 0.0, //
-        0.0, 0.0, 1.0, 0.0, //
-        0.0, 0.0, 0.0, 1.0, //
-    );
-
     // view matrix manipulations
     let mut view = glm::mat4(
         1.0, 0.0, 0.0, 0.0, //
@@ -223,20 +229,39 @@ fn main() {
     // main loop
     while !window.should_close() {
         // update local uniform values
-        let rotation = glm::ext::rotate(&model, glfw.get_time() as f32, Vec3::new(0.5, 1.0, 0.0));
+        // translate, rotate and scale matrix manipulations - order matters
 
         // update shader uniform values
-        shader_program.set_uniform_mat4("model", &rotation);
         shader_program.set_uniform_mat4("view", &view);
         shader_program.set_uniform_mat4("projection", &projection);
 
         // render
         unsafe {
-            // clear the screen
-            gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
-
             gl::BindVertexArray(vao);
-            gl::DrawArrays(gl::TRIANGLES, 0, 36);
+
+            gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
+        }
+
+        // draw the 10 cubes
+        for i in 0..10 {
+            let mut model = glm::mat4(
+                1.0, 0.0, 0.0, 0.0, //
+                0.0, 1.0, 0.0, 0.0, //
+                0.0, 0.0, 1.0, 0.0, //
+                0.0, 0.0, 0.0, 1.0, //
+            );
+            model = glm::ext::translate(&model, cube_positions[i]);
+            let angle = 20.0 * i as f32;
+
+            model = glm::ext::rotate(
+                &model,
+                glm::radians(angle) + glfw.get_time() as f32,
+                Vec3::new(0.5, 1.0, 0.0),
+            );
+            shader_program.set_uniform_mat4("model", &model);
+            unsafe {
+                gl::DrawArrays(gl::TRIANGLES, 0, 36);
+            }
         }
 
         // swap buffers
