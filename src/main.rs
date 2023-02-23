@@ -176,6 +176,15 @@ fn main() {
     //     );
     // }
 
+    // camera
+    let camera_pos = glm::vec3(0.0, 0.0, 3.0);
+    let camera_target = glm::vec3(0.0, 0.0, 0.0);
+    let difference = camera_pos - camera_target;
+    let camera_direction = glm::normalize(difference);
+    let up = glm::vec3(0.0, 1.0, 0.0);
+    let camera_right = glm::normalize(glm::cross(up, camera_direction));
+    let camera_up = glm::cross(camera_direction, camera_right);
+
     // vertex shader
     let vertex_shader = Shader::new(include_str!("shaders/vertex.glsl"), gl::VERTEX_SHADER);
 
@@ -201,13 +210,7 @@ fn main() {
     texture_flume.bind(1);
 
     // view matrix manipulations
-    let mut view = glm::mat4(
-        1.0, 0.0, 0.0, 0.0, //
-        0.0, 1.0, 0.0, 0.0, //
-        0.0, 0.0, 1.0, 0.0, //
-        0.0, 0.0, 0.0, 1.0, //
-    );
-    view = glm::ext::translate(&view, Vec3::new(0.0, 0.0, -3.0));
+    let mut view = glm::ext::look_at(camera_pos, camera_target, camera_up);
 
     // projection matrix manipulations
     let projection = glm::ext::perspective(45.0, WIN_ASPECT_RATIO, 0.1, 100.0);
@@ -263,6 +266,12 @@ fn main() {
                 gl::DrawArrays(gl::TRIANGLES, 0, 36);
             }
         }
+
+        // camera movement
+        let radius = 10.0;
+        let cam_x = glm::cos(glfw.get_time() as f32) * radius;
+        let cam_z = glm::sin(glfw.get_time() as f32) * radius;
+        view = glm::ext::look_at(glm::vec3(cam_x, 0.0, cam_z), camera_target, camera_up);
 
         // swap buffers
         window.swap_buffers();
