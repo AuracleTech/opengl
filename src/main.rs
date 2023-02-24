@@ -73,6 +73,7 @@ fn main() {
     //     -0.5, -0.5, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, // bottom left
     //     -0.5, 0.5, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, // top left
     // ];
+    // load obj file and assign vertex data
     const VERTEX_DATA: [GLfloat; 180] = [
         -0.5, -0.5, -0.5, 0.0, 0.0, //
         0.5, -0.5, -0.5, 1.0, 0.0, //
@@ -178,9 +179,8 @@ fn main() {
 
     // camera
     let mut camera_pos = glm::vec3(0.0, 0.0, 3.0);
-    const CAMERA_SPEED: f32 = 0.5;
+    const CAMERA_SPEED_MULTIPLIER: f32 = 50.0;
     let camera_front = glm::vec3(0.0, 0.0, -1.0);
-    let camera_target = glm::vec3(0.0, 0.0, 0.0);
     let camera_up = glm::vec3(0.0, 1.0, 0.0);
     // let difference = camera_pos - camera_target;
     // let camera_direction = glm::normalize(difference);
@@ -228,8 +228,15 @@ fn main() {
     let mut last_time = glfw.get_time();
     let mut frames_rendered = 0;
 
+    // last frame time and delta time
+    let mut last_frame = 0.0;
+
     // main loop
     while !window.should_close() {
+        let current_frame = glfw.get_time() as f32;
+        let delta_time = current_frame - last_frame;
+        last_frame = current_frame;
+
         // update local uniform values
         // translate, rotate and scale matrix manipulations - order matters
 
@@ -277,34 +284,50 @@ fn main() {
 
         // window events (resize, close, etc)
         for (_, event) in glfw::flush_messages(&events) {
+            let camera_speed = CAMERA_SPEED_MULTIPLIER * delta_time;
             match event {
                 // ESC closes the window
                 glfw::WindowEvent::Key(Key::Escape, _, Action::Press, _) => {
                     window.set_should_close(true)
                 }
                 // P cycle through polygon modes
-                glfw::WindowEvent::Key(Key::P, _, Action::Press, _) => polygon_mode_switch(),
+                glfw::WindowEvent::Key(Key::P, _, Action::Press, _) => {
+                    let mut polygon_mode = [0];
+                    unsafe {
+                        gl::GetIntegerv(gl::POLYGON_MODE, polygon_mode.as_mut_ptr());
+                    }
+                    let polygon_mode = match polygon_mode[0] as GLenum {
+                        gl::FILL => gl::LINE,
+                        gl::LINE => gl::POINT,
+                        gl::POINT => gl::FILL,
+                        _ => panic!("Unknown polygon mode"),
+                    };
+                    unsafe {
+                        gl::PolygonMode(gl::FRONT_AND_BACK, polygon_mode);
+                    }
+                    println!("Polygon mode: {}", polygon_mode);
+                }
                 // resize the viewport when the window is resized
                 glfw::WindowEvent::FramebufferSize(width, height) => unsafe {
                     gl::Viewport(0, 0, width, height);
                 },
                 // W
-                glfw::WindowEvent::Key(Key::W, _, Action::Press, _) => {
-                    camera_pos = camera_pos + (camera_front * CAMERA_SPEED);
+                glfw::WindowEvent::Key(Key::W, _, Action::Repeat | Action::Press, _) => {
+                    camera_pos = camera_pos + (camera_front * camera_speed);
                 }
                 // S
-                glfw::WindowEvent::Key(Key::S, _, Action::Press, _) => {
-                    camera_pos = camera_pos - (camera_front * CAMERA_SPEED);
+                glfw::WindowEvent::Key(Key::S, _, Action::Repeat | Action::Press, _) => {
+                    camera_pos = camera_pos - (camera_front * camera_speed);
                 }
                 // A
-                glfw::WindowEvent::Key(Key::A, _, Action::Press, _) => {
+                glfw::WindowEvent::Key(Key::A, _, Action::Repeat | Action::Press, _) => {
                     camera_pos = camera_pos
-                        - (glm::normalize(glm::cross(camera_front, camera_up)) * CAMERA_SPEED);
+                        - (glm::normalize(glm::cross(camera_front, camera_up)) * camera_speed);
                 }
                 // D
-                glfw::WindowEvent::Key(Key::D, _, Action::Press, _) => {
+                glfw::WindowEvent::Key(Key::D, _, Action::Repeat | Action::Press, _) => {
                     camera_pos = camera_pos
-                        + (glm::normalize(glm::cross(camera_front, camera_up)) * CAMERA_SPEED);
+                        + (glm::normalize(glm::cross(camera_front, camera_up)) * camera_speed);
                 }
                 _ => {}
             }
@@ -323,21 +346,4 @@ fn main() {
             last_time = current_time;
         }
     }
-}
-
-fn polygon_mode_switch() {
-    let mut polygon_mode = [0];
-    unsafe {
-        gl::GetIntegerv(gl::POLYGON_MODE, polygon_mode.as_mut_ptr());
-    }
-    let polygon_mode = match polygon_mode[0] as GLenum {
-        gl::FILL => gl::LINE,
-        gl::LINE => gl::POINT,
-        gl::POINT => gl::FILL,
-        _ => panic!("Unknown polygon mode"),
-    };
-    unsafe {
-        gl::PolygonMode(gl::FRONT_AND_BACK, polygon_mode);
-    }
-    println!("Polygon mode: {}", polygon_mode);
 }
