@@ -177,13 +177,15 @@ fn main() {
     // }
 
     // camera
-    let camera_pos = glm::vec3(0.0, 0.0, 3.0);
+    let mut camera_pos = glm::vec3(0.0, 0.0, 3.0);
+    const CAMERA_SPEED: f32 = 0.5;
+    let camera_front = glm::vec3(0.0, 0.0, -1.0);
     let camera_target = glm::vec3(0.0, 0.0, 0.0);
-    let difference = camera_pos - camera_target;
-    let camera_direction = glm::normalize(difference);
-    let up = glm::vec3(0.0, 1.0, 0.0);
-    let camera_right = glm::normalize(glm::cross(up, camera_direction));
-    let camera_up = glm::cross(camera_direction, camera_right);
+    let camera_up = glm::vec3(0.0, 1.0, 0.0);
+    // let difference = camera_pos - camera_target;
+    // let camera_direction = glm::normalize(difference);
+    // let camera_right = glm::normalize(glm::cross(camera_up, camera_direction));
+    // let camera_up = glm::cross(camera_direction, camera_right);
 
     // vertex shader
     let vertex_shader = Shader::new(include_str!("shaders/vertex.glsl"), gl::VERTEX_SHADER);
@@ -209,9 +211,6 @@ fn main() {
     texture_frame.bind(0);
     texture_flume.bind(1);
 
-    // view matrix manipulations
-    let mut view = glm::ext::look_at(camera_pos, camera_target, camera_up);
-
     // projection matrix manipulations
     let projection = glm::ext::perspective(45.0, WIN_ASPECT_RATIO, 0.1, 100.0);
 
@@ -233,6 +232,9 @@ fn main() {
     while !window.should_close() {
         // update local uniform values
         // translate, rotate and scale matrix manipulations - order matters
+
+        // view matrix manipulations
+        let view = glm::ext::look_at(camera_pos, camera_pos + camera_front, camera_up);
 
         // update shader uniform values
         shader_program.set_uniform_mat4("view", &view);
@@ -267,12 +269,6 @@ fn main() {
             }
         }
 
-        // camera movement
-        let radius = 10.0;
-        let cam_x = glm::cos(glfw.get_time() as f32) * radius;
-        let cam_z = glm::sin(glfw.get_time() as f32) * radius;
-        view = glm::ext::look_at(glm::vec3(cam_x, 0.0, cam_z), camera_target, camera_up);
-
         // swap buffers
         window.swap_buffers();
 
@@ -281,7 +277,37 @@ fn main() {
 
         // window events (resize, close, etc)
         for (_, event) in glfw::flush_messages(&events) {
-            handle_window_event(&mut window, event);
+            match event {
+                // ESC closes the window
+                glfw::WindowEvent::Key(Key::Escape, _, Action::Press, _) => {
+                    window.set_should_close(true)
+                }
+                // P cycle through polygon modes
+                glfw::WindowEvent::Key(Key::P, _, Action::Press, _) => polygon_mode_switch(),
+                // resize the viewport when the window is resized
+                glfw::WindowEvent::FramebufferSize(width, height) => unsafe {
+                    gl::Viewport(0, 0, width, height);
+                },
+                // W
+                glfw::WindowEvent::Key(Key::W, _, Action::Press, _) => {
+                    camera_pos = camera_pos + (camera_front * CAMERA_SPEED);
+                }
+                // S
+                glfw::WindowEvent::Key(Key::S, _, Action::Press, _) => {
+                    camera_pos = camera_pos - (camera_front * CAMERA_SPEED);
+                }
+                // A
+                glfw::WindowEvent::Key(Key::A, _, Action::Press, _) => {
+                    camera_pos = camera_pos
+                        - (glm::normalize(glm::cross(camera_front, camera_up)) * CAMERA_SPEED);
+                }
+                // D
+                glfw::WindowEvent::Key(Key::D, _, Action::Press, _) => {
+                    camera_pos = camera_pos
+                        + (glm::normalize(glm::cross(camera_front, camera_up)) * CAMERA_SPEED);
+                }
+                _ => {}
+            }
         }
 
         // calculate fps and print to console
@@ -299,31 +325,19 @@ fn main() {
     }
 }
 
-fn handle_window_event(window: &mut glfw::Window, event: glfw::WindowEvent) {
-    match event {
-        // ESC closes the window
-        glfw::WindowEvent::Key(Key::Escape, _, Action::Press, _) => window.set_should_close(true),
-        // W cycle through polygon modes
-        glfw::WindowEvent::Key(Key::W, _, Action::Press, _) => {
-            let mut polygon_mode = [0];
-            unsafe {
-                gl::GetIntegerv(gl::POLYGON_MODE, polygon_mode.as_mut_ptr());
-            }
-            let polygon_mode = match polygon_mode[0] as GLenum {
-                gl::FILL => gl::LINE,
-                gl::LINE => gl::POINT,
-                gl::POINT => gl::FILL,
-                _ => panic!("Unknown polygon mode"),
-            };
-            unsafe {
-                gl::PolygonMode(gl::FRONT_AND_BACK, polygon_mode);
-            }
-            println!("Polygon mode: {}", polygon_mode);
-        }
-        // resize the viewport when the window is resized
-        glfw::WindowEvent::FramebufferSize(width, height) => unsafe {
-            gl::Viewport(0, 0, width, height);
-        },
-        _ => {}
+fn polygon_mode_switch() {
+    let mut polygon_mode = [0];
+    unsafe {
+        gl::GetIntegerv(gl::POLYGON_MODE, polygon_mode.as_mut_ptr());
     }
+    let polygon_mode = match polygon_mode[0] as GLenum {
+        gl::FILL => gl::LINE,
+        gl::LINE => gl::POINT,
+        gl::POINT => gl::FILL,
+        _ => panic!("Unknown polygon mode"),
+    };
+    unsafe {
+        gl::PolygonMode(gl::FRONT_AND_BACK, polygon_mode);
+    }
+    println!("Polygon mode: {}", polygon_mode);
 }
