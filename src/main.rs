@@ -1,10 +1,12 @@
 extern crate gl;
 extern crate glfw;
 
+mod camera;
 mod program;
 mod shader;
 mod texture;
 
+use camera::Camera;
 use gl::types::*;
 use glfw::{Action, Context, Key};
 use glm::Vec3;
@@ -44,17 +46,13 @@ fn main() {
 
     window.set_framebuffer_size_polling(true);
     window.set_key_polling(true);
+    window.set_scroll_polling(true);
+    window.set_cursor_pos_polling(true);
+    glfw.set_swap_interval(glfw::SwapInterval::Sync(0));
+    window.set_cursor_mode(glfw::CursorMode::Disabled);
     window.make_current();
 
-    // swap interval
-    glfw.set_swap_interval(glfw::SwapInterval::Sync(0));
-
-    // enable scroll input
-    window.set_scroll_polling(true);
-
-    // mouse input
-    window.set_cursor_pos_polling(true);
-    window.set_cursor_mode(glfw::CursorMode::Disabled);
+    // CHANGE mouse input
     let mut first_mouse = true;
     let mut last_x = 0.0;
     let mut last_y = 0.0;
@@ -189,12 +187,14 @@ fn main() {
     //     );
     // }
 
-    // camera
-    let mut camera_pos = glm::vec3(0.0, 0.0, 3.0);
-    const CAMERA_SPEED_MULTIPLIER: f32 = 500.0;
-    let mut camera_front = glm::vec3(0.0, 0.0, -1.0);
-    let camera_up = glm::vec3(0.0, 1.0, 0.0);
-    let mut fov_y = 45.0;
+    let mut camera = Camera {
+        pos: glm::vec3(0.0, 0.0, 3.0),
+        front: glm::vec3(0.0, 0.0, -1.0),
+        up: glm::vec3(0.0, 1.0, 0.0),
+        right: glm::vec3(0.0, 0.0, 0.0),
+        speed_factor: 500.0,
+        fov_y: 45.0,
+    };
 
     // vertex shader
     let vertex_shader = Shader::new(include_str!("shaders/vertex.glsl"), gl::VERTEX_SHADER);
@@ -247,10 +247,11 @@ fn main() {
         // translate, rotate and scale matrix manipulations - order matters
 
         // projection matrix manipulations
-        let projection = glm::ext::perspective(fov_y, WIN_ASPECT_RATIO, 0.1, 100.0);
+        let projection =
+            glm::ext::perspective(glm::radians(camera.fov_y), WIN_ASPECT_RATIO, 0.1, 100.0);
 
         // view matrix manipulations
-        let view = glm::ext::look_at(camera_pos, camera_pos + camera_front, camera_up);
+        let view = glm::ext::look_at(camera.pos, camera.pos + camera.front, camera.up);
 
         // update shader uniform values
         shader_program.set_uniform_mat4("view", &view);
@@ -293,7 +294,7 @@ fn main() {
 
         // window events (resize, close, etc)
         for (_, event) in glfw::flush_messages(&events) {
-            let camera_speed = CAMERA_SPEED_MULTIPLIER * delta_time;
+            let camera_speed = camera.speed_factor * delta_time;
             match event {
                 // ESC closes the window
                 glfw::WindowEvent::Key(Key::Escape, _, Action::Press, _) => {
@@ -322,30 +323,30 @@ fn main() {
                 },
                 // W
                 glfw::WindowEvent::Key(Key::W, _, Action::Repeat | Action::Press, _) => {
-                    camera_pos = camera_pos + (camera_front * camera_speed);
+                    camera.pos = camera.pos + (camera.front * camera_speed);
                 }
                 // S
                 glfw::WindowEvent::Key(Key::S, _, Action::Repeat | Action::Press, _) => {
-                    camera_pos = camera_pos - (camera_front * camera_speed);
+                    camera.pos = camera.pos - (camera.front * camera_speed);
                 }
                 // A
                 glfw::WindowEvent::Key(Key::A, _, Action::Repeat | Action::Press, _) => {
-                    camera_pos = camera_pos
-                        - (glm::normalize(glm::cross(camera_front, camera_up)) * camera_speed);
+                    camera.pos = camera.pos
+                        - (glm::normalize(glm::cross(camera.front, camera.up)) * camera_speed);
                 }
                 // D
                 glfw::WindowEvent::Key(Key::D, _, Action::Repeat | Action::Press, _) => {
-                    camera_pos = camera_pos
-                        + (glm::normalize(glm::cross(camera_front, camera_up)) * camera_speed);
+                    camera.pos = camera.pos
+                        + (glm::normalize(glm::cross(camera.front, camera.up)) * camera_speed);
                 }
                 // scroll
                 glfw::WindowEvent::Scroll(_xoffset, yoffset) => {
-                    fov_y -= yoffset as f32 / 10.0;
-                    if fov_y < 1.0 {
-                        fov_y = 1.0;
+                    camera.fov_y -= yoffset as f32;
+                    if camera.fov_y < 1.0 {
+                        camera.fov_y = 1.0;
                     }
-                    if fov_y > 45.0 {
-                        fov_y = 45.0;
+                    if camera.fov_y > 45.0 {
+                        camera.fov_y = 45.0;
                     }
                 }
                 // mouse movement
@@ -380,7 +381,7 @@ fn main() {
                         pitch.to_radians().sin(),
                         yaw.to_radians().sin() * pitch.to_radians().cos(),
                     );
-                    camera_front = glm::normalize(front);
+                    camera.front = glm::normalize(front);
                 }
                 _ => {}
             }
