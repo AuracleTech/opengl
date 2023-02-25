@@ -49,6 +49,18 @@ fn main() {
     // swap interval
     glfw.set_swap_interval(glfw::SwapInterval::Sync(0));
 
+    // enable scroll input
+    window.set_scroll_polling(true);
+
+    // mouse input
+    window.set_cursor_pos_polling(true);
+    window.set_cursor_mode(glfw::CursorMode::Disabled);
+    let mut first_mouse = true;
+    let mut last_x = 0.0;
+    let mut last_y = 0.0;
+    let mut yaw = -90.0;
+    let mut pitch = 0.0;
+
     // get max vertex attributes (min 16 on OpenGL 3.3+)
     // TODO check if current_vertex_attribs <= max_vertex_attribs before initializing each vertex attributes
     let mut max_vertex_attribs = 0;
@@ -179,13 +191,10 @@ fn main() {
 
     // camera
     let mut camera_pos = glm::vec3(0.0, 0.0, 3.0);
-    const CAMERA_SPEED_MULTIPLIER: f32 = 50.0;
-    let camera_front = glm::vec3(0.0, 0.0, -1.0);
+    const CAMERA_SPEED_MULTIPLIER: f32 = 500.0;
+    let mut camera_front = glm::vec3(0.0, 0.0, -1.0);
     let camera_up = glm::vec3(0.0, 1.0, 0.0);
-    // let difference = camera_pos - camera_target;
-    // let camera_direction = glm::normalize(difference);
-    // let camera_right = glm::normalize(glm::cross(camera_up, camera_direction));
-    // let camera_up = glm::cross(camera_direction, camera_right);
+    let mut fov_y = 45.0;
 
     // vertex shader
     let vertex_shader = Shader::new(include_str!("shaders/vertex.glsl"), gl::VERTEX_SHADER);
@@ -210,9 +219,6 @@ fn main() {
     // TODO deal with max amount of texture units
     texture_frame.bind(0);
     texture_flume.bind(1);
-
-    // projection matrix manipulations
-    let projection = glm::ext::perspective(45.0, WIN_ASPECT_RATIO, 0.1, 100.0);
 
     // use shader program
     shader_program.use_program();
@@ -239,6 +245,9 @@ fn main() {
 
         // update local uniform values
         // translate, rotate and scale matrix manipulations - order matters
+
+        // projection matrix manipulations
+        let projection = glm::ext::perspective(fov_y, WIN_ASPECT_RATIO, 0.1, 100.0);
 
         // view matrix manipulations
         let view = glm::ext::look_at(camera_pos, camera_pos + camera_front, camera_up);
@@ -328,6 +337,50 @@ fn main() {
                 glfw::WindowEvent::Key(Key::D, _, Action::Repeat | Action::Press, _) => {
                     camera_pos = camera_pos
                         + (glm::normalize(glm::cross(camera_front, camera_up)) * camera_speed);
+                }
+                // scroll
+                glfw::WindowEvent::Scroll(_xoffset, yoffset) => {
+                    fov_y -= yoffset as f32 / 10.0;
+                    if fov_y < 1.0 {
+                        fov_y = 1.0;
+                    }
+                    if fov_y > 45.0 {
+                        fov_y = 45.0;
+                    }
+                }
+                // mouse movement
+                glfw::WindowEvent::CursorPos(xpos, ypos) => {
+                    if first_mouse {
+                        last_x = xpos;
+                        last_y = ypos;
+                        first_mouse = false;
+                    }
+
+                    let xoffset = xpos - last_x;
+                    let yoffset = last_y - ypos;
+                    last_x = xpos;
+                    last_y = ypos;
+
+                    let sensitivity = 0.05;
+                    let xoffset = xoffset as f32 * sensitivity;
+                    let yoffset = yoffset as f32 * sensitivity;
+
+                    yaw += xoffset;
+                    pitch += yoffset;
+
+                    if pitch > 89.0 {
+                        pitch = 89.0;
+                    }
+                    if pitch < -89.0 {
+                        pitch = -89.0;
+                    }
+
+                    let front = Vec3::new(
+                        yaw.to_radians().cos() * pitch.to_radians().cos(),
+                        pitch.to_radians().sin(),
+                        yaw.to_radians().sin() * pitch.to_radians().cos(),
+                    );
+                    camera_front = glm::normalize(front);
                 }
                 _ => {}
             }
