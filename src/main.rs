@@ -52,10 +52,9 @@ fn main() {
     window.set_cursor_mode(glfw::CursorMode::Disabled);
     window.make_current();
 
-    // CHANGE mouse input
-    let mut first_mouse = true;
-    let mut last_x = 0.0;
-    let mut last_y = 0.0;
+    // Cursor position
+    let mut last_x = WIN_WIDTH as f64 / 2.0;
+    let mut last_y = WIN_HEIGHT as f64 / 2.0;
     let mut yaw = -90.0;
     let mut pitch = 0.0;
 
@@ -340,37 +339,25 @@ fn main() {
                 }
                 // mouse movement
                 glfw::WindowEvent::CursorPos(xpos, ypos) => {
-                    if first_mouse {
-                        last_x = xpos;
-                        last_y = ypos;
-                        first_mouse = false;
-                    }
-
                     let xoffset = xpos - last_x;
                     let yoffset = last_y - ypos;
                     last_x = xpos;
                     last_y = ypos;
 
                     let sensitivity = 0.05;
-                    let xoffset = xoffset as f32 * sensitivity;
-                    let yoffset = yoffset as f32 * sensitivity;
+                    let offset_x = xoffset as f32 * sensitivity;
+                    let offset_y = yoffset as f32 * sensitivity;
 
-                    yaw += xoffset;
-                    pitch += yoffset;
+                    yaw += offset_x;
+                    pitch += offset_y;
 
-                    if pitch > 89.0 {
-                        pitch = 89.0;
-                    }
-                    if pitch < -89.0 {
-                        pitch = -89.0;
-                    }
+                    pitch = pitch.clamp(-89.9, 89.9);
 
-                    let front = Vec3::new(
+                    camera.front = glm::normalize(Vec3::new(
                         yaw.to_radians().cos() * pitch.to_radians().cos(),
                         pitch.to_radians().sin(),
                         yaw.to_radians().sin() * pitch.to_radians().cos(),
-                    );
-                    camera.front = glm::normalize(front);
+                    ));
                 }
                 _ => {}
             }
