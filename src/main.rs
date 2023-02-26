@@ -194,15 +194,12 @@ fn main() {
         right: glm::vec3(0.0, 0.0, 0.0),
         speed_factor: 500.0,
         fov_y: 45.0,
+        speed: 0.0,
     };
 
-    // vertex shader
-    let vertex_shader = Shader::new(include_str!("shaders/vertex.glsl"), gl::VERTEX_SHADER);
-
-    // fragment shader
-    let fragment_shader = Shader::new(include_str!("shaders/fragment.glsl"), gl::FRAGMENT_SHADER);
-
-    // shader program
+    // shaders
+    let fragment_shader = Shader::new(include_str!("shaders/fragment.fs"), gl::FRAGMENT_SHADER);
+    let vertex_shader = Shader::new(include_str!("shaders/vertex.vs"), gl::VERTEX_SHADER);
     let shader_program = Program::new(&vertex_shader, &fragment_shader);
 
     // copy vertex data to buffer
@@ -242,6 +239,8 @@ fn main() {
         let current_frame = glfw.get_time() as f32;
         let delta_time = current_frame - last_frame;
         last_frame = current_frame;
+
+        camera.speed = camera.speed_factor * delta_time;
 
         // update local uniform values
         // translate, rotate and scale matrix manipulations - order matters
@@ -286,15 +285,10 @@ fn main() {
             }
         }
 
-        // swap buffers
         window.swap_buffers();
-
-        // poll events (keyboard, mouse, etc)
         glfw.poll_events();
 
-        // window events (resize, close, etc)
         for (_, event) in glfw::flush_messages(&events) {
-            let camera_speed = camera.speed_factor * delta_time;
             match event {
                 // ESC closes the window
                 glfw::WindowEvent::Key(Key::Escape, _, Action::Press, _) => {
@@ -323,31 +317,26 @@ fn main() {
                 },
                 // W
                 glfw::WindowEvent::Key(Key::W, _, Action::Repeat | Action::Press, _) => {
-                    camera.pos = camera.pos + (camera.front * camera_speed);
+                    camera.pos = camera.pos + (camera.front * camera.speed);
                 }
                 // S
                 glfw::WindowEvent::Key(Key::S, _, Action::Repeat | Action::Press, _) => {
-                    camera.pos = camera.pos - (camera.front * camera_speed);
+                    camera.pos = camera.pos - (camera.front * camera.speed);
                 }
                 // A
                 glfw::WindowEvent::Key(Key::A, _, Action::Repeat | Action::Press, _) => {
                     camera.pos = camera.pos
-                        - (glm::normalize(glm::cross(camera.front, camera.up)) * camera_speed);
+                        - (glm::normalize(glm::cross(camera.front, camera.up)) * camera.speed);
                 }
                 // D
                 glfw::WindowEvent::Key(Key::D, _, Action::Repeat | Action::Press, _) => {
                     camera.pos = camera.pos
-                        + (glm::normalize(glm::cross(camera.front, camera.up)) * camera_speed);
+                        + (glm::normalize(glm::cross(camera.front, camera.up)) * camera.speed);
                 }
                 // scroll
                 glfw::WindowEvent::Scroll(_xoffset, yoffset) => {
                     camera.fov_y -= yoffset as f32;
-                    if camera.fov_y < 1.0 {
-                        camera.fov_y = 1.0;
-                    }
-                    if camera.fov_y > 45.0 {
-                        camera.fov_y = 45.0;
-                    }
+                    camera.fov_y = camera.fov_y.max(1.0).min(45.0);
                 }
                 // mouse movement
                 glfw::WindowEvent::CursorPos(xpos, ypos) => {

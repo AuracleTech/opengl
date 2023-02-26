@@ -7,4 +7,5 @@ pub struct Camera {
     pub right: Vec3,
     pub speed_factor: f32,
     pub fov_y: f32,
+    pub speed: f32,
 }
