@@ -12,7 +12,6 @@ use glfw::{Action, Context, Key};
 use glm::{Vec3, Vec4};
 use program::Program;
 use shader::Shader;
-use texture::Texture;
 
 const WIN_WIDTH: u32 = 1200;
 const WIN_HEIGHT: u32 = 900;
@@ -205,34 +204,22 @@ fn main() {
 
         shader_program.use_program();
 
-        shader_program.set_uniform_vec3("light_color", light_white_color);
-        shader_program.set_uniform_vec3("object_color", toy_coral_color);
-
         let current_frame = glfw.get_time() as f32;
         let delta_time = current_frame - last_frame;
         last_frame = current_frame;
 
         camera.speed = camera.speed_factor * delta_time;
 
-        // update local uniform values
-        // translate, rotate and scale matrix manipulations - order matters
-
-        // projection matrix manipulations
+        // Translate - Rotate - Scale (TRS) matrix manipulations
         let projection =
             glm::ext::perspective(glm::radians(camera.fov_y), WIN_ASPECT_RATIO, 0.1, 100.0);
-
-        // view matrix manipulations
         let view = glm::ext::look_at(camera.pos, camera.pos + camera.front, camera.up);
 
+        // update local uniform values
         shader_program.set_uniform_mat4("view", &view);
         shader_program.set_uniform_mat4("projection", &projection);
-
-        // render
-        unsafe {
-            gl::BindVertexArray(vao);
-
-            gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
-        }
+        shader_program.set_uniform_vec3("light_color", light_white_color);
+        shader_program.set_uniform_vec3("object_color", toy_coral_color);
 
         let mut model = glm::Mat4::new(
             Vec4::new(1.0, 0.0, 0.0, 0.0),
@@ -250,6 +237,8 @@ fn main() {
         );
         shader_program.set_uniform_mat4("model", &model);
         unsafe {
+            gl::BindVertexArray(vao);
+            gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
             gl::DrawArrays(gl::TRIANGLES, 0, 36);
         }
 

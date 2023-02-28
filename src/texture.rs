@@ -8,6 +8,7 @@ pub struct Texture {
     pub nr_channels: u32,
 }
 
+#[allow(dead_code)]
 impl Texture {
     pub fn new(path: &str) -> Self {
         let texture_image = image::open(path).unwrap().flipv();
