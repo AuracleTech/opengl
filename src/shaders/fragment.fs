@@ -1,13 +1,10 @@
 #version 330 core
-
-in vec2 tex_coord;
-
 out vec4 frag_color;
-
-uniform sampler2D texture_frame;
-uniform sampler2D texture_flume;
+  
+uniform vec3 object_color;
+uniform vec3 light_color;
 
 void main()
 {
-    frag_color = mix(texture(texture_frame, tex_coord), texture(texture_flume, tex_coord), 0.2);
+    frag_color = vec4(light_color * object_color, 1.0);
 }

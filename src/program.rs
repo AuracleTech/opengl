@@ -17,7 +17,7 @@ impl Program {
      * @param vertex_shader The vertex shader to use.
      * @param fragment_shader The fragment shader to use.
      */
-    pub fn new(vertex_shader: &Shader, fragment_shader: &Shader) -> Self {
+    pub fn new(vertex_shader: Shader, fragment_shader: Shader) -> Self {
         // shader program
         let shader_program = unsafe {
             let program = gl::CreateProgram();
@@ -117,6 +117,22 @@ impl Program {
                 1,
                 gl::FALSE,
                 value as *const _ as *const f32,
+            );
+        }
+    }
+
+    /**
+     * Set a uniform Vec3 value.
+     * @param uniform_name The name of the uniform to set.
+     * @param value The value to set the uniform to.
+     */
+    pub fn set_uniform_vec3(&self, uniform_name: &str, value: glm::Vec3) {
+        unsafe {
+            gl::Uniform3f(
+                get_uniform_location(self.id, uniform_name),
+                value.x,
+                value.y,
+                value.z,
             );
         }
     }

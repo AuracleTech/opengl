@@ -9,7 +9,7 @@ mod texture;
 use camera::Camera;
 use gl::types::*;
 use glfw::{Action, Context, Key};
-use glm::Vec3;
+use glm::{Vec3, Vec4};
 use program::Program;
 use shader::Shader;
 use texture::Texture;
@@ -65,61 +65,65 @@ fn main() {
         gl::GetIntegerv(gl::MAX_VERTEX_ATTRIBS, &mut max_vertex_attribs);
     }
 
-    // texture
-    let texture_frame = Texture::new("../assets/textures/frame.jpg");
-    let texture_flume = Texture::new("../assets/textures/flume.jpg");
-
     // opengl settings
     unsafe {
         gl::Enable(gl::DEPTH_TEST);
     }
 
+    let light_shader_fs = Shader::new(include_str!("shaders/light.fs"), gl::FRAGMENT_SHADER);
+    let light_shader_vs = Shader::new(include_str!("shaders/light.vs"), gl::VERTEX_SHADER);
+    let light_program = Program::new(light_shader_fs, light_shader_vs);
+
+    let toy_coral_color = Vec3::new(1.0, 0.5, 0.31);
+    let light_white_color = Vec3::new(1.0, 1.0, 1.0);
+    let light_position = Vec3::new(1.2, 1.0, 2.0);
+    let light_model = glm::Mat4::new(
+        Vec4::new(1.0, 0.0, 0.0, 0.0),
+        Vec4::new(0.0, 1.0, 0.0, 0.0),
+        Vec4::new(0.0, 0.0, 1.0, 0.0),
+        Vec4::new(0.0, 0.0, 0.0, 1.0),
+    );
+    glm::ext::translate(&light_model, light_position);
+    glm::ext::scale(&light_model, Vec3::new(0.2, 0.2, 0.2));
+
     // vertex data
-    // const VERTEX_DATA: [GLfloat; 32] = [
-    //     // 3 positions, 3 colors, 2 texture coords
-    //     0.5, 0.5, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0, // top right
-    //     0.5, -0.5, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, // bottom right
-    //     -0.5, -0.5, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, // bottom left
-    //     -0.5, 0.5, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, // top left
-    // ];
-    // load obj file and assign vertex data
-    const VERTEX_DATA: [GLfloat; 180] = [
-        -0.5, -0.5, -0.5, 0.0, 0.0, //
-        0.5, -0.5, -0.5, 1.0, 0.0, //
-        0.5, 0.5, -0.5, 1.0, 1.0, //
-        0.5, 0.5, -0.5, 1.0, 1.0, //
-        -0.5, 0.5, -0.5, 0.0, 1.0, //
-        -0.5, -0.5, -0.5, 0.0, 0.0, //
-        -0.5, -0.5, 0.5, 0.0, 0.0, //
-        0.5, -0.5, 0.5, 1.0, 0.0, //
-        0.5, 0.5, 0.5, 1.0, 1.0, //
-        0.5, 0.5, 0.5, 1.0, 1.0, //
-        -0.5, 0.5, 0.5, 0.0, 1.0, //
-        -0.5, -0.5, 0.5, 0.0, 0.0, //
-        -0.5, 0.5, 0.5, 1.0, 0.0, //
-        -0.5, 0.5, -0.5, 1.0, 1.0, //
-        -0.5, -0.5, -0.5, 0.0, 1.0, //
-        -0.5, -0.5, -0.5, 0.0, 1.0, //
-        -0.5, -0.5, 0.5, 0.0, 0.0, //
-        -0.5, 0.5, 0.5, 1.0, 0.0, //
-        0.5, 0.5, 0.5, 1.0, 0.0, //
-        0.5, 0.5, -0.5, 1.0, 1.0, //
-        0.5, -0.5, -0.5, 0.0, 1.0, //
-        0.5, -0.5, -0.5, 0.0, 1.0, //
-        0.5, -0.5, 0.5, 0.0, 0.0, //
-        0.5, 0.5, 0.5, 1.0, 0.0, //
-        -0.5, -0.5, -0.5, 0.0, 1.0, //
-        0.5, -0.5, -0.5, 1.0, 1.0, //
-        0.5, -0.5, 0.5, 1.0, 0.0, //
-        0.5, -0.5, 0.5, 1.0, 0.0, //
-        -0.5, -0.5, 0.5, 0.0, 0.0, //
-        -0.5, -0.5, -0.5, 0.0, 1.0, //
-        -0.5, 0.5, -0.5, 0.0, 1.0, //
-        0.5, 0.5, -0.5, 1.0, 1.0, //
-        0.5, 0.5, 0.5, 1.0, 0.0, //
-        0.5, 0.5, 0.5, 1.0, 0.0, //
-        -0.5, 0.5, 0.5, 0.0, 0.0, //
-        -0.5, 0.5, -0.5, 0.0, 1.0, //
+    const VERTEX_DATA: [GLfloat; 108] = [
+        -0.5, -0.5, -0.5, //
+        0.5, -0.5, -0.5, //
+        0.5, 0.5, -0.5, //
+        0.5, 0.5, -0.5, //
+        -0.5, 0.5, -0.5, //
+        -0.5, -0.5, -0.5, //
+        -0.5, -0.5, 0.5, //
+        0.5, -0.5, 0.5, //
+        0.5, 0.5, 0.5, //
+        0.5, 0.5, 0.5, //
+        -0.5, 0.5, 0.5, //
+        -0.5, -0.5, 0.5, //
+        -0.5, 0.5, 0.5, //
+        -0.5, 0.5, -0.5, //
+        -0.5, -0.5, -0.5, //
+        -0.5, -0.5, -0.5, //
+        -0.5, -0.5, 0.5, //
+        -0.5, 0.5, 0.5, //
+        0.5, 0.5, 0.5, //
+        0.5, 0.5, -0.5, //
+        0.5, -0.5, -0.5, //
+        0.5, -0.5, -0.5, //
+        0.5, -0.5, 0.5, //
+        0.5, 0.5, 0.5, //
+        -0.5, -0.5, -0.5, //
+        0.5, -0.5, -0.5, //
+        0.5, -0.5, 0.5, //
+        0.5, -0.5, 0.5, //
+        -0.5, -0.5, 0.5, //
+        -0.5, -0.5, -0.5, //
+        -0.5, 0.5, -0.5, //
+        0.5, 0.5, -0.5, //
+        0.5, 0.5, 0.5, //
+        0.5, 0.5, 0.5, //
+        -0.5, 0.5, 0.5, //
+        -0.5, 0.5, -0.5, //
     ];
 
     // vertex buffer object (VBO)
@@ -135,56 +139,16 @@ fn main() {
         );
     }
 
-    // cube positions
-    let cube_positions: [glm::Vec3; 10] = [
-        glm::vec3(0.0, 0.0, 0.0),
-        glm::vec3(2.0, 5.0, -15.0),
-        glm::vec3(-1.5, -2.2, -2.5),
-        glm::vec3(-3.8, -2.0, -12.3),
-        glm::vec3(2.4, -0.4, -3.5),
-        glm::vec3(-1.7, 3.0, -7.5),
-        glm::vec3(1.3, -2.0, -2.5),
-        glm::vec3(1.5, 2.0, -2.5),
-        glm::vec3(1.5, 0.2, -1.5),
-        glm::vec3(-1.3, 1.0, -1.5),
-    ];
-
     // vertex array object (VAO) uses VBO
     let mut vao = 0;
-    let stride = (5 * std::mem::size_of::<GLfloat>()) as GLsizei;
+    let stride = (3 * std::mem::size_of::<GLfloat>()) as GLsizei;
     unsafe {
         gl::GenVertexArrays(1, &mut vao);
         gl::BindVertexArray(vao);
         // position attribute
         gl::VertexAttribPointer(0, 3, gl::FLOAT, gl::FALSE, stride, std::ptr::null());
         gl::EnableVertexAttribArray(0);
-        // texture coord attribute
-        gl::VertexAttribPointer(
-            1,
-            2,
-            gl::FLOAT,
-            gl::FALSE,
-            stride,
-            (3 * std::mem::size_of::<GLfloat>()) as *const GLvoid,
-        );
-        gl::EnableVertexAttribArray(1);
     }
-
-    // element buffer data (EBO) (Rectangle from 2 triangles)
-    // const EBO_INDEX_DATA: [GLuint; 6] = [0, 1, 3, 1, 2, 3];
-
-    // element buffer object (EBO) uses VBO
-    // let mut ebo = 0;
-    // unsafe {
-    //     gl::GenBuffers(1, &mut ebo);
-    //     gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, ebo);
-    //     gl::BufferData(
-    //         gl::ELEMENT_ARRAY_BUFFER,
-    //         (EBO_INDEX_DATA.len() * std::mem::size_of::<GLuint>()) as GLsizeiptr,
-    //         EBO_INDEX_DATA.as_ptr() as *const GLvoid,
-    //         gl::STATIC_DRAW,
-    //     );
-    // }
 
     let mut camera = Camera {
         pos: glm::vec3(0.0, 0.0, 3.0),
@@ -199,7 +163,7 @@ fn main() {
     // shaders
     let fragment_shader = Shader::new(include_str!("shaders/fragment.fs"), gl::FRAGMENT_SHADER);
     let vertex_shader = Shader::new(include_str!("shaders/vertex.vs"), gl::VERTEX_SHADER);
-    let shader_program = Program::new(&vertex_shader, &fragment_shader);
+    let shader_program = Program::new(vertex_shader, fragment_shader);
 
     // copy vertex data to buffer
     unsafe {
@@ -212,15 +176,17 @@ fn main() {
         );
     }
 
-    // TODO deal with max amount of texture units
-    texture_frame.bind(0);
-    texture_flume.bind(1);
-
-    // use shader program
-    shader_program.use_program();
-    // set uniform values
-    shader_program.set_uniform_int("texture_frame", 0);
-    shader_program.set_uniform_int("texture_flume", 1);
+    // light VAO
+    let mut light_vao = 0;
+    unsafe {
+        gl::GenVertexArrays(1, &mut light_vao);
+        gl::BindVertexArray(light_vao);
+        // we only need to bind to the VBO, the container's VBO's data already contains the data
+        gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
+        // set the vertex attributes (only position data for our lamp)
+        gl::VertexAttribPointer(0, 3, gl::FLOAT, gl::FALSE, stride, std::ptr::null());
+        gl::EnableVertexAttribArray(0);
+    }
 
     unsafe {
         gl::ClearColor(0.3, 0.3, 0.5, 1.0);
@@ -235,6 +201,13 @@ fn main() {
 
     // main loop
     while !window.should_close() {
+        // SECTION main loop
+
+        shader_program.use_program();
+
+        shader_program.set_uniform_vec3("light_color", light_white_color);
+        shader_program.set_uniform_vec3("object_color", toy_coral_color);
+
         let current_frame = glfw.get_time() as f32;
         let delta_time = current_frame - last_frame;
         last_frame = current_frame;
@@ -251,7 +224,6 @@ fn main() {
         // view matrix manipulations
         let view = glm::ext::look_at(camera.pos, camera.pos + camera.front, camera.up);
 
-        // update shader uniform values
         shader_program.set_uniform_mat4("view", &view);
         shader_program.set_uniform_mat4("projection", &projection);
 
@@ -262,27 +234,39 @@ fn main() {
             gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
         }
 
-        // draw the 10 cubes
-        for i in 0..10 {
-            let mut model = glm::mat4(
-                1.0, 0.0, 0.0, 0.0, //
-                0.0, 1.0, 0.0, 0.0, //
-                0.0, 0.0, 1.0, 0.0, //
-                0.0, 0.0, 0.0, 1.0, //
-            );
-            model = glm::ext::translate(&model, cube_positions[i]);
-            let angle = 20.0 * i as f32;
+        let mut model = glm::Mat4::new(
+            Vec4::new(1.0, 0.0, 0.0, 0.0),
+            Vec4::new(0.0, 1.0, 0.0, 0.0),
+            Vec4::new(0.0, 0.0, 1.0, 0.0),
+            Vec4::new(0.0, 0.0, 0.0, 1.0),
+        );
+        let angle = 20.0 as f32;
 
-            model = glm::ext::rotate(
-                &model,
-                glm::radians(angle) + glfw.get_time() as f32,
-                Vec3::new(0.5, 1.0, 0.0),
-            );
-            shader_program.set_uniform_mat4("model", &model);
-            unsafe {
-                gl::DrawArrays(gl::TRIANGLES, 0, 36);
-            }
+        model = glm::ext::translate(&model, Vec3::new(0.0, 1.0, -2.0));
+        model = glm::ext::rotate(
+            &model,
+            glm::radians(angle) + glfw.get_time() as f32,
+            Vec3::new(0.5, 1.0, 0.0),
+        );
+        shader_program.set_uniform_mat4("model", &model);
+        unsafe {
+            gl::DrawArrays(gl::TRIANGLES, 0, 36);
         }
+
+        // SECTION cube light
+
+        light_program.use_program();
+
+        light_program.set_uniform_mat4("view", &view);
+        light_program.set_uniform_mat4("projection", &projection);
+        light_program.set_uniform_mat4("model", &light_model);
+
+        unsafe {
+            gl::BindVertexArray(light_vao);
+            gl::DrawArrays(gl::TRIANGLES, 0, 36);
+        }
+
+        // SECTION swap buffers & poll events
 
         window.swap_buffers();
         glfw.poll_events();
