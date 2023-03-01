@@ -210,7 +210,7 @@ fn main() {
         specular_color: Vec3::new(0.5, 0.5, 0.5),
         specular_strength: 32.0,
     };
-    let light = Light {
+    let mut light = Light {
         pos: Vec3::new(1.2, 1.0, 2.0),
         ambient_color: Vec3::new(0.2, 0.2, 0.2),
         diffuse_color: Vec3::new(0.5, 0.5, 0.5),
@@ -223,9 +223,9 @@ fn main() {
 
         global_program.use_program();
 
-        let current_frame = glfw.get_time() as f32;
-        let delta_time = current_frame - last_frame;
-        last_frame = current_frame;
+        let frame_start_time = glfw.get_time() as f32;
+        let delta_time = frame_start_time - last_frame;
+        last_frame = frame_start_time;
 
         camera.speed = camera.speed_factor * delta_time;
 
@@ -245,6 +245,15 @@ fn main() {
         global_program.set_uniform_vec3("material.specular_color", material.specular_color);
         global_program.set_uniform_float("material.specular_strength", material.specular_strength);
 
+        let current_light_color = Vec3::new(
+            (frame_start_time).sin() * 2.0,
+            (frame_start_time).cos() * 0.7,
+            (frame_start_time).sin() * 1.3,
+        );
+
+        light.diffuse_color = current_light_color * 0.8;
+        light.ambient_color = light.diffuse_color * 0.2;
+
         global_program.set_uniform_vec3("light.pos", light.pos);
         global_program.set_uniform_vec3("light.ambient_color", light.ambient_color);
         global_program.set_uniform_vec3("light.diffuse_color", light.diffuse_color);
@@ -256,7 +265,7 @@ fn main() {
             Vec4::new(0.0, 0.0, 1.0, 0.0),
             Vec4::new(0.0, 0.0, 0.0, 1.0),
         );
-        let angle = 20.0 * glfw.get_time() as f32;
+        let angle = 50.0 * frame_start_time;
         model = glm::ext::rotate(&model, glm::radians(angle), Vec3::new(1.0, 0.6, 0.0));
         global_program.set_uniform_mat4("model", &model);
         unsafe {
