@@ -2,6 +2,8 @@ extern crate gl;
 extern crate glfw;
 
 mod camera;
+mod light;
+mod material;
 mod program;
 mod shader;
 mod texture;
@@ -12,6 +14,9 @@ use glfw::{Action, Context, Key};
 use glm::{Vec3, Vec4};
 use program::Program;
 use shader::Shader;
+
+use light::Light;
+use material::Material;
 
 const WIN_WIDTH: u32 = 1200;
 const WIN_HEIGHT: u32 = 900;
@@ -72,18 +77,6 @@ fn main() {
     let light_shader_fs = Shader::new(include_str!("shaders/light.fs"), gl::FRAGMENT_SHADER);
     let light_shader_vs = Shader::new(include_str!("shaders/light.vs"), gl::VERTEX_SHADER);
     let light_program = Program::new(light_shader_fs, light_shader_vs);
-
-    let toy_coral_color = Vec3::new(1.0, 0.5, 0.31);
-    let light_white_color = Vec3::new(1.0, 1.0, 1.0);
-    let light_position = Vec3::new(1.2, 1.0, 2.0);
-    let mut light_model = glm::Mat4::new(
-        Vec4::new(1.0, 0.0, 0.0, 0.0),
-        Vec4::new(0.0, 1.0, 0.0, 0.0),
-        Vec4::new(0.0, 0.0, 1.0, 0.0),
-        Vec4::new(0.0, 0.0, 0.0, 1.0),
-    );
-    light_model = glm::ext::translate(&light_model, light_position);
-    light_model = glm::ext::scale(&light_model, Vec3::new(0.2, 0.2, 0.2));
 
     // vertex data
     const VERTEX_DATA: [GLfloat; 216] = [
@@ -166,13 +159,15 @@ fn main() {
         right: glm::vec3(0.0, 0.0, 0.0),
         speed_factor: 500.0,
         fov_y: 45.0,
+        fov_y_min: 1.0,
+        fov_y_max: 90.0,
         speed: 0.0,
     };
 
     // shaders
     let fragment_shader = Shader::new(include_str!("shaders/fragment.fs"), gl::FRAGMENT_SHADER);
     let vertex_shader = Shader::new(include_str!("shaders/vertex.vs"), gl::VERTEX_SHADER);
-    let shader_program = Program::new(vertex_shader, fragment_shader);
+    let global_program = Program::new(vertex_shader, fragment_shader);
 
     // copy vertex data to buffer
     unsafe {
@@ -209,11 +204,24 @@ fn main() {
     // last frame time and delta time
     let mut last_frame = 0.0;
 
+    let material = Material {
+        ambient_color: Vec3::new(1.0, 0.5, 0.31),
+        diffuse_color: Vec3::new(1.0, 0.5, 0.31),
+        specular_color: Vec3::new(0.5, 0.5, 0.5),
+        specular_strength: 32.0,
+    };
+    let light = Light {
+        pos: Vec3::new(1.2, 1.0, 2.0),
+        ambient_color: Vec3::new(0.2, 0.2, 0.2),
+        diffuse_color: Vec3::new(0.5, 0.5, 0.5),
+        specular_color: Vec3::new(1.0, 1.0, 1.0),
+    };
+
     // main loop
     while !window.should_close() {
         // SECTION main loop
 
-        shader_program.use_program();
+        global_program.use_program();
 
         let current_frame = glfw.get_time() as f32;
         let delta_time = current_frame - last_frame;
@@ -227,12 +235,20 @@ fn main() {
         let view = glm::ext::look_at(camera.pos, camera.pos + camera.front, camera.up);
 
         // update local uniform values
-        shader_program.set_uniform_mat4("view", &view);
-        shader_program.set_uniform_mat4("projection", &projection);
-        shader_program.set_uniform_vec3("object_color", toy_coral_color);
-        shader_program.set_uniform_vec3("light_color", light_white_color);
-        shader_program.set_uniform_vec3("light_pos", light_position);
-        shader_program.set_uniform_vec3("camera_pos", camera.pos);
+        global_program.set_uniform_mat4("view", &view);
+        global_program.set_uniform_mat4("projection", &projection);
+
+        global_program.set_uniform_vec3("camera_pos", camera.pos);
+
+        global_program.set_uniform_vec3("material.ambient_color", material.ambient_color);
+        global_program.set_uniform_vec3("material.diffuse_color", material.diffuse_color);
+        global_program.set_uniform_vec3("material.specular_color", material.specular_color);
+        global_program.set_uniform_float("material.specular_strength", material.specular_strength);
+
+        global_program.set_uniform_vec3("light.pos", light.pos);
+        global_program.set_uniform_vec3("light.ambient_color", light.ambient_color);
+        global_program.set_uniform_vec3("light.diffuse_color", light.diffuse_color);
+        global_program.set_uniform_vec3("light.specular_color", light.specular_color);
 
         let mut model = glm::Mat4::new(
             Vec4::new(1.0, 0.0, 0.0, 0.0),
@@ -242,7 +258,7 @@ fn main() {
         );
         let angle = 20.0 * glfw.get_time() as f32;
         model = glm::ext::rotate(&model, glm::radians(angle), Vec3::new(1.0, 0.6, 0.0));
-        shader_program.set_uniform_mat4("model", &model);
+        global_program.set_uniform_mat4("model", &model);
         unsafe {
             gl::BindVertexArray(vao);
             gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
@@ -255,7 +271,14 @@ fn main() {
 
         light_program.set_uniform_mat4("view", &view);
         light_program.set_uniform_mat4("projection", &projection);
-        light_program.set_uniform_mat4("model", &light_model);
+        let mut model = glm::Mat4::new(
+            Vec4::new(1.0, 0.0, 0.0, 0.0),
+            Vec4::new(0.0, 1.0, 0.0, 0.0),
+            Vec4::new(0.0, 0.0, 1.0, 0.0),
+            Vec4::new(0.0, 0.0, 0.0, 1.0),
+        );
+        model = glm::ext::translate(&model, light.pos);
+        light_program.set_uniform_mat4("model", &model);
 
         unsafe {
             gl::BindVertexArray(light_vao);
@@ -315,7 +338,7 @@ fn main() {
                 // scroll
                 glfw::WindowEvent::Scroll(_xoffset, yoffset) => {
                     camera.fov_y -= yoffset as f32;
-                    camera.fov_y = camera.fov_y.max(1.0).min(45.0);
+                    camera.fov_y = camera.fov_y.max(camera.fov_y_min).min(camera.fov_y_max);
                 }
                 // mouse movement
                 glfw::WindowEvent::CursorPos(xpos, ypos) => {
