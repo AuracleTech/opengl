@@ -76,53 +76,53 @@ fn main() {
     let toy_coral_color = Vec3::new(1.0, 0.5, 0.31);
     let light_white_color = Vec3::new(1.0, 1.0, 1.0);
     let light_position = Vec3::new(1.2, 1.0, 2.0);
-    let light_model = glm::Mat4::new(
+    let mut light_model = glm::Mat4::new(
         Vec4::new(1.0, 0.0, 0.0, 0.0),
         Vec4::new(0.0, 1.0, 0.0, 0.0),
         Vec4::new(0.0, 0.0, 1.0, 0.0),
         Vec4::new(0.0, 0.0, 0.0, 1.0),
     );
-    glm::ext::translate(&light_model, light_position);
-    glm::ext::scale(&light_model, Vec3::new(0.2, 0.2, 0.2));
+    light_model = glm::ext::translate(&light_model, light_position);
+    light_model = glm::ext::scale(&light_model, Vec3::new(0.2, 0.2, 0.2));
 
     // vertex data
-    const VERTEX_DATA: [GLfloat; 108] = [
-        -0.5, -0.5, -0.5, //
-        0.5, -0.5, -0.5, //
-        0.5, 0.5, -0.5, //
-        0.5, 0.5, -0.5, //
-        -0.5, 0.5, -0.5, //
-        -0.5, -0.5, -0.5, //
-        -0.5, -0.5, 0.5, //
-        0.5, -0.5, 0.5, //
-        0.5, 0.5, 0.5, //
-        0.5, 0.5, 0.5, //
-        -0.5, 0.5, 0.5, //
-        -0.5, -0.5, 0.5, //
-        -0.5, 0.5, 0.5, //
-        -0.5, 0.5, -0.5, //
-        -0.5, -0.5, -0.5, //
-        -0.5, -0.5, -0.5, //
-        -0.5, -0.5, 0.5, //
-        -0.5, 0.5, 0.5, //
-        0.5, 0.5, 0.5, //
-        0.5, 0.5, -0.5, //
-        0.5, -0.5, -0.5, //
-        0.5, -0.5, -0.5, //
-        0.5, -0.5, 0.5, //
-        0.5, 0.5, 0.5, //
-        -0.5, -0.5, -0.5, //
-        0.5, -0.5, -0.5, //
-        0.5, -0.5, 0.5, //
-        0.5, -0.5, 0.5, //
-        -0.5, -0.5, 0.5, //
-        -0.5, -0.5, -0.5, //
-        -0.5, 0.5, -0.5, //
-        0.5, 0.5, -0.5, //
-        0.5, 0.5, 0.5, //
-        0.5, 0.5, 0.5, //
-        -0.5, 0.5, 0.5, //
-        -0.5, 0.5, -0.5, //
+    const VERTEX_DATA: [GLfloat; 216] = [
+        -0.5, -0.5, -0.5, 0.0, 0.0, -1.0, //
+        0.5, -0.5, -0.5, 0.0, 0.0, -1.0, //
+        0.5, 0.5, -0.5, 0.0, 0.0, -1.0, //
+        0.5, 0.5, -0.5, 0.0, 0.0, -1.0, //
+        -0.5, 0.5, -0.5, 0.0, 0.0, -1.0, //
+        -0.5, -0.5, -0.5, 0.0, 0.0, -1.0, //
+        -0.5, -0.5, 0.5, 0.0, 0.0, 1.0, //
+        0.5, -0.5, 0.5, 0.0, 0.0, 1.0, //
+        0.5, 0.5, 0.5, 0.0, 0.0, 1.0, //
+        0.5, 0.5, 0.5, 0.0, 0.0, 1.0, //
+        -0.5, 0.5, 0.5, 0.0, 0.0, 1.0, //
+        -0.5, -0.5, 0.5, 0.0, 0.0, 1.0, //
+        -0.5, 0.5, 0.5, -1.0, 0.0, 0.0, //
+        -0.5, 0.5, -0.5, -1.0, 0.0, 0.0, //
+        -0.5, -0.5, -0.5, -1.0, 0.0, 0.0, //
+        -0.5, -0.5, -0.5, -1.0, 0.0, 0.0, //
+        -0.5, -0.5, 0.5, -1.0, 0.0, 0.0, //
+        -0.5, 0.5, 0.5, -1.0, 0.0, 0.0, //
+        0.5, 0.5, 0.5, 1.0, 0.0, 0.0, //
+        0.5, 0.5, -0.5, 1.0, 0.0, 0.0, //
+        0.5, -0.5, -0.5, 1.0, 0.0, 0.0, //
+        0.5, -0.5, -0.5, 1.0, 0.0, 0.0, //
+        0.5, -0.5, 0.5, 1.0, 0.0, 0.0, //
+        0.5, 0.5, 0.5, 1.0, 0.0, 0.0, //
+        -0.5, -0.5, -0.5, 0.0, -1.0, 0.0, //
+        0.5, -0.5, -0.5, 0.0, -1.0, 0.0, //
+        0.5, -0.5, 0.5, 0.0, -1.0, 0.0, //
+        0.5, -0.5, 0.5, 0.0, -1.0, 0.0, //
+        -0.5, -0.5, 0.5, 0.0, -1.0, 0.0, //
+        -0.5, -0.5, -0.5, 0.0, -1.0, 0.0, //
+        -0.5, 0.5, -0.5, 0.0, 1.0, 0.0, //
+        0.5, 0.5, -0.5, 0.0, 1.0, 0.0, //
+        0.5, 0.5, 0.5, 0.0, 1.0, 0.0, //
+        0.5, 0.5, 0.5, 0.0, 1.0, 0.0, //
+        -0.5, 0.5, 0.5, 0.0, 1.0, 0.0, //
+        -0.5, 0.5, -0.5, 0.0, 1.0, 0.0, //
     ];
 
     // vertex buffer object (VBO)
@@ -140,13 +140,23 @@ fn main() {
 
     // vertex array object (VAO) uses VBO
     let mut vao = 0;
-    let stride = (3 * std::mem::size_of::<GLfloat>()) as GLsizei;
+    let main_stride = (6 * std::mem::size_of::<GLfloat>()) as GLsizei;
     unsafe {
         gl::GenVertexArrays(1, &mut vao);
         gl::BindVertexArray(vao);
         // position attribute
-        gl::VertexAttribPointer(0, 3, gl::FLOAT, gl::FALSE, stride, std::ptr::null());
+        gl::VertexAttribPointer(0, 3, gl::FLOAT, gl::FALSE, main_stride, std::ptr::null());
         gl::EnableVertexAttribArray(0);
+        // normal attribute
+        gl::VertexAttribPointer(
+            1,
+            3,
+            gl::FLOAT,
+            gl::FALSE,
+            main_stride,
+            (3 * std::mem::size_of::<GLfloat>()) as *const GLvoid,
+        );
+        gl::EnableVertexAttribArray(1);
     }
 
     let mut camera = Camera {
@@ -177,13 +187,14 @@ fn main() {
 
     // light VAO
     let mut light_vao = 0;
+    let light_stride = (6 * std::mem::size_of::<GLfloat>()) as GLsizei;
     unsafe {
         gl::GenVertexArrays(1, &mut light_vao);
         gl::BindVertexArray(light_vao);
         // we only need to bind to the VBO, the container's VBO's data already contains the data
         gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
         // set the vertex attributes (only position data for our lamp)
-        gl::VertexAttribPointer(0, 3, gl::FLOAT, gl::FALSE, stride, std::ptr::null());
+        gl::VertexAttribPointer(0, 3, gl::FLOAT, gl::FALSE, light_stride, std::ptr::null());
         gl::EnableVertexAttribArray(0);
     }
 
@@ -218,8 +229,10 @@ fn main() {
         // update local uniform values
         shader_program.set_uniform_mat4("view", &view);
         shader_program.set_uniform_mat4("projection", &projection);
-        shader_program.set_uniform_vec3("light_color", light_white_color);
         shader_program.set_uniform_vec3("object_color", toy_coral_color);
+        shader_program.set_uniform_vec3("light_color", light_white_color);
+        shader_program.set_uniform_vec3("light_pos", light_position);
+        shader_program.set_uniform_vec3("camera_pos", camera.pos);
 
         let mut model = glm::Mat4::new(
             Vec4::new(1.0, 0.0, 0.0, 0.0),
@@ -227,14 +240,8 @@ fn main() {
             Vec4::new(0.0, 0.0, 1.0, 0.0),
             Vec4::new(0.0, 0.0, 0.0, 1.0),
         );
-        let angle = 20.0 as f32;
-
-        model = glm::ext::translate(&model, Vec3::new(0.0, 1.0, -2.0));
-        model = glm::ext::rotate(
-            &model,
-            glm::radians(angle) + glfw.get_time() as f32,
-            Vec3::new(0.5, 1.0, 0.0),
-        );
+        let angle = 20.0 * glfw.get_time() as f32;
+        model = glm::ext::rotate(&model, glm::radians(angle), Vec3::new(1.0, 0.6, 0.0));
         shader_program.set_uniform_mat4("model", &model);
         unsafe {
             gl::BindVertexArray(vao);
