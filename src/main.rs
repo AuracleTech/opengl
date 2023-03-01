@@ -151,14 +151,14 @@ fn main() {
         front: glm::vec3(0.0, 0.0, -1.0),
         up: glm::vec3(0.0, 1.0, 0.0),
         right: glm::vec3(0.0, 0.0, 0.0),
-        speed_factor: 4.0,
+        speed_factor: 10.0,
         fov_y: 45.0,
         fov_y_min: 1.0,
         fov_y_max: 90.0,
         speed: 0.0,
         yaw: -90.0,
         pitch: 0.0,
-        aim_sensitivity: 0.05,
+        aim_sensitivity: 0.04,
     };
 
     // shaders
@@ -350,6 +350,14 @@ fn main() {
         if key_states[Key::D as usize] {
             camera.pos =
                 camera.pos + (glm::normalize(glm::cross(camera.front, camera.up)) * camera.speed);
+        }
+        // SPACE move up
+        if key_states[Key::Space as usize] {
+            camera.pos = camera.pos + (camera.up * camera.speed);
+        }
+        // LEFT SHIFT move down
+        if key_states[Key::LeftShift as usize] {
+            camera.pos = camera.pos - (camera.up * camera.speed);
         }
 
         // P cycle through polygon modes
