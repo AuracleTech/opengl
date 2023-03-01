@@ -10,4 +10,7 @@ pub struct Camera {
     pub fov_y_min: f32,
     pub fov_y_max: f32,
     pub speed: f32,
+    pub yaw: f32,
+    pub pitch: f32,
+    pub aim_sensitivity: f32,
 }

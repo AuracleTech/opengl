@@ -8,15 +8,15 @@ mod program;
 mod shader;
 mod texture;
 
-use camera::Camera;
 use gl::types::*;
-use glfw::{Action, Context, Key};
+use glfw::{Context, Key};
 use glm::{Vec3, Vec4};
-use program::Program;
-use shader::Shader;
 
+use camera::Camera;
 use light::Light;
 use material::Material;
+use program::Program;
+use shader::Shader;
 
 const WIN_WIDTH: u32 = 1200;
 const WIN_HEIGHT: u32 = 900;
@@ -55,12 +55,6 @@ fn main() {
     glfw.set_swap_interval(glfw::SwapInterval::Sync(0));
     window.set_cursor_mode(glfw::CursorMode::Disabled);
     window.make_current();
-
-    // Cursor position
-    let mut last_x = WIN_WIDTH as f64 / 2.0;
-    let mut last_y = WIN_HEIGHT as f64 / 2.0;
-    let mut yaw = -90.0;
-    let mut pitch = 0.0;
 
     // get max vertex attributes (min 16 on OpenGL 3.3+)
     // TODO check if current_vertex_attribs <= max_vertex_attribs before initializing each vertex attributes
@@ -157,11 +151,14 @@ fn main() {
         front: glm::vec3(0.0, 0.0, -1.0),
         up: glm::vec3(0.0, 1.0, 0.0),
         right: glm::vec3(0.0, 0.0, 0.0),
-        speed_factor: 500.0,
+        speed_factor: 4.0,
         fov_y: 45.0,
         fov_y_min: 1.0,
         fov_y_max: 90.0,
         speed: 0.0,
+        yaw: -90.0,
+        pitch: 0.0,
+        aim_sensitivity: 0.05,
     };
 
     // shaders
@@ -217,9 +214,21 @@ fn main() {
         specular_color: Vec3::new(1.0, 1.0, 1.0),
     };
 
-    // main loop
+    const KEY_AMOUNT: usize = glfw::ffi::KEY_LAST as usize;
+    let mut key_states = [false; KEY_AMOUNT];
+
+    let mut mouse_last_x = WIN_WIDTH as f64 / 2.0;
+    let mut mouse_last_y = WIN_HEIGHT as f64 / 2.0;
+    let mut mouse_pos_x = 0.0;
+    let mut mouse_pos_y = 0.0;
+
+    let mut mouse_scroll_y = 0.0;
+
     while !window.should_close() {
-        // SECTION main loop
+        let mut mouse_updated = false;
+        let mut mouse_scroll_updated = false;
+
+        // SECTION render
 
         global_program.use_program();
 
@@ -301,81 +310,98 @@ fn main() {
 
         for (_, event) in glfw::flush_messages(&events) {
             match event {
-                // ESC closes the window
-                glfw::WindowEvent::Key(Key::Escape, _, Action::Press, _) => {
-                    window.set_should_close(true)
+                glfw::WindowEvent::CursorPos(x, y) => {
+                    mouse_updated = true;
+                    mouse_last_x = mouse_pos_x;
+                    mouse_last_y = mouse_pos_y;
+                    mouse_pos_x = x;
+                    mouse_pos_y = y;
                 }
-                // P cycle through polygon modes
-                glfw::WindowEvent::Key(Key::P, _, Action::Press, _) => {
-                    let mut polygon_mode = [0];
-                    unsafe {
-                        gl::GetIntegerv(gl::POLYGON_MODE, polygon_mode.as_mut_ptr());
-                    }
-                    let polygon_mode = match polygon_mode[0] as GLenum {
-                        gl::FILL => gl::LINE,
-                        gl::LINE => gl::POINT,
-                        gl::POINT => gl::FILL,
-                        _ => panic!("Unknown polygon mode"),
-                    };
-                    unsafe {
-                        gl::PolygonMode(gl::FRONT_AND_BACK, polygon_mode);
-                    }
-                    println!("Polygon mode: {}", polygon_mode);
+                glfw::WindowEvent::Key(key, _, action, _) => {
+                    key_states[key as usize] = action != glfw::Action::Release;
                 }
-                // resize the viewport when the window is resized
+                glfw::WindowEvent::Scroll(_x_offset, y_offset) => {
+                    mouse_scroll_updated = true;
+                    mouse_scroll_y = y_offset;
+                }
                 glfw::WindowEvent::FramebufferSize(width, height) => unsafe {
                     gl::Viewport(0, 0, width, height);
                 },
-                // W
-                glfw::WindowEvent::Key(Key::W, _, Action::Repeat | Action::Press, _) => {
-                    camera.pos = camera.pos + (camera.front * camera.speed);
-                }
-                // S
-                glfw::WindowEvent::Key(Key::S, _, Action::Repeat | Action::Press, _) => {
-                    camera.pos = camera.pos - (camera.front * camera.speed);
-                }
-                // A
-                glfw::WindowEvent::Key(Key::A, _, Action::Repeat | Action::Press, _) => {
-                    camera.pos = camera.pos
-                        - (glm::normalize(glm::cross(camera.front, camera.up)) * camera.speed);
-                }
-                // D
-                glfw::WindowEvent::Key(Key::D, _, Action::Repeat | Action::Press, _) => {
-                    camera.pos = camera.pos
-                        + (glm::normalize(glm::cross(camera.front, camera.up)) * camera.speed);
-                }
-                // scroll
-                glfw::WindowEvent::Scroll(_xoffset, yoffset) => {
-                    camera.fov_y -= yoffset as f32;
-                    camera.fov_y = camera.fov_y.max(camera.fov_y_min).min(camera.fov_y_max);
-                }
-                // mouse movement
-                glfw::WindowEvent::CursorPos(xpos, ypos) => {
-                    let xoffset = xpos - last_x;
-                    let yoffset = last_y - ypos;
-                    last_x = xpos;
-                    last_y = ypos;
-
-                    let sensitivity = 0.05;
-                    let offset_x = xoffset as f32 * sensitivity;
-                    let offset_y = yoffset as f32 * sensitivity;
-
-                    yaw += offset_x;
-                    pitch += offset_y;
-
-                    pitch = pitch.clamp(-89.9, 89.9);
-
-                    camera.front = glm::normalize(Vec3::new(
-                        yaw.to_radians().cos() * pitch.to_radians().cos(),
-                        pitch.to_radians().sin(),
-                        yaw.to_radians().sin() * pitch.to_radians().cos(),
-                    ));
-                }
                 _ => {}
             }
         }
 
-        // calculate fps and print to console
+        // SECTION keyboard inputs
+
+        // W move forward
+        if key_states[Key::W as usize] {
+            camera.pos = camera.pos + (camera.front * camera.speed);
+        }
+        // A move left
+        if key_states[Key::A as usize] {
+            camera.pos =
+                camera.pos - (glm::normalize(glm::cross(camera.front, camera.up)) * camera.speed);
+        }
+        // S move back
+        if key_states[Key::S as usize] {
+            camera.pos = camera.pos - (camera.front * camera.speed);
+        }
+        // D move right
+        if key_states[Key::D as usize] {
+            camera.pos =
+                camera.pos + (glm::normalize(glm::cross(camera.front, camera.up)) * camera.speed);
+        }
+
+        // P cycle through polygon modes
+        if key_states[Key::P as usize] {
+            let mut polygon_mode = [0];
+            unsafe {
+                gl::GetIntegerv(gl::POLYGON_MODE, polygon_mode.as_mut_ptr());
+            }
+            let polygon_mode = match polygon_mode[0] as GLenum {
+                gl::FILL => gl::LINE,
+                gl::LINE => gl::POINT,
+                gl::POINT => gl::FILL,
+                _ => panic!("Unknown polygon mode"),
+            };
+            unsafe {
+                gl::PolygonMode(gl::FRONT_AND_BACK, polygon_mode);
+            }
+            println!("Polygon mode: {}", polygon_mode);
+        }
+        // ESC close window
+        if key_states[Key::Escape as usize] {
+            window.set_should_close(true);
+        }
+
+        // SECTION mouse inputs
+
+        // camera aim
+        if mouse_updated {
+            let x_offset = mouse_pos_x - mouse_last_x;
+            let y_offset = mouse_last_y - mouse_pos_y;
+
+            camera.yaw += x_offset as f32 * camera.aim_sensitivity;
+            camera.pitch += y_offset as f32 * camera.aim_sensitivity;
+
+            camera.pitch = camera.pitch.clamp(-89.9, 89.9);
+            camera.yaw = camera.yaw.rem_euclid(360.0);
+
+            camera.front = glm::normalize(Vec3::new(
+                camera.yaw.to_radians().cos() * camera.pitch.to_radians().cos(),
+                camera.pitch.to_radians().sin(),
+                camera.yaw.to_radians().sin() * camera.pitch.to_radians().cos(),
+            ));
+        }
+
+        // scroll
+        if mouse_scroll_updated {
+            camera.fov_y -= mouse_scroll_y as f32;
+            camera.fov_y = camera.fov_y.max(camera.fov_y_min).min(camera.fov_y_max);
+        }
+
+        // SECTION framerate
+
         frames_rendered += 1;
         let current_time = glfw.get_time();
         if current_time - last_time >= 1.0 {
