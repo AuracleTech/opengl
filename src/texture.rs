@@ -11,6 +11,12 @@ pub struct Texture {
 #[allow(dead_code)]
 impl Texture {
     pub fn new(path: &str) -> Self {
+        // TODO support all image formats
+        let extension = path.split('.').last().unwrap();
+        if extension != "jpg" {
+            panic!("Texture format not supported for the moment.");
+        }
+
         let texture_image = image::open(path).unwrap().flipv();
         let width = texture_image.width();
         let height = texture_image.height();
@@ -68,6 +74,7 @@ impl Texture {
         }
     }
 
+    // TODO deal with max amount of texture units
     pub fn bind(&self, texture_unit: u32) {
         unsafe {
             gl::ActiveTexture(gl::TEXTURE0 + texture_unit);

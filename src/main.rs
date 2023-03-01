@@ -17,6 +17,7 @@ use light::Light;
 use material::Material;
 use program::Program;
 use shader::Shader;
+use texture::Texture;
 
 const WIN_WIDTH: u32 = 1200;
 const WIN_HEIGHT: u32 = 900;
@@ -72,44 +73,44 @@ fn main() {
     let light_shader_vs = Shader::new(include_str!("shaders/light.vs"), gl::VERTEX_SHADER);
     let light_program = Program::new(light_shader_fs, light_shader_vs);
 
-    // vertex data
-    const VERTEX_DATA: [GLfloat; 216] = [
-        -0.5, -0.5, -0.5, 0.0, 0.0, -1.0, //
-        0.5, -0.5, -0.5, 0.0, 0.0, -1.0, //
-        0.5, 0.5, -0.5, 0.0, 0.0, -1.0, //
-        0.5, 0.5, -0.5, 0.0, 0.0, -1.0, //
-        -0.5, 0.5, -0.5, 0.0, 0.0, -1.0, //
-        -0.5, -0.5, -0.5, 0.0, 0.0, -1.0, //
-        -0.5, -0.5, 0.5, 0.0, 0.0, 1.0, //
-        0.5, -0.5, 0.5, 0.0, 0.0, 1.0, //
-        0.5, 0.5, 0.5, 0.0, 0.0, 1.0, //
-        0.5, 0.5, 0.5, 0.0, 0.0, 1.0, //
-        -0.5, 0.5, 0.5, 0.0, 0.0, 1.0, //
-        -0.5, -0.5, 0.5, 0.0, 0.0, 1.0, //
-        -0.5, 0.5, 0.5, -1.0, 0.0, 0.0, //
-        -0.5, 0.5, -0.5, -1.0, 0.0, 0.0, //
-        -0.5, -0.5, -0.5, -1.0, 0.0, 0.0, //
-        -0.5, -0.5, -0.5, -1.0, 0.0, 0.0, //
-        -0.5, -0.5, 0.5, -1.0, 0.0, 0.0, //
-        -0.5, 0.5, 0.5, -1.0, 0.0, 0.0, //
-        0.5, 0.5, 0.5, 1.0, 0.0, 0.0, //
-        0.5, 0.5, -0.5, 1.0, 0.0, 0.0, //
-        0.5, -0.5, -0.5, 1.0, 0.0, 0.0, //
-        0.5, -0.5, -0.5, 1.0, 0.0, 0.0, //
-        0.5, -0.5, 0.5, 1.0, 0.0, 0.0, //
-        0.5, 0.5, 0.5, 1.0, 0.0, 0.0, //
-        -0.5, -0.5, -0.5, 0.0, -1.0, 0.0, //
-        0.5, -0.5, -0.5, 0.0, -1.0, 0.0, //
-        0.5, -0.5, 0.5, 0.0, -1.0, 0.0, //
-        0.5, -0.5, 0.5, 0.0, -1.0, 0.0, //
-        -0.5, -0.5, 0.5, 0.0, -1.0, 0.0, //
-        -0.5, -0.5, -0.5, 0.0, -1.0, 0.0, //
-        -0.5, 0.5, -0.5, 0.0, 1.0, 0.0, //
-        0.5, 0.5, -0.5, 0.0, 1.0, 0.0, //
-        0.5, 0.5, 0.5, 0.0, 1.0, 0.0, //
-        0.5, 0.5, 0.5, 0.0, 1.0, 0.0, //
-        -0.5, 0.5, 0.5, 0.0, 1.0, 0.0, //
-        -0.5, 0.5, -0.5, 0.0, 1.0, 0.0, //
+    // vertex data (pos 3, normal 3, texcoord 2)
+    const VERTEX_DATA: [GLfloat; 288] = [
+        -0.5, -0.5, -0.5, 0.0, 0.0, -1.0, 0.0, 0.0, //
+        0.5, -0.5, -0.5, 0.0, 0.0, -1.0, 1.0, 0.0, //
+        0.5, 0.5, -0.5, 0.0, 0.0, -1.0, 1.0, 1.0, //
+        0.5, 0.5, -0.5, 0.0, 0.0, -1.0, 1.0, 1.0, //
+        -0.5, 0.5, -0.5, 0.0, 0.0, -1.0, 0.0, 1.0, //
+        -0.5, -0.5, -0.5, 0.0, 0.0, -1.0, 0.0, 0.0, //
+        -0.5, -0.5, 0.5, 0.0, 0.0, 1.0, 0.0, 0.0, //
+        0.5, -0.5, 0.5, 0.0, 0.0, 1.0, 1.0, 0.0, //
+        0.5, 0.5, 0.5, 0.0, 0.0, 1.0, 1.0, 1.0, //
+        0.5, 0.5, 0.5, 0.0, 0.0, 1.0, 1.0, 1.0, //
+        -0.5, 0.5, 0.5, 0.0, 0.0, 1.0, 0.0, 1.0, //
+        -0.5, -0.5, 0.5, 0.0, 0.0, 1.0, 0.0, 0.0, //
+        -0.5, 0.5, 0.5, -1.0, 0.0, 0.0, 1.0, 0.0, //
+        -0.5, 0.5, -0.5, -1.0, 0.0, 0.0, 1.0, 1.0, //
+        -0.5, -0.5, -0.5, -1.0, 0.0, 0.0, 0.0, 1.0, //
+        -0.5, -0.5, -0.5, -1.0, 0.0, 0.0, 0.0, 1.0, //
+        -0.5, -0.5, 0.5, -1.0, 0.0, 0.0, 0.0, 0.0, //
+        -0.5, 0.5, 0.5, -1.0, 0.0, 0.0, 1.0, 0.0, //
+        0.5, 0.5, 0.5, 1.0, 0.0, 0.0, 1.0, 0.0, //
+        0.5, 0.5, -0.5, 1.0, 0.0, 0.0, 1.0, 1.0, //
+        0.5, -0.5, -0.5, 1.0, 0.0, 0.0, 0.0, 1.0, //
+        0.5, -0.5, -0.5, 1.0, 0.0, 0.0, 0.0, 1.0, //
+        0.5, -0.5, 0.5, 1.0, 0.0, 0.0, 0.0, 0.0, //
+        0.5, 0.5, 0.5, 1.0, 0.0, 0.0, 1.0, 0.0, //
+        -0.5, -0.5, -0.5, 0.0, -1.0, 0.0, 0.0, 1.0, //
+        0.5, -0.5, -0.5, 0.0, -1.0, 0.0, 1.0, 1.0, //
+        0.5, -0.5, 0.5, 0.0, -1.0, 0.0, 1.0, 0.0, //
+        0.5, -0.5, 0.5, 0.0, -1.0, 0.0, 1.0, 0.0, //
+        -0.5, -0.5, 0.5, 0.0, -1.0, 0.0, 0.0, 0.0, //
+        -0.5, -0.5, -0.5, 0.0, -1.0, 0.0, 0.0, 1.0, //
+        -0.5, 0.5, -0.5, 0.0, 1.0, 0.0, 0.0, 1.0, //
+        0.5, 0.5, -0.5, 0.0, 1.0, 0.0, 1.0, 1.0, //
+        0.5, 0.5, 0.5, 0.0, 1.0, 0.0, 1.0, 0.0, //
+        0.5, 0.5, 0.5, 0.0, 1.0, 0.0, 1.0, 0.0, //
+        -0.5, 0.5, 0.5, 0.0, 1.0, 0.0, 0.0, 0.0, //
+        -0.5, 0.5, -0.5, 0.0, 1.0, 0.0, 0.0, 1.0, //
     ];
 
     // vertex buffer object (VBO)
@@ -127,7 +128,7 @@ fn main() {
 
     // vertex array object (VAO) uses VBO
     let mut vao = 0;
-    let main_stride = (6 * std::mem::size_of::<GLfloat>()) as GLsizei;
+    let main_stride = (8 * std::mem::size_of::<GLfloat>()) as GLsizei;
     unsafe {
         gl::GenVertexArrays(1, &mut vao);
         gl::BindVertexArray(vao);
@@ -144,6 +145,16 @@ fn main() {
             (3 * std::mem::size_of::<GLfloat>()) as *const GLvoid,
         );
         gl::EnableVertexAttribArray(1);
+        // texcoord attribute
+        gl::VertexAttribPointer(
+            2,
+            2,
+            gl::FLOAT,
+            gl::FALSE,
+            main_stride,
+            (6 * std::mem::size_of::<GLfloat>()) as *const GLvoid,
+        );
+        gl::EnableVertexAttribArray(2);
     }
 
     let mut camera = Camera {
@@ -151,7 +162,7 @@ fn main() {
         front: glm::vec3(0.0, 0.0, -1.0),
         up: glm::vec3(0.0, 1.0, 0.0),
         right: glm::vec3(0.0, 0.0, 0.0),
-        speed_factor: 10.0,
+        speed_factor: 5.0,
         fov_y: 45.0,
         fov_y_min: 1.0,
         fov_y_max: 90.0,
@@ -179,7 +190,7 @@ fn main() {
 
     // light VAO
     let mut light_vao = 0;
-    let light_stride = (6 * std::mem::size_of::<GLfloat>()) as GLsizei;
+    let light_stride = (8 * std::mem::size_of::<GLfloat>()) as GLsizei;
     unsafe {
         gl::GenVertexArrays(1, &mut light_vao);
         gl::BindVertexArray(light_vao);
@@ -202,11 +213,11 @@ fn main() {
     let mut last_frame = 0.0;
 
     let material = Material {
-        ambient_color: Vec3::new(1.0, 0.5, 0.31),
-        diffuse_color: Vec3::new(1.0, 0.5, 0.31),
+        diffuse_map: Texture::new("../assets/textures/crate.jpg"),
         specular_color: Vec3::new(0.5, 0.5, 0.5),
         specular_strength: 32.0,
     };
+
     let mut light = Light {
         pos: Vec3::new(1.2, 1.0, 2.0),
         ambient_color: Vec3::new(0.2, 0.2, 0.2),
@@ -249,15 +260,15 @@ fn main() {
 
         global_program.set_uniform_vec3("camera_pos", camera.pos);
 
-        global_program.set_uniform_vec3("material.ambient_color", material.ambient_color);
-        global_program.set_uniform_vec3("material.diffuse_color", material.diffuse_color);
+        material.diffuse_map.bind(0);
+        global_program.set_uniform_int("material.diffuse_map", 0);
         global_program.set_uniform_vec3("material.specular_color", material.specular_color);
         global_program.set_uniform_float("material.specular_strength", material.specular_strength);
 
         let current_light_color = Vec3::new(
-            (frame_start_time).sin() * 2.0,
-            (frame_start_time).cos() * 0.7,
-            (frame_start_time).sin() * 1.3,
+            (frame_start_time * 2.0).sin() * 0.5 + 0.5,
+            (frame_start_time * 0.7).sin() * 0.5 + 0.5,
+            (frame_start_time * 1.3).sin() * 0.5 + 0.5,
         );
 
         light.diffuse_color = current_light_color * 0.8;
