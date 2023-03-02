@@ -10,10 +10,10 @@ mod texture;
 
 use gl::types::*;
 use glfw::{Context, Key};
-use glm::{Vec3, Vec4};
+use glm::{Mat4, Vec3, Vec4};
 
 use camera::Camera;
-use light::Light;
+use light::{DirLight, Light, PointLight};
 use material::Material;
 use program::Program;
 use shader::Shader;
@@ -162,14 +162,14 @@ fn main() {
         front: glm::vec3(0.0, 0.0, -1.0),
         up: glm::vec3(0.0, 1.0, 0.0),
         right: glm::vec3(0.0, 0.0, 0.0),
-        speed_factor: 5.0,
+        speed_factor: 2.0,
         fov_y: 45.0,
         fov_y_min: 1.0,
         fov_y_max: 90.0,
         speed: 0.0,
         yaw: -90.0,
         pitch: 0.0,
-        aim_sensitivity: 0.04,
+        aim_sensitivity: 0.03,
     };
 
     // shaders
@@ -221,11 +221,35 @@ fn main() {
     material.diffuse_map.bind(0);
     material.specular_map.bind(1);
 
-    let mut light = Light {
-        pos: Vec3::new(1.2, 1.0, 2.0),
-        ambient_color: Vec3::new(0.2, 0.2, 0.2),
-        diffuse_color: Vec3::new(0.5, 0.5, 0.5),
-        specular_color: Vec3::new(1.0, 1.0, 1.0),
+    // let pointlight = PointLight {
+    //     pos: Vec3::new(1.2, 1.0, 2.0),
+    //     light: Light {
+    //         ambient: Vec3::new(0.2, 0.2, 0.2),
+    //         diffuse: Vec3::new(0.5, 0.5, 0.5),
+    //         specular: Vec3::new(1.0, 1.0, 1.0),
+    //     },
+    // };
+
+    let cube_positions: [Vec3; 10] = [
+        Vec3::new(0.0, 0.0, 0.0),
+        Vec3::new(2.0, 5.0, -15.0),
+        Vec3::new(-1.5, -2.2, -2.5),
+        Vec3::new(-3.8, -2.0, -12.3),
+        Vec3::new(2.4, -0.4, -3.5),
+        Vec3::new(-1.7, 3.0, -7.5),
+        Vec3::new(1.3, -2.0, -2.5),
+        Vec3::new(1.5, 2.0, -2.5),
+        Vec3::new(1.5, 0.2, -1.5),
+        Vec3::new(-1.3, 1.0, -1.5),
+    ];
+
+    let dirlight = DirLight {
+        dir: Vec3::new(-0.2, -1.0, -0.3),
+        light: Light {
+            ambient: Vec3::new(0.05, 0.05, 0.05),
+            diffuse: Vec3::new(0.4, 0.4, 0.4),
+            specular: Vec3::new(0.5, 0.5, 0.5),
+        },
     };
 
     const KEY_AMOUNT: usize = glfw::ffi::KEY_LAST as usize;
@@ -239,6 +263,9 @@ fn main() {
     let mut mouse_scroll_y = 0.0;
 
     while !window.should_close() {
+        unsafe {
+            gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
+        }
         let mut mouse_updated = false;
         let mut mouse_scroll_updated = false;
 
@@ -267,33 +294,26 @@ fn main() {
         global_program.set_uniform_int("material.specular_map", 1);
         global_program.set_uniform_float("material.specular_strength", material.specular_strength);
 
-        let current_light_color = Vec3::new(
-            (frame_start_time * 2.0).sin() * 0.5 + 0.75,
-            (frame_start_time * 0.7).sin() * 0.5 + 0.75,
-            (frame_start_time * 1.3).sin() * 0.5 + 0.75,
-        );
+        global_program.set_uniform_vec3("dirlight.dir", dirlight.dir);
+        global_program.set_uniform_vec3("dirlight.light.ambient", dirlight.light.ambient);
+        global_program.set_uniform_vec3("dirlight.light.diffuse", dirlight.light.diffuse);
+        global_program.set_uniform_vec3("dirlight.light.specular", dirlight.light.specular);
 
-        light.diffuse_color = current_light_color * 0.8;
-        light.ambient_color = light.diffuse_color * 0.2;
-
-        global_program.set_uniform_vec3("light.pos", light.pos);
-        global_program.set_uniform_vec3("light.ambient_color", light.ambient_color);
-        global_program.set_uniform_vec3("light.diffuse_color", light.diffuse_color);
-        global_program.set_uniform_vec3("light.specular_color", light.specular_color);
-
-        let mut model = glm::Mat4::new(
-            Vec4::new(1.0, 0.0, 0.0, 0.0),
-            Vec4::new(0.0, 1.0, 0.0, 0.0),
-            Vec4::new(0.0, 0.0, 1.0, 0.0),
-            Vec4::new(0.0, 0.0, 0.0, 1.0),
-        );
-        let angle = 50.0 * frame_start_time;
-        model = glm::ext::rotate(&model, glm::radians(angle), Vec3::new(1.0, 0.6, 0.0));
-        global_program.set_uniform_mat4("model", &model);
-        unsafe {
-            gl::BindVertexArray(vao);
-            gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
-            gl::DrawArrays(gl::TRIANGLES, 0, 36);
+        for i in 0..10 {
+            let mut model = Mat4::new(
+                Vec4::new(1.0, 0.0, 0.0, 0.0),
+                Vec4::new(0.0, 1.0, 0.0, 0.0),
+                Vec4::new(0.0, 0.0, 1.0, 0.0),
+                Vec4::new(0.0, 0.0, 0.0, 1.0),
+            );
+            let angle = 40.0 * frame_start_time + i as f32 * 10.0;
+            model = glm::ext::translate(&model, cube_positions[i]);
+            model = glm::ext::rotate(&model, glm::radians(angle), Vec3::new(1.0, 0.3, 0.5));
+            global_program.set_uniform_mat4("model", &model);
+            unsafe {
+                gl::BindVertexArray(vao);
+                gl::DrawArrays(gl::TRIANGLES, 0, 36);
+            }
         }
 
         // SECTION cube light
@@ -308,7 +328,8 @@ fn main() {
             Vec4::new(0.0, 0.0, 1.0, 0.0),
             Vec4::new(0.0, 0.0, 0.0, 1.0),
         );
-        model = glm::ext::translate(&model, light.pos);
+        model = glm::ext::translate(&model, -dirlight.dir);
+        model = glm::ext::scale(&model, Vec3::new(0.1, 0.1, 0.1));
         light_program.set_uniform_mat4("model", &model);
 
         unsafe {
@@ -368,8 +389,8 @@ fn main() {
         if key_states[Key::Space as usize] {
             camera.pos = camera.pos + (camera.up * camera.speed);
         }
-        // LEFT SHIFT move down
-        if key_states[Key::LeftShift as usize] {
+        // LEFT CTRL move down
+        if key_states[Key::LeftControl as usize] {
             camera.pos = camera.pos - (camera.up * camera.speed);
         }
 
