@@ -213,10 +213,13 @@ fn main() {
     let mut last_frame = 0.0;
 
     let material = Material {
-        diffuse_map: Texture::new("../assets/textures/crate.jpg"),
-        specular_color: Vec3::new(0.5, 0.5, 0.5),
+        diffuse_map: Texture::new("../assets/textures/crate_diffuse.jpg"),
+        specular_map: Texture::new("../assets/textures/crate_specular.jpg"),
         specular_strength: 32.0,
     };
+
+    material.diffuse_map.bind(0);
+    material.specular_map.bind(1);
 
     let mut light = Light {
         pos: Vec3::new(1.2, 1.0, 2.0),
@@ -260,15 +263,14 @@ fn main() {
 
         global_program.set_uniform_vec3("camera_pos", camera.pos);
 
-        material.diffuse_map.bind(0);
         global_program.set_uniform_int("material.diffuse_map", 0);
-        global_program.set_uniform_vec3("material.specular_color", material.specular_color);
+        global_program.set_uniform_int("material.specular_map", 1);
         global_program.set_uniform_float("material.specular_strength", material.specular_strength);
 
         let current_light_color = Vec3::new(
-            (frame_start_time * 2.0).sin() * 0.5 + 0.5,
-            (frame_start_time * 0.7).sin() * 0.5 + 0.5,
-            (frame_start_time * 1.3).sin() * 0.5 + 0.5,
+            (frame_start_time * 2.0).sin() * 0.5 + 0.75,
+            (frame_start_time * 0.7).sin() * 0.5 + 0.75,
+            (frame_start_time * 1.3).sin() * 0.5 + 0.75,
         );
 
         light.diffuse_color = current_light_color * 0.8;

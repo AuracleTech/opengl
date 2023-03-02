@@ -1,7 +1,7 @@
 #version 330 core
 struct Material {
     sampler2D diffuse_map;
-    vec3 specular_color;
+    sampler2D specular_map;
     float specular_strength;
 };
 struct Light {
@@ -36,8 +36,7 @@ void main()
     vec3 view_dir = normalize(camera_pos - frag_pos);
     vec3 reflect_dir = reflect(-light_dir, norm);
     float spec = pow(max(dot(view_dir, reflect_dir), 0.0), material.specular_strength);
-    vec3 specular = light.specular_color * (spec * material.specular_color);
+    vec3 specular = light.specular_color * spec * vec3(texture(material.specular_map, tex_coord));
 
-    vec3 result = ambient + diffuse + specular;
-    frag_color = vec4(result, 1.0);
+    frag_color = vec4(ambient + diffuse + specular, 1.0);
 }
