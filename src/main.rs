@@ -13,7 +13,7 @@ use glfw::{Context, Key};
 use glm::{Mat4, Vec3, Vec4};
 
 use camera::Camera;
-use light::{DirLight, Light, PointLight};
+use light::{DirLight, Light, PointLight, SpotLight};
 use material::Material;
 use program::Program;
 use shader::Shader;
@@ -234,8 +234,11 @@ fn main() {
         Vec3::new(-1.3, 1.0, -1.5),
     ];
 
-    let light = PointLight {
+    let light = SpotLight {
         pos: Vec3::new(1.2, 1.0, 2.0),
+        dir: Vec3::new(-1.2, -2.0, -0.3),
+        cut_off: glm::cos(glm::radians(45.0)),
+        outer_cut_off: glm::cos(glm::radians(60.0)),
         light: Light {
             ambient: Vec3::new(0.2, 0.2, 0.2),
             diffuse: Vec3::new(0.5, 0.5, 0.5),
@@ -298,6 +301,9 @@ fn main() {
         global_program.set_uniform_float("material.specular_strength", material.specular_strength);
 
         global_program.set_uniform_vec3("light.pos", light.pos);
+        global_program.set_uniform_vec3("light.dir", light.dir);
+        global_program.set_uniform_float("light.cut_off", light.cut_off);
+        global_program.set_uniform_float("light.outer_cut_off", light.outer_cut_off);
         global_program.set_uniform_vec3("light.light.ambient", light.light.ambient);
         global_program.set_uniform_vec3("light.light.diffuse", light.light.diffuse);
         global_program.set_uniform_vec3("light.light.specular", light.light.specular);

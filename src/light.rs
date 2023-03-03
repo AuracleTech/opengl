@@ -19,3 +19,11 @@ pub struct PointLight {
     pub pos: Vec3,
     pub light: Light,
 }
+
+pub struct SpotLight {
+    pub pos: Vec3,
+    pub dir: Vec3,
+    pub cut_off: f32,
+    pub outer_cut_off: f32,
+    pub light: Light,
+}
