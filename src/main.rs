@@ -221,15 +221,6 @@ fn main() {
     material.diffuse_map.bind(0);
     material.specular_map.bind(1);
 
-    // let pointlight = PointLight {
-    //     pos: Vec3::new(1.2, 1.0, 2.0),
-    //     light: Light {
-    //         ambient: Vec3::new(0.2, 0.2, 0.2),
-    //         diffuse: Vec3::new(0.5, 0.5, 0.5),
-    //         specular: Vec3::new(1.0, 1.0, 1.0),
-    //     },
-    // };
-
     let cube_positions: [Vec3; 10] = [
         Vec3::new(0.0, 0.0, 0.0),
         Vec3::new(2.0, 5.0, -15.0),
@@ -243,14 +234,26 @@ fn main() {
         Vec3::new(-1.3, 1.0, -1.5),
     ];
 
-    let dirlight = DirLight {
-        dir: Vec3::new(-0.2, -1.0, -0.3),
+    let light = PointLight {
+        pos: Vec3::new(1.2, 1.0, 2.0),
         light: Light {
-            ambient: Vec3::new(0.05, 0.05, 0.05),
-            diffuse: Vec3::new(0.4, 0.4, 0.4),
-            specular: Vec3::new(0.5, 0.5, 0.5),
+            ambient: Vec3::new(0.2, 0.2, 0.2),
+            diffuse: Vec3::new(0.5, 0.5, 0.5),
+            specular: Vec3::new(1.0, 1.0, 1.0),
+            constant: 1.0,
+            linear: 0.09,
+            quadratic: 0.032,
         },
     };
+
+    // let light = DirLight {
+    //     dir: Vec3::new(-0.2, -1.0, -0.3),
+    //     light: Light {
+    //         ambient: Vec3::new(0.05, 0.05, 0.05),
+    //         diffuse: Vec3::new(0.4, 0.4, 0.4),
+    //         specular: Vec3::new(0.5, 0.5, 0.5),
+    //     },
+    // };
 
     const KEY_AMOUNT: usize = glfw::ffi::KEY_LAST as usize;
     let mut key_states = [false; KEY_AMOUNT];
@@ -294,10 +297,13 @@ fn main() {
         global_program.set_uniform_int("material.specular_map", 1);
         global_program.set_uniform_float("material.specular_strength", material.specular_strength);
 
-        global_program.set_uniform_vec3("dirlight.dir", dirlight.dir);
-        global_program.set_uniform_vec3("dirlight.light.ambient", dirlight.light.ambient);
-        global_program.set_uniform_vec3("dirlight.light.diffuse", dirlight.light.diffuse);
-        global_program.set_uniform_vec3("dirlight.light.specular", dirlight.light.specular);
+        global_program.set_uniform_vec3("light.pos", light.pos);
+        global_program.set_uniform_vec3("light.light.ambient", light.light.ambient);
+        global_program.set_uniform_vec3("light.light.diffuse", light.light.diffuse);
+        global_program.set_uniform_vec3("light.light.specular", light.light.specular);
+        global_program.set_uniform_float("light.light.constant", light.light.constant);
+        global_program.set_uniform_float("light.light.linear", light.light.linear);
+        global_program.set_uniform_float("light.light.quadratic", light.light.quadratic);
 
         for i in 0..10 {
             let mut model = Mat4::new(
@@ -328,7 +334,7 @@ fn main() {
             Vec4::new(0.0, 0.0, 1.0, 0.0),
             Vec4::new(0.0, 0.0, 0.0, 1.0),
         );
-        model = glm::ext::translate(&model, -dirlight.dir);
+        model = glm::ext::translate(&model, light.pos);
         model = glm::ext::scale(&model, Vec3::new(0.1, 0.1, 0.1));
         light_program.set_uniform_mat4("model", &model);
 
