@@ -13,7 +13,7 @@ use glfw::{Context, Key};
 use glm::{Mat4, Vec3, Vec4};
 
 use camera::Camera;
-use light::{DirLight, Light, PointLight, SpotLight};
+use light::{DirLight, PointLight, SpotLight};
 use material::Material;
 use program::Program;
 use shader::Shader;
@@ -175,7 +175,7 @@ fn main() {
     // shaders
     let fragment_shader = Shader::new(include_str!("shaders/fragment.fs"), gl::FRAGMENT_SHADER);
     let vertex_shader = Shader::new(include_str!("shaders/vertex.vs"), gl::VERTEX_SHADER);
-    let global_program = Program::new(vertex_shader, fragment_shader);
+    let program = Program::new(vertex_shader, fragment_shader);
 
     // copy vertex data to buffer
     unsafe {
@@ -213,13 +213,13 @@ fn main() {
     let mut last_frame = 0.0;
 
     let material = Material {
-        diffuse_map: Texture::new("../assets/textures/crate_diffuse.jpg"),
-        specular_map: Texture::new("../assets/textures/crate_specular.jpg"),
+        diffuse: Texture::new("../assets/textures/crate_diffuse.jpg"),
+        specular: Texture::new("../assets/textures/crate_specular.jpg"),
         specular_strength: 32.0,
     };
 
-    material.diffuse_map.bind(0);
-    material.specular_map.bind(1);
+    material.diffuse.bind(0);
+    material.specular.bind(1);
 
     let cube_positions: [Vec3; 10] = [
         Vec3::new(0.0, 0.0, 0.0),
@@ -234,19 +234,33 @@ fn main() {
         Vec3::new(-1.3, 1.0, -1.5),
     ];
 
-    let light = SpotLight {
+    let pointlight_positions: [Vec3; 4] = [
+        Vec3::new(0.7, 0.2, 2.0),
+        Vec3::new(2.3, -3.3, -4.0),
+        Vec3::new(-4.0, 2.0, -12.0),
+        Vec3::new(0.0, 0.0, -3.0),
+    ];
+
+    let spotlight = SpotLight {
         pos: Vec3::new(1.2, 1.0, 2.0),
         dir: Vec3::new(-1.2, -2.0, -0.3),
         cut_off: glm::cos(glm::radians(45.0)),
         outer_cut_off: glm::cos(glm::radians(60.0)),
-        light: Light {
-            ambient: Vec3::new(0.2, 0.2, 0.2),
-            diffuse: Vec3::new(0.5, 0.5, 0.5),
-            specular: Vec3::new(1.0, 1.0, 1.0),
-            constant: 1.0,
-            linear: 0.09,
-            quadratic: 0.032,
-        },
+
+        constant: 1.0,
+        linear: 0.09,
+        quadratic: 0.032,
+
+        ambient: Vec3::new(0.2, 0.2, 0.2),
+        diffuse: Vec3::new(0.5, 0.5, 0.5),
+        specular: Vec3::new(1.0, 1.0, 1.0),
+    };
+
+    let dirlight = DirLight {
+        dir: Vec3::new(-0.2, -1.0, -0.3),
+        ambient: Vec3::new(0.05, 0.05, 0.05),
+        diffuse: Vec3::new(0.4, 0.4, 0.4),
+        specular: Vec3::new(0.5, 0.5, 0.5),
     };
 
     // let light = DirLight {
@@ -277,7 +291,7 @@ fn main() {
 
         // SECTION render
 
-        global_program.use_program();
+        program.use_program();
 
         let frame_start_time = glfw.get_time() as f32;
         let delta_time = frame_start_time - last_frame;
@@ -291,25 +305,64 @@ fn main() {
         let view = glm::ext::look_at(camera.pos, camera.pos + camera.front, camera.up);
 
         // update local uniform values
-        global_program.set_uniform_mat4("view", &view);
-        global_program.set_uniform_mat4("projection", &projection);
+        program.set_uniform_mat4("view", &view);
+        program.set_uniform_mat4("projection", &projection);
 
-        global_program.set_uniform_vec3("camera_pos", camera.pos);
+        program.set_uniform_vec3("camera_pos", camera.pos);
 
-        global_program.set_uniform_int("material.diffuse_map", 0);
-        global_program.set_uniform_int("material.specular_map", 1);
-        global_program.set_uniform_float("material.specular_strength", material.specular_strength);
+        program.set_uniform_int("material.diffuse", 0);
+        program.set_uniform_int("material.specular", 1);
+        program.set_uniform_float("material.specular_strength", material.specular_strength);
 
-        global_program.set_uniform_vec3("light.pos", light.pos);
-        global_program.set_uniform_vec3("light.dir", light.dir);
-        global_program.set_uniform_float("light.cut_off", light.cut_off);
-        global_program.set_uniform_float("light.outer_cut_off", light.outer_cut_off);
-        global_program.set_uniform_vec3("light.light.ambient", light.light.ambient);
-        global_program.set_uniform_vec3("light.light.diffuse", light.light.diffuse);
-        global_program.set_uniform_vec3("light.light.specular", light.light.specular);
-        global_program.set_uniform_float("light.light.constant", light.light.constant);
-        global_program.set_uniform_float("light.light.linear", light.light.linear);
-        global_program.set_uniform_float("light.light.quadratic", light.light.quadratic);
+        // Spot light
+        program.set_uniform_vec3("spotlight.pos", spotlight.pos);
+        program.set_uniform_vec3("spotlight.dir", spotlight.dir);
+
+        program.set_uniform_float("spotlight.cut_off", spotlight.cut_off);
+        program.set_uniform_float("spotlight.outer_cut_off", spotlight.outer_cut_off);
+
+        program.set_uniform_float("spotlight.constant", spotlight.constant);
+        program.set_uniform_float("spotlight.linear", spotlight.linear);
+        program.set_uniform_float("spotlight.quadratic", spotlight.quadratic);
+
+        program.set_uniform_vec3("spotlight.ambient", spotlight.ambient);
+        program.set_uniform_vec3("spotlight.diffuse", spotlight.diffuse);
+        program.set_uniform_vec3("spotlight.specular", spotlight.specular);
+
+        // Directional light
+        program.set_uniform_vec3("dirlight.dir", dirlight.dir);
+
+        program.set_uniform_vec3("dirlight.ambient", dirlight.ambient);
+        program.set_uniform_vec3("dirlight.diffuse", dirlight.diffuse);
+        program.set_uniform_vec3("dirlight.specular", dirlight.specular);
+
+        // Point lights
+        for i in 0..4 {
+            let pointlight = PointLight {
+                pos: pointlight_positions[i],
+
+                constant: 1.0,
+                linear: 0.09,
+                quadratic: 0.032,
+
+                ambient: Vec3::new(0.2, 0.2, 0.2),
+                diffuse: Vec3::new(0.5, 0.5, 0.5),
+                specular: Vec3::new(1.0, 1.0, 1.0),
+            };
+
+            program.set_uniform_vec3(&format!("pointlights[{}].pos", i), pointlight.pos);
+
+            program.set_uniform_float(&format!("pointlights[{}].constant", i), pointlight.constant);
+            program.set_uniform_float(&format!("pointlights[{}].linear", i), pointlight.linear);
+            program.set_uniform_float(
+                &format!("pointlights[{}].quadratic", i),
+                pointlight.quadratic,
+            );
+
+            program.set_uniform_vec3(&format!("pointlights[{}].ambient", i), pointlight.ambient);
+            program.set_uniform_vec3(&format!("pointlights[{}].diffuse", i), pointlight.diffuse);
+            program.set_uniform_vec3(&format!("pointlights[{}].specular", i), pointlight.specular);
+        }
 
         for i in 0..10 {
             let mut model = Mat4::new(
@@ -321,7 +374,7 @@ fn main() {
             let angle = 40.0 * frame_start_time + i as f32 * 10.0;
             model = glm::ext::translate(&model, cube_positions[i]);
             model = glm::ext::rotate(&model, glm::radians(angle), Vec3::new(1.0, 0.3, 0.5));
-            global_program.set_uniform_mat4("model", &model);
+            program.set_uniform_mat4("model", &model);
             unsafe {
                 gl::BindVertexArray(vao);
                 gl::DrawArrays(gl::TRIANGLES, 0, 36);
@@ -334,19 +387,23 @@ fn main() {
 
         light_program.set_uniform_mat4("view", &view);
         light_program.set_uniform_mat4("projection", &projection);
-        let mut model = glm::Mat4::new(
-            Vec4::new(1.0, 0.0, 0.0, 0.0),
-            Vec4::new(0.0, 1.0, 0.0, 0.0),
-            Vec4::new(0.0, 0.0, 1.0, 0.0),
-            Vec4::new(0.0, 0.0, 0.0, 1.0),
-        );
-        model = glm::ext::translate(&model, light.pos);
-        model = glm::ext::scale(&model, Vec3::new(0.1, 0.1, 0.1));
-        light_program.set_uniform_mat4("model", &model);
 
-        unsafe {
-            gl::BindVertexArray(light_vao);
-            gl::DrawArrays(gl::TRIANGLES, 0, 36);
+        for i in 0..4 {
+            let mut model = Mat4::new(
+                Vec4::new(1.0, 0.0, 0.0, 0.0),
+                Vec4::new(0.0, 1.0, 0.0, 0.0),
+                Vec4::new(0.0, 0.0, 1.0, 0.0),
+                Vec4::new(0.0, 0.0, 0.0, 1.0),
+            );
+            let angle = 40.0 * frame_start_time + i as f32 * 10.0;
+            model = glm::ext::translate(&model, pointlight_positions[i]);
+            model = glm::ext::rotate(&model, glm::radians(angle), Vec3::new(1.0, 0.3, 0.5));
+            model = glm::ext::scale(&model, Vec3::new(0.1, 0.1, 0.1));
+            light_program.set_uniform_mat4("model", &model);
+            unsafe {
+                gl::BindVertexArray(vao);
+                gl::DrawArrays(gl::TRIANGLES, 0, 36);
+            }
         }
 
         // SECTION swap buffers & poll events
