@@ -8,8 +8,6 @@ mod program;
 mod shader;
 mod texture;
 
-use std::fs;
-
 use gl::types::*;
 use glfw::{Context, Key};
 use glm::{Mat4, Vec3, Vec4};
@@ -288,23 +286,24 @@ fn main() {
     let mut mouse_scroll_y = 0.0;
 
     while !window.should_close() {
-        unsafe {
-            gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
-        }
+        let frame_start_time = glfw.get_time() as f32;
+        let delta_time = frame_start_time - last_frame;
+        last_frame = frame_start_time;
+
         let mut mouse_updated = false;
         let mut mouse_scroll_updated = false;
 
         // SECTION render
 
-        phong_program.use_program();
-
-        let frame_start_time = glfw.get_time() as f32;
-        let delta_time = frame_start_time - last_frame;
-        last_frame = frame_start_time;
+        unsafe {
+            gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
+        }
 
         camera.speed = camera.speed_factor * delta_time;
 
-        // Translate - Rotate - Scale (TRS) matrix manipulations
+        phong_program.use_program();
+
+        // TODO Translate - Rotate - Scale matrix manipulations queue to respect order
         let projection =
             glm::ext::perspective(glm::radians(camera.fov_y), WIN_ASPECT_RATIO, 0.1, 100.0);
         let view = glm::ext::look_at(camera.pos, camera.pos + camera.front, camera.up);
@@ -415,6 +414,8 @@ fn main() {
                 gl::DrawArrays(gl::TRIANGLES, 0, 36);
             }
         }
+
+        // TODO SECTION framerate counter UI
 
         // SECTION swap buffers & poll events
 
