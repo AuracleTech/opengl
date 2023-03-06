@@ -213,11 +213,11 @@ fn main() {
     // last frame time and delta time
     let mut last_frame = 0.0;
 
-    let tex_assets_path = format!("{}{}", env!("CARGO_MANIFEST_DIR"), "/assets/textures/");
+    let texture_path = format!("{}{}", env!("CARGO_MANIFEST_DIR"), "/assets/textures/");
 
     let material = Material {
-        diffuse: Texture::new(format!("{}crate_diffuse.jpg", tex_assets_path)),
-        specular: Texture::new(format!("{}crate_specular.jpg", tex_assets_path)),
+        diffuse: Texture::new(format!("{}{}", texture_path, "crate_diffuse.jpg")),
+        specular: Texture::new(format!("{}{}", texture_path, "crate_specular.jpg")),
         specular_strength: 32.0,
     };
 
