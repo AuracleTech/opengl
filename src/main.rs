@@ -26,8 +26,8 @@ const WIN_ASPECT_RATIO: f32 = WIN_WIDTH as f32 / WIN_HEIGHT as f32;
 fn main() {
     let mut glfw = glfw::init(glfw::FAIL_ON_ERRORS).expect("Failed to initialize GLFW.");
 
-    // set opengl version to 3.3 core profile
-    glfw.window_hint(glfw::WindowHint::ContextVersion(3, 3));
+    // set opengl version to 4.6 core profile
+    glfw.window_hint(glfw::WindowHint::ContextVersion(4, 6));
     glfw.window_hint(glfw::WindowHint::OpenGlProfile(
         glfw::OpenGlProfileHint::Core,
     ));
@@ -72,6 +72,10 @@ fn main() {
     let light_shader_fs = Shader::new(include_str!("shaders/light.fs"), gl::FRAGMENT_SHADER);
     let light_shader_vs = Shader::new(include_str!("shaders/light.vs"), gl::VERTEX_SHADER);
     let light_program = Program::new(light_shader_fs, light_shader_vs);
+
+    let ui_shader_fs = Shader::new(include_str!("shaders/ui.fs"), gl::FRAGMENT_SHADER);
+    let ui_shader_vs = Shader::new(include_str!("shaders/ui.vs"), gl::VERTEX_SHADER);
+    let ui_program = Program::new(ui_shader_fs, ui_shader_vs);
 
     // vertex data (pos 3, normal 3, texcoord 2)
     const VERTEX_DATA: [GLfloat; 288] = [
