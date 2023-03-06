@@ -1,10 +1,10 @@
-use glm::Vec3;
+use cgmath::{Point3, Vector3};
 
 pub struct Camera {
-    pub pos: Vec3,
-    pub front: Vec3,
-    pub up: Vec3,
-    pub right: Vec3,
+    pub pos: Point3<f32>,
+    pub front: Vector3<f32>,
+    pub up: Vector3<f32>,
+    pub right: Vector3<f32>,
     pub speed_factor: f32,
     pub fov_y: f32,
     pub fov_y_min: f32,

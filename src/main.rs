@@ -1,18 +1,26 @@
+extern crate cgmath;
+extern crate freetype;
 extern crate gl;
 extern crate glfw;
 
+use cgmath::{
+    ortho, perspective, vec2, vec3, vec4, Angle, Deg, Matrix4, SquareMatrix, Transform, Vector3,
+};
+use cgmath::{point3, prelude::*};
+use gl::types::*;
+use glfw::{Context, Key};
+use std::collections::HashMap;
+
 mod camera;
+mod character;
 mod light;
 mod material;
 mod program;
 mod shader;
 mod texture;
 
-use gl::types::*;
-use glfw::{Context, Key};
-use glm::{Mat4, Vec3, Vec4};
-
 use camera::Camera;
+use character::Character;
 use light::{DirLight, PointLight, SpotLight};
 use material::Material;
 use program::Program;
@@ -149,11 +157,57 @@ fn main() {
         gl::EnableVertexAttribArray(2);
     }
 
+    // UI VERTEX DATA
+    let ui_vertex_data = [
+        -1.0, 1.0, 0.0, //
+        -1.0, -1.0, 0.0, //
+        1.0, -1.0, 0.0, //
+        1.0, 1.0, 0.0, //
+    ];
+
+    // UI VBO
+    let mut ui_vbo = 0;
+    unsafe {
+        gl::GenBuffers(1, &mut ui_vbo);
+        gl::BindBuffer(gl::ARRAY_BUFFER, ui_vbo);
+        gl::BufferData(
+            gl::ARRAY_BUFFER,
+            (ui_vertex_data.len() * std::mem::size_of::<GLfloat>()) as GLsizeiptr,
+            ui_vertex_data.as_ptr() as *const GLvoid,
+            gl::STATIC_DRAW,
+        );
+    }
+
+    // UI VAO
+    let mut ui_vao = 0;
+    let ui_stride = (3 * std::mem::size_of::<GLfloat>()) as GLsizei;
+    unsafe {
+        gl::GenVertexArrays(1, &mut ui_vao);
+        gl::BindVertexArray(ui_vao);
+        // position attribute
+        gl::VertexAttribPointer(0, 3, gl::FLOAT, gl::FALSE, ui_stride, std::ptr::null());
+        gl::EnableVertexAttribArray(0);
+    }
+
+    // UI EBO
+    let ui_indices = [0, 1, 2, 2, 3, 0];
+    let mut ui_ebo = 0;
+    unsafe {
+        gl::GenBuffers(1, &mut ui_ebo);
+        gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, ui_ebo);
+        gl::BufferData(
+            gl::ELEMENT_ARRAY_BUFFER,
+            (ui_indices.len() * std::mem::size_of::<GLuint>()) as GLsizeiptr,
+            ui_indices.as_ptr() as *const GLvoid,
+            gl::STATIC_DRAW,
+        );
+    }
+
     let mut camera = Camera {
-        pos: glm::vec3(0.0, 0.0, 3.0),
-        front: glm::vec3(0.0, 0.0, -1.0),
-        up: glm::vec3(0.0, 1.0, 0.0),
-        right: glm::vec3(0.0, 0.0, 0.0),
+        pos: point3(0.0, 0.0, 3.0),
+        front: vec3(0.0, 0.0, -1.0),
+        up: vec3(0.0, 1.0, 0.0),
+        right: vec3(0.0, 0.0, 0.0),
         speed_factor: 2.0,
         fov_y: 45.0,
         fov_y_min: 1.0,
@@ -176,7 +230,7 @@ fn main() {
     // TODO ui
     let vs = Shader::new(include_str!("shaders/ui.vs"), gl::VERTEX_SHADER);
     let fs = Shader::new(include_str!("shaders/ui.fs"), gl::FRAGMENT_SHADER);
-    let _ui_program = Program::new(vs, fs);
+    let ui_program = Program::new(vs, fs);
 
     // copy vertex data to buffer
     unsafe {
@@ -206,72 +260,101 @@ fn main() {
         gl::ClearColor(0.3, 0.3, 0.5, 1.0);
     }
 
+    // Font "SteinerLight-JR1o.ttf"
+    let mut characters_hashmap: HashMap<char, Character> = HashMap::new();
+
+    let library = freetype::Library::init().expect("Could not init freetype library");
+    let character = 'X';
+    let face = library
+        .new_face("assets/fonts/SteinerLight-JR1o.ttf", 0)
+        .expect("Could not open font");
+    face.set_pixel_sizes(0, 48)
+        .expect("Could not set pixel size");
+
+    for c in character as u8..=126 {
+        face.load_char(c as usize, freetype::face::LoadFlag::RENDER)
+            .expect("Could not load character");
+        let glyph = face.glyph();
+        let bitmap = glyph.bitmap();
+
+        let character = Character {
+            texture: Texture::from_bitmap(&bitmap),
+            size: vec2(bitmap.width(), bitmap.rows()),
+            bearing: vec2(glyph.bitmap_left(), glyph.bitmap_top()),
+            advance: glyph.advance().x,
+        };
+
+        characters_hashmap.insert(c as char, character);
+    }
+
     // calculate fps declarations
     let mut last_time = glfw.get_time();
     let mut frames_rendered = 0;
 
     // last frame time and delta time
     let mut last_frame = 0.0;
+    let mut current_fps = 0.0;
+    let mut ms_per_frame = 1000.0;
 
     let texture_path = format!("{}{}", env!("CARGO_MANIFEST_DIR"), "/assets/textures/");
 
     let material = Material {
-        diffuse: Texture::new(format!("{}{}", texture_path, "crate_diffuse.jpg")),
-        specular: Texture::new(format!("{}{}", texture_path, "crate_specular.jpg")),
+        diffuse: Texture::from_file_path(format!("{}{}", texture_path, "crate_diffuse.jpg")),
+        specular: Texture::from_file_path(format!("{}{}", texture_path, "crate_specular.jpg")),
         specular_strength: 32.0,
     };
 
     material.diffuse.bind(0);
     material.specular.bind(1);
 
-    let cube_positions: [Vec3; 10] = [
-        Vec3::new(0.0, 0.0, 0.0),
-        Vec3::new(2.0, 5.0, -15.0),
-        Vec3::new(-1.5, -2.2, -2.5),
-        Vec3::new(-3.8, -2.0, -12.3),
-        Vec3::new(2.4, -0.4, -3.5),
-        Vec3::new(-1.7, 3.0, -7.5),
-        Vec3::new(1.3, -2.0, -2.5),
-        Vec3::new(1.5, 2.0, -2.5),
-        Vec3::new(1.5, 0.2, -1.5),
-        Vec3::new(-1.3, 1.0, -1.5),
+    let cube_positions: [Vector3<f32>; 10] = [
+        vec3(0.0, 0.0, 0.0),
+        vec3(2.0, 5.0, -15.0),
+        vec3(-1.5, -2.2, -2.5),
+        vec3(-3.8, -2.0, -12.3),
+        vec3(2.4, -0.4, -3.5),
+        vec3(-1.7, 3.0, -7.5),
+        vec3(1.3, -2.0, -2.5),
+        vec3(1.5, 2.0, -2.5),
+        vec3(1.5, 0.2, -1.5),
+        vec3(-1.3, 1.0, -1.5),
     ];
 
-    let pointlight_positions: [Vec3; 4] = [
-        Vec3::new(0.7, 0.2, 2.0),
-        Vec3::new(2.3, -3.3, -4.0),
-        Vec3::new(-4.0, 2.0, -12.0),
-        Vec3::new(0.0, 0.0, -3.0),
+    let pointlight_positions: [Vector3<f32>; 4] = [
+        vec3(0.7, 0.2, 2.0),
+        vec3(2.3, -3.3, -4.0),
+        vec3(-4.0, 2.0, -12.0),
+        vec3(0.0, 0.0, -3.0),
     ];
 
     let spotlight = SpotLight {
-        pos: Vec3::new(1.2, 1.0, 2.0),
-        dir: Vec3::new(-1.2, -2.0, -0.3),
-        cut_off: glm::cos(glm::radians(45.0)),
-        outer_cut_off: glm::cos(glm::radians(60.0)),
+        pos: vec3(1.2, 1.0, 2.0),
+        dir: vec3(-1.2, -2.0, -0.3),
+        cut_off: Angle::cos(Deg(12.5)),
+        outer_cut_off: Angle::cos(Deg(60.0)),
 
         constant: 1.0,
         linear: 0.09,
         quadratic: 0.032,
 
-        ambient: Vec3::new(0.2, 0.2, 0.2),
-        diffuse: Vec3::new(0.5, 0.5, 0.5),
-        specular: Vec3::new(1.0, 1.0, 1.0),
+        ambient: vec3(0.2, 0.2, 0.2),
+        diffuse: vec3(0.5, 0.5, 0.5),
+        specular: vec3(1.0, 1.0, 1.0),
     };
 
     let dirlight = DirLight {
-        dir: Vec3::new(-0.2, -1.0, -0.3),
-        ambient: Vec3::new(0.05, 0.05, 0.05),
-        diffuse: Vec3::new(0.4, 0.4, 0.4),
-        specular: Vec3::new(0.5, 0.5, 0.5),
+        dir: vec3(-0.2, -1.0, -0.3),
+        ambient: vec3(0.05, 0.05, 0.05),
+        diffuse: vec3(0.4, 0.4, 0.4),
+        specular: vec3(0.5, 0.5, 0.5),
     };
 
     // let light = DirLight {
-    //     dir: Vec3::new(-0.2, -1.0, -0.3),
+    //     dir: vec3(-0.2, -1.0, -0.3),
     //     light: Light {
-    //         ambient: Vec3::new(0.05, 0.05, 0.05),
-    //         diffuse: Vec3::new(0.4, 0.4, 0.4),
-    //         specular: Vec3::new(0.5, 0.5, 0.5),
+    //         ambient: vec3(0.05, 0.05, 0.05),
+    //         diffuse: vec3(0.4, 0.4, 0.4),
+    //         specular: vec3(0.5, 0.5, 0.5),
     //     },
     // };
 
@@ -304,15 +387,14 @@ fn main() {
         phong_program.use_program();
 
         // TODO Translate - Rotate - Scale matrix manipulations queue to respect order
-        let projection =
-            glm::ext::perspective(glm::radians(camera.fov_y), WIN_ASPECT_RATIO, 0.1, 100.0);
-        let view = glm::ext::look_at(camera.pos, camera.pos + camera.front, camera.up);
+        let projection = perspective(cgmath::Deg(camera.fov_y), WIN_ASPECT_RATIO, 0.1, 100.0);
+        let view = Matrix4::look_at_rh(camera.pos, camera.pos + camera.front, camera.up);
 
         // update local uniform values
         phong_program.set_uniform_mat4("view", &view);
         phong_program.set_uniform_mat4("projection", &projection);
 
-        phong_program.set_uniform_vec3("camera_pos", camera.pos);
+        phong_program.set_uniform_point3("camera_pos", camera.pos);
 
         phong_program.set_uniform_int("material.diffuse", 0);
         phong_program.set_uniform_int("material.specular", 1);
@@ -349,9 +431,9 @@ fn main() {
                 linear: 0.09,
                 quadratic: 0.032,
 
-                ambient: Vec3::new(0.2, 0.2, 0.2),
-                diffuse: Vec3::new(0.5, 0.5, 0.5),
-                specular: Vec3::new(1.0, 1.0, 1.0),
+                ambient: vec3(0.2, 0.2, 0.2),
+                diffuse: vec3(0.5, 0.5, 0.5),
+                specular: vec3(1.0, 1.0, 1.0),
             };
 
             phong_program.set_uniform_vec3(&format!("pointlights[{}].pos", i), pointlight.pos);
@@ -374,15 +456,11 @@ fn main() {
         }
 
         for i in 0..10 {
-            let mut model = Mat4::new(
-                Vec4::new(1.0, 0.0, 0.0, 0.0),
-                Vec4::new(0.0, 1.0, 0.0, 0.0),
-                Vec4::new(0.0, 0.0, 1.0, 0.0),
-                Vec4::new(0.0, 0.0, 0.0, 1.0),
-            );
+            let mut model = Matrix4::identity();
             let angle = 40.0 * frame_start_time + i as f32 * 10.0;
-            model = glm::ext::translate(&model, cube_positions[i]);
-            model = glm::ext::rotate(&model, glm::radians(angle), Vec3::new(1.0, 0.3, 0.5));
+            model = model * Matrix4::from_translation(cube_positions[i]);
+            model = model
+                * Matrix4::from_axis_angle(vec3(1.0, 0.3, 0.5).normalize(), cgmath::Deg(angle));
             phong_program.set_uniform_mat4("model", &model);
             unsafe {
                 gl::BindVertexArray(vao);
@@ -398,16 +476,12 @@ fn main() {
         light_program.set_uniform_mat4("projection", &projection);
 
         for i in 0..4 {
-            let mut model = Mat4::new(
-                Vec4::new(1.0, 0.0, 0.0, 0.0),
-                Vec4::new(0.0, 1.0, 0.0, 0.0),
-                Vec4::new(0.0, 0.0, 1.0, 0.0),
-                Vec4::new(0.0, 0.0, 0.0, 1.0),
-            );
+            let mut model = Matrix4::identity();
             let angle = 40.0 * frame_start_time + i as f32 * 10.0;
-            model = glm::ext::translate(&model, pointlight_positions[i]);
-            model = glm::ext::rotate(&model, glm::radians(angle), Vec3::new(1.0, 0.3, 0.5));
-            model = glm::ext::scale(&model, Vec3::new(0.1, 0.1, 0.1));
+            model = model * Matrix4::from_translation(pointlight_positions[i]);
+            model = model
+                * Matrix4::from_axis_angle(vec3(1.0, 0.3, 0.5).normalize(), cgmath::Deg(angle));
+            model = model * Matrix4::from_scale(0.1);
             light_program.set_uniform_mat4("model", &model);
             unsafe {
                 gl::BindVertexArray(vao);
@@ -415,7 +489,43 @@ fn main() {
             }
         }
 
-        // TODO SECTION framerate counter UI
+        // SECTION framerate counter UI
+
+        // ui_program.use_program();
+        // // orthographic projection
+        // let ui_projection = ortho(0.0, WIN_WIDTH as f32, 0.0, WIN_HEIGHT as f32, -1.0, 1.0);
+        // ui_program.set_uniform_mat4("projection", &ui_projection); // FIX should be orthographic projection
+
+        // // let fps_text = format!("{} FPS {:0.4} MS", current_fps, ms_per_frame);
+        // let fps_text = "sus".to_string();
+        // // foreach character in FPS text print using characters_hashmap
+        // for (i, c) in fps_text.chars().enumerate() {
+        //     let character = characters_hashmap
+        //         .get(&c)
+        //         .expect(format!("Character {} not found", c).as_str());
+
+        //     unsafe {
+        //         gl::ActiveTexture(gl::TEXTURE0);
+        //         gl::BindTexture(gl::TEXTURE_2D, character.texture.id);
+        //         gl::BindVertexArray(ui_vao);
+        //         gl::DrawElements(
+        //             gl::TRIANGLES,
+        //             6,
+        //             gl::UNSIGNED_INT,
+        //             (i * 6 * std::mem::size_of::<u32>()) as *const GLvoid,
+        //         );
+        //     }
+        // }
+
+        frames_rendered += 1;
+        let current_time = glfw.get_time();
+        if current_time - last_time >= 1.0 {
+            current_fps = frames_rendered as f64;
+            ms_per_frame = 1000.0 / frames_rendered as f64;
+            println!("{} fps {:0.4} ms/draw", current_fps, ms_per_frame);
+            frames_rendered = 0;
+            last_time = current_time;
+        }
 
         // SECTION swap buffers & poll events
 
@@ -449,29 +559,29 @@ fn main() {
 
         // W move forward
         if key_states[Key::W as usize] {
-            camera.pos = camera.pos + (camera.front * camera.speed);
+            camera.pos += camera.front * camera.speed;
+        }
+        // S move backward
+        if key_states[Key::S as usize] {
+            camera.pos -= camera.front * camera.speed;
         }
         // A move left
         if key_states[Key::A as usize] {
-            camera.pos =
-                camera.pos - (glm::normalize(glm::cross(camera.front, camera.up)) * camera.speed);
-        }
-        // S move back
-        if key_states[Key::S as usize] {
-            camera.pos = camera.pos - (camera.front * camera.speed);
+            camera.right = camera.front.cross(camera.up);
+            camera.pos -= camera.right * camera.speed;
         }
         // D move right
         if key_states[Key::D as usize] {
-            camera.pos =
-                camera.pos + (glm::normalize(glm::cross(camera.front, camera.up)) * camera.speed);
+            camera.right = camera.front.cross(camera.up);
+            camera.pos += camera.right * camera.speed;
         }
         // SPACE move up
         if key_states[Key::Space as usize] {
-            camera.pos = camera.pos + (camera.up * camera.speed);
+            camera.pos += camera.up * camera.speed;
         }
         // LEFT CTRL move down
         if key_states[Key::LeftControl as usize] {
-            camera.pos = camera.pos - (camera.up * camera.speed);
+            camera.pos -= camera.up * camera.speed;
         }
 
         // P cycle through polygon modes
@@ -509,31 +619,18 @@ fn main() {
             camera.pitch = camera.pitch.clamp(-89.9, 89.9);
             camera.yaw = camera.yaw.rem_euclid(360.0);
 
-            camera.front = glm::normalize(Vec3::new(
-                camera.yaw.to_radians().cos() * camera.pitch.to_radians().cos(),
+            camera.front = vec3(
+                camera.pitch.to_radians().cos() * camera.yaw.to_radians().cos(),
                 camera.pitch.to_radians().sin(),
-                camera.yaw.to_radians().sin() * camera.pitch.to_radians().cos(),
-            ));
-        }
+                camera.pitch.to_radians().cos() * camera.yaw.to_radians().sin(),
+            )
+            .normalize();
 
-        // scroll
-        if mouse_scroll_updated {
-            camera.fov_y -= mouse_scroll_y as f32;
-            camera.fov_y = camera.fov_y.max(camera.fov_y_min).min(camera.fov_y_max);
-        }
-
-        // SECTION framerate
-
-        frames_rendered += 1;
-        let current_time = glfw.get_time();
-        if current_time - last_time >= 1.0 {
-            println!(
-                "{} fps {:0.4} ms/draw",
-                frames_rendered,
-                1000.0 / frames_rendered as f64
-            );
-            frames_rendered = 0;
-            last_time = current_time;
+            // scroll
+            if mouse_scroll_updated {
+                camera.fov_y -= mouse_scroll_y as f32;
+                camera.fov_y = camera.fov_y.max(camera.fov_y_min).min(camera.fov_y_max);
+            }
         }
     }
 }

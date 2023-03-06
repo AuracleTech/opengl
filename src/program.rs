@@ -1,6 +1,6 @@
 use crate::shader::Shader;
+use cgmath::{Matrix4, Point3, Vector3};
 use gl::types::GLchar;
-use glm::Mat4;
 
 /**
  * Program object.
@@ -110,7 +110,8 @@ impl Program {
      * @param uniform_name The name of the uniform to set.
      * @param value The value to set the uniform to.
      */
-    pub fn set_uniform_mat4(&self, uniform_name: &str, value: &Mat4) {
+    // TODO rename to mat4fv
+    pub fn set_uniform_mat4(&self, uniform_name: &str, value: &Matrix4<f32>) {
         unsafe {
             gl::UniformMatrix4fv(
                 get_uniform_location(self.id, uniform_name),
@@ -126,7 +127,20 @@ impl Program {
      * @param uniform_name The name of the uniform to set.
      * @param value The value to set the uniform to.
      */
-    pub fn set_uniform_vec3(&self, uniform_name: &str, value: glm::Vec3) {
+    // TODO rename to vec3f
+    pub fn set_uniform_vec3(&self, uniform_name: &str, value: Vector3<f32>) {
+        unsafe {
+            gl::Uniform3f(
+                get_uniform_location(self.id, uniform_name),
+                value.x,
+                value.y,
+                value.z,
+            );
+        }
+    }
+
+    // TODO rename to vec3f
+    pub fn set_uniform_point3(&self, uniform_name: &str, value: Point3<f32>) {
         unsafe {
             gl::Uniform3f(
                 get_uniform_location(self.id, uniform_name),
