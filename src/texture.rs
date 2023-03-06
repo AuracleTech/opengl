@@ -10,7 +10,7 @@ pub struct Texture {
 
 #[allow(dead_code)]
 impl Texture {
-    pub fn new(path: &str) -> Self {
+    pub fn new(path: String) -> Self {
         // TODO support all image formats
         let extension = path.split('.').last().unwrap();
         if extension != "jpg" {

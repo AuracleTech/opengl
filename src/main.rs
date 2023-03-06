@@ -8,6 +8,8 @@ mod program;
 mod shader;
 mod texture;
 
+use std::fs;
+
 use gl::types::*;
 use glfw::{Context, Key};
 use glm::{Mat4, Vec3, Vec4};
@@ -41,11 +43,8 @@ fn main() {
         )
         .expect("Failed to create GLFW window.");
 
-    // verify opengl version is 3.3 or higher
     let version = window.get_context_version();
-    if version.major < 3 || (version.major == 3 && version.minor < 3) {
-        panic!("OpenGL version 3.3 or higher is required.");
-    }
+    println!("OpenGL version: {}.{}", version.major, version.minor);
 
     gl::load_with(|symbol| window.get_proc_address(symbol) as *const _);
 
@@ -57,7 +56,6 @@ fn main() {
     window.set_cursor_mode(glfw::CursorMode::Disabled);
     window.make_current();
 
-    // get max vertex attributes (min 16 on OpenGL 3.3+)
     // TODO check if current_vertex_attribs <= max_vertex_attribs before initializing each vertex attributes
     let mut max_vertex_attribs = 0;
     unsafe {
@@ -68,14 +66,6 @@ fn main() {
     unsafe {
         gl::Enable(gl::DEPTH_TEST);
     }
-
-    let light_shader_fs = Shader::new(include_str!("shaders/light.fs"), gl::FRAGMENT_SHADER);
-    let light_shader_vs = Shader::new(include_str!("shaders/light.vs"), gl::VERTEX_SHADER);
-    let light_program = Program::new(light_shader_fs, light_shader_vs);
-
-    let ui_shader_fs = Shader::new(include_str!("shaders/ui.fs"), gl::FRAGMENT_SHADER);
-    let ui_shader_vs = Shader::new(include_str!("shaders/ui.vs"), gl::VERTEX_SHADER);
-    let ui_program = Program::new(ui_shader_fs, ui_shader_vs);
 
     // vertex data (pos 3, normal 3, texcoord 2)
     const VERTEX_DATA: [GLfloat; 288] = [
@@ -177,9 +167,18 @@ fn main() {
     };
 
     // shaders
-    let fragment_shader = Shader::new(include_str!("shaders/fragment.fs"), gl::FRAGMENT_SHADER);
-    let vertex_shader = Shader::new(include_str!("shaders/vertex.vs"), gl::VERTEX_SHADER);
-    let program = Program::new(vertex_shader, fragment_shader);
+    let vs = Shader::new(include_str!("shaders/phong.vs"), gl::VERTEX_SHADER);
+    let fs = Shader::new(include_str!("shaders/phong.fs"), gl::FRAGMENT_SHADER);
+    let phong_program = Program::new(vs, fs);
+
+    let vs = Shader::new(include_str!("shaders/light.vs"), gl::VERTEX_SHADER);
+    let fs = Shader::new(include_str!("shaders/light.fs"), gl::FRAGMENT_SHADER);
+    let light_program = Program::new(vs, fs);
+
+    // TODO ui
+    let vs = Shader::new(include_str!("shaders/ui.vs"), gl::VERTEX_SHADER);
+    let fs = Shader::new(include_str!("shaders/ui.fs"), gl::FRAGMENT_SHADER);
+    let _ui_program = Program::new(vs, fs);
 
     // copy vertex data to buffer
     unsafe {
@@ -216,9 +215,11 @@ fn main() {
     // last frame time and delta time
     let mut last_frame = 0.0;
 
+    let tex_assets_path = format!("{}{}", env!("CARGO_MANIFEST_DIR"), "/assets/textures/");
+
     let material = Material {
-        diffuse: Texture::new("../assets/textures/crate_diffuse.jpg"),
-        specular: Texture::new("../assets/textures/crate_specular.jpg"),
+        diffuse: Texture::new(format!("{}crate_diffuse.jpg", tex_assets_path)),
+        specular: Texture::new(format!("{}crate_specular.jpg", tex_assets_path)),
         specular_strength: 32.0,
     };
 
@@ -295,7 +296,7 @@ fn main() {
 
         // SECTION render
 
-        program.use_program();
+        phong_program.use_program();
 
         let frame_start_time = glfw.get_time() as f32;
         let delta_time = frame_start_time - last_frame;
@@ -309,36 +310,36 @@ fn main() {
         let view = glm::ext::look_at(camera.pos, camera.pos + camera.front, camera.up);
 
         // update local uniform values
-        program.set_uniform_mat4("view", &view);
-        program.set_uniform_mat4("projection", &projection);
+        phong_program.set_uniform_mat4("view", &view);
+        phong_program.set_uniform_mat4("projection", &projection);
 
-        program.set_uniform_vec3("camera_pos", camera.pos);
+        phong_program.set_uniform_vec3("camera_pos", camera.pos);
 
-        program.set_uniform_int("material.diffuse", 0);
-        program.set_uniform_int("material.specular", 1);
-        program.set_uniform_float("material.specular_strength", material.specular_strength);
+        phong_program.set_uniform_int("material.diffuse", 0);
+        phong_program.set_uniform_int("material.specular", 1);
+        phong_program.set_uniform_float("material.specular_strength", material.specular_strength);
 
         // Spot light
-        program.set_uniform_vec3("spotlight.pos", spotlight.pos);
-        program.set_uniform_vec3("spotlight.dir", spotlight.dir);
+        phong_program.set_uniform_vec3("spotlight.pos", spotlight.pos);
+        phong_program.set_uniform_vec3("spotlight.dir", spotlight.dir);
 
-        program.set_uniform_float("spotlight.cut_off", spotlight.cut_off);
-        program.set_uniform_float("spotlight.outer_cut_off", spotlight.outer_cut_off);
+        phong_program.set_uniform_float("spotlight.cut_off", spotlight.cut_off);
+        phong_program.set_uniform_float("spotlight.outer_cut_off", spotlight.outer_cut_off);
 
-        program.set_uniform_float("spotlight.constant", spotlight.constant);
-        program.set_uniform_float("spotlight.linear", spotlight.linear);
-        program.set_uniform_float("spotlight.quadratic", spotlight.quadratic);
+        phong_program.set_uniform_float("spotlight.constant", spotlight.constant);
+        phong_program.set_uniform_float("spotlight.linear", spotlight.linear);
+        phong_program.set_uniform_float("spotlight.quadratic", spotlight.quadratic);
 
-        program.set_uniform_vec3("spotlight.ambient", spotlight.ambient);
-        program.set_uniform_vec3("spotlight.diffuse", spotlight.diffuse);
-        program.set_uniform_vec3("spotlight.specular", spotlight.specular);
+        phong_program.set_uniform_vec3("spotlight.ambient", spotlight.ambient);
+        phong_program.set_uniform_vec3("spotlight.diffuse", spotlight.diffuse);
+        phong_program.set_uniform_vec3("spotlight.specular", spotlight.specular);
 
         // Directional light
-        program.set_uniform_vec3("dirlight.dir", dirlight.dir);
+        phong_program.set_uniform_vec3("dirlight.dir", dirlight.dir);
 
-        program.set_uniform_vec3("dirlight.ambient", dirlight.ambient);
-        program.set_uniform_vec3("dirlight.diffuse", dirlight.diffuse);
-        program.set_uniform_vec3("dirlight.specular", dirlight.specular);
+        phong_program.set_uniform_vec3("dirlight.ambient", dirlight.ambient);
+        phong_program.set_uniform_vec3("dirlight.diffuse", dirlight.diffuse);
+        phong_program.set_uniform_vec3("dirlight.specular", dirlight.specular);
 
         // Point lights
         for i in 0..4 {
@@ -354,18 +355,23 @@ fn main() {
                 specular: Vec3::new(1.0, 1.0, 1.0),
             };
 
-            program.set_uniform_vec3(&format!("pointlights[{}].pos", i), pointlight.pos);
+            phong_program.set_uniform_vec3(&format!("pointlights[{}].pos", i), pointlight.pos);
 
-            program.set_uniform_float(&format!("pointlights[{}].constant", i), pointlight.constant);
-            program.set_uniform_float(&format!("pointlights[{}].linear", i), pointlight.linear);
-            program.set_uniform_float(
+            phong_program
+                .set_uniform_float(&format!("pointlights[{}].constant", i), pointlight.constant);
+            phong_program
+                .set_uniform_float(&format!("pointlights[{}].linear", i), pointlight.linear);
+            phong_program.set_uniform_float(
                 &format!("pointlights[{}].quadratic", i),
                 pointlight.quadratic,
             );
 
-            program.set_uniform_vec3(&format!("pointlights[{}].ambient", i), pointlight.ambient);
-            program.set_uniform_vec3(&format!("pointlights[{}].diffuse", i), pointlight.diffuse);
-            program.set_uniform_vec3(&format!("pointlights[{}].specular", i), pointlight.specular);
+            phong_program
+                .set_uniform_vec3(&format!("pointlights[{}].ambient", i), pointlight.ambient);
+            phong_program
+                .set_uniform_vec3(&format!("pointlights[{}].diffuse", i), pointlight.diffuse);
+            phong_program
+                .set_uniform_vec3(&format!("pointlights[{}].specular", i), pointlight.specular);
         }
 
         for i in 0..10 {
@@ -378,14 +384,14 @@ fn main() {
             let angle = 40.0 * frame_start_time + i as f32 * 10.0;
             model = glm::ext::translate(&model, cube_positions[i]);
             model = glm::ext::rotate(&model, glm::radians(angle), Vec3::new(1.0, 0.3, 0.5));
-            program.set_uniform_mat4("model", &model);
+            phong_program.set_uniform_mat4("model", &model);
             unsafe {
                 gl::BindVertexArray(vao);
                 gl::DrawArrays(gl::TRIANGLES, 0, 36);
             }
         }
 
-        // SECTION cube light
+        // SECTION light source render
 
         light_program.use_program();
 
@@ -438,7 +444,7 @@ fn main() {
             }
         }
 
-        // SECTION keyboard inputs
+        // SECTION keyboard input
 
         // W move forward
         if key_states[Key::W as usize] {
@@ -489,7 +495,7 @@ fn main() {
             window.set_should_close(true);
         }
 
-        // SECTION mouse inputs
+        // SECTION mouse input
 
         // camera aim
         if mouse_updated {
