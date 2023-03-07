@@ -267,7 +267,7 @@ fn main() {
                 texture: Texture::from_bitmap(&bitmap),
                 size: vec2(bitmap.width(), bitmap.rows()),
                 bearing: vec2(glyph.bitmap_left(), glyph.bitmap_top()),
-                advance: glyph.advance().x,
+                advance: glyph.advance().x as i64,
             },
         );
     }
