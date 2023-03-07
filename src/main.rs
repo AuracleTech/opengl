@@ -3,9 +3,7 @@ extern crate freetype;
 extern crate gl;
 extern crate glfw;
 
-use cgmath::{
-    ortho, perspective, vec2, vec3, vec4, Angle, Deg, Matrix4, SquareMatrix, Transform, Vector3,
-};
+use cgmath::{ortho, perspective, vec2, vec3, Angle, Deg, Matrix4, SquareMatrix, Vector3};
 use cgmath::{point3, prelude::*};
 use gl::types::*;
 use glfw::{Context, Key};
@@ -157,50 +155,32 @@ fn main() {
         gl::EnableVertexAttribArray(2);
     }
 
-    // UI VERTEX DATA
-    let ui_vertex_data = [
-        -1.0, 1.0, 0.0, //
-        -1.0, -1.0, 0.0, //
-        1.0, -1.0, 0.0, //
-        1.0, 1.0, 0.0, //
-    ];
-
-    // UI VBO
     let mut ui_vbo = 0;
+    let mut ui_vao = 0;
+
     unsafe {
+        gl::GenVertexArrays(1, &mut ui_vao);
         gl::GenBuffers(1, &mut ui_vbo);
+        gl::BindVertexArray(ui_vao);
         gl::BindBuffer(gl::ARRAY_BUFFER, ui_vbo);
         gl::BufferData(
             gl::ARRAY_BUFFER,
-            (ui_vertex_data.len() * std::mem::size_of::<GLfloat>()) as GLsizeiptr,
-            ui_vertex_data.as_ptr() as *const GLvoid,
-            gl::STATIC_DRAW,
+            6 * 4 * std::mem::size_of::<GLfloat>() as GLsizeiptr,
+            std::ptr::null(),
+            gl::DYNAMIC_DRAW,
         );
-    }
 
-    // UI VAO
-    let mut ui_vao = 0;
-    let ui_stride = (3 * std::mem::size_of::<GLfloat>()) as GLsizei;
-    unsafe {
-        gl::GenVertexArrays(1, &mut ui_vao);
-        gl::BindVertexArray(ui_vao);
-        // position attribute
-        gl::VertexAttribPointer(0, 3, gl::FLOAT, gl::FALSE, ui_stride, std::ptr::null());
         gl::EnableVertexAttribArray(0);
-    }
-
-    // UI EBO
-    let ui_indices = [0, 1, 2, 2, 3, 0];
-    let mut ui_ebo = 0;
-    unsafe {
-        gl::GenBuffers(1, &mut ui_ebo);
-        gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, ui_ebo);
-        gl::BufferData(
-            gl::ELEMENT_ARRAY_BUFFER,
-            (ui_indices.len() * std::mem::size_of::<GLuint>()) as GLsizeiptr,
-            ui_indices.as_ptr() as *const GLvoid,
-            gl::STATIC_DRAW,
+        gl::VertexAttribPointer(
+            0,
+            4,
+            gl::FLOAT,
+            gl::FALSE,
+            4 * std::mem::size_of::<GLfloat>() as GLsizei,
+            std::ptr::null(),
         );
+        gl::BindBuffer(gl::ARRAY_BUFFER, 0);
+        gl::BindVertexArray(0);
     }
 
     let mut camera = Camera {
@@ -258,33 +238,41 @@ fn main() {
 
     unsafe {
         gl::ClearColor(0.3, 0.3, 0.5, 1.0);
+        gl::Enable(gl::BLEND);
+        gl::BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
     }
 
-    // Font "SteinerLight-JR1o.ttf"
+    // UI
+    ui_program.use_program();
+    let ui_projection = ortho(0.0, WIN_WIDTH as f32, 0.0, WIN_HEIGHT as f32, -1.0, 1.0);
+    ui_program.set_uniform_mat4("projection", &ui_projection);
+
+    // Font
     let mut characters_hashmap: HashMap<char, Character> = HashMap::new();
 
     let library = freetype::Library::init().expect("Could not init freetype library");
-    let character = 'X';
-    let face = library
-        .new_face("assets/fonts/SteinerLight-JR1o.ttf", 0)
-        .expect("Could not open font");
+    let font_path = format!(
+        "{}/assets/fonts/SteinerLight-JR1o.ttf",
+        env!("CARGO_MANIFEST_DIR")
+    );
+    let face = library.new_face(font_path, 0).expect("Could not open font");
     face.set_pixel_sizes(0, 48)
         .expect("Could not set pixel size");
 
-    for c in character as u8..=126 {
+    for c in 32..=126 {
         face.load_char(c as usize, freetype::face::LoadFlag::RENDER)
             .expect("Could not load character");
         let glyph = face.glyph();
         let bitmap = glyph.bitmap();
-
-        let character = Character {
-            texture: Texture::from_bitmap(&bitmap),
-            size: vec2(bitmap.width(), bitmap.rows()),
-            bearing: vec2(glyph.bitmap_left(), glyph.bitmap_top()),
-            advance: glyph.advance().x,
-        };
-
-        characters_hashmap.insert(c as char, character);
+        characters_hashmap.insert(
+            c as u8 as char,
+            Character {
+                texture: Texture::from_bitmap(&bitmap),
+                size: vec2(bitmap.width(), bitmap.rows()),
+                bearing: vec2(glyph.bitmap_left(), glyph.bitmap_top()),
+                advance: glyph.advance().x,
+            },
+        );
     }
 
     // calculate fps declarations
@@ -303,9 +291,6 @@ fn main() {
         specular: Texture::from_file_path(format!("{}{}", texture_path, "crate_specular.jpg")),
         specular_strength: 32.0,
     };
-
-    material.diffuse.bind(0);
-    material.specular.bind(1);
 
     let cube_positions: [Vector3<f32>; 10] = [
         vec3(0.0, 0.0, 0.0),
@@ -376,7 +361,7 @@ fn main() {
         let mut mouse_updated = false;
         let mut mouse_scroll_updated = false;
 
-        // SECTION render
+        // SECTION phong render
 
         unsafe {
             gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
@@ -385,6 +370,9 @@ fn main() {
         camera.speed = camera.speed_factor * delta_time;
 
         phong_program.use_program();
+
+        material.diffuse.bind(0);
+        material.specular.bind(1);
 
         // TODO Translate - Rotate - Scale matrix manipulations queue to respect order
         let projection = perspective(cgmath::Deg(camera.fov_y), WIN_ASPECT_RATIO, 0.1, 100.0);
@@ -462,6 +450,7 @@ fn main() {
             model = model
                 * Matrix4::from_axis_angle(vec3(1.0, 0.3, 0.5).normalize(), cgmath::Deg(angle));
             phong_program.set_uniform_mat4("model", &model);
+
             unsafe {
                 gl::BindVertexArray(vao);
                 gl::DrawArrays(gl::TRIANGLES, 0, 36);
@@ -489,33 +478,78 @@ fn main() {
             }
         }
 
-        // SECTION framerate counter UI
+        // SECTION text render
 
-        // ui_program.use_program();
-        // // orthographic projection
-        // let ui_projection = ortho(0.0, WIN_WIDTH as f32, 0.0, WIN_HEIGHT as f32, -1.0, 1.0);
-        // ui_program.set_uniform_mat4("projection", &ui_projection); // FIX should be orthographic projection
+        let text = format!("{}FPS {:0.4}MS", current_fps, ms_per_frame);
+        let mut render_pos_x = 10.0;
+        let render_pos_y = 10.0;
+        let scale = 1.0;
 
-        // // let fps_text = format!("{} FPS {:0.4} MS", current_fps, ms_per_frame);
-        // let fps_text = "sus".to_string();
-        // // foreach character in FPS text print using characters_hashmap
-        // for (i, c) in fps_text.chars().enumerate() {
-        //     let character = characters_hashmap
-        //         .get(&c)
-        //         .expect(format!("Character {} not found", c).as_str());
+        ui_program.use_program();
+        ui_program.set_uniform_vec3("color", vec3(0.8, 0.8, 0.67));
+        unsafe {
+            gl::ActiveTexture(gl::TEXTURE0);
+            gl::BindVertexArray(ui_vao);
+        }
 
-        //     unsafe {
-        //         gl::ActiveTexture(gl::TEXTURE0);
-        //         gl::BindTexture(gl::TEXTURE_2D, character.texture.id);
-        //         gl::BindVertexArray(ui_vao);
-        //         gl::DrawElements(
-        //             gl::TRIANGLES,
-        //             6,
-        //             gl::UNSIGNED_INT,
-        //             (i * 6 * std::mem::size_of::<u32>()) as *const GLvoid,
-        //         );
-        //     }
-        // }
+        // iterate through all characters
+        for (_, c) in text.chars().enumerate() {
+            let character = characters_hashmap
+                .get(&c)
+                .expect(format!("Character {} not found", c).as_str());
+
+            let xpos = render_pos_x + character.bearing.x as f32 * scale;
+            let ypos = render_pos_y - (character.size.y - character.bearing.y) as f32 * scale;
+
+            let w = character.size.x as f32 * scale;
+            let h = character.size.y as f32 * scale;
+            // update VBO for each character
+            let vertices = [
+                xpos,
+                ypos + h,
+                0.0,
+                0.0, // bottom left
+                xpos,
+                ypos,
+                0.0,
+                1.0, // top left
+                xpos + w,
+                ypos,
+                1.0,
+                1.0, // top right
+                xpos,
+                ypos + h,
+                0.0,
+                0.0, // bottom left
+                xpos + w,
+                ypos,
+                1.0,
+                1.0, // top right
+                xpos + w,
+                ypos + h,
+                1.0,
+                0.0, // bottom right
+            ];
+
+            // render glyph texture over quad
+            unsafe {
+                gl::BindTexture(gl::TEXTURE_2D, character.texture.id);
+                // update content of VBO memory
+                gl::BindBuffer(gl::ARRAY_BUFFER, ui_vbo);
+                gl::BufferSubData(
+                    gl::ARRAY_BUFFER,
+                    0,
+                    (vertices.len() * std::mem::size_of::<f32>()) as isize,
+                    vertices.as_ptr() as *const GLvoid,
+                );
+                gl::BindBuffer(gl::ARRAY_BUFFER, 0);
+                // render quad
+                gl::DrawArrays(gl::TRIANGLES, 0, 6);
+            }
+
+            // now advance cursors for next glyph (note that advance is number of 1/64 pixels)
+            render_pos_x += (character.advance >> 6) as f32 * scale; // bitshift by 6 to get value in pixels (2^6 = 64)
+        }
 
         frames_rendered += 1;
         let current_time = glfw.get_time();
@@ -567,12 +601,10 @@ fn main() {
         }
         // A move left
         if key_states[Key::A as usize] {
-            camera.right = camera.front.cross(camera.up);
             camera.pos -= camera.right * camera.speed;
         }
         // D move right
         if key_states[Key::D as usize] {
-            camera.right = camera.front.cross(camera.up);
             camera.pos += camera.right * camera.speed;
         }
         // SPACE move up
@@ -625,6 +657,7 @@ fn main() {
                 camera.pitch.to_radians().cos() * camera.yaw.to_radians().sin(),
             )
             .normalize();
+            camera.right = camera.front.cross(camera.up);
 
             // scroll
             if mouse_scroll_updated {

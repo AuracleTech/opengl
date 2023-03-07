@@ -1,6 +1,5 @@
-use cgmath::Vector2;
-
 use crate::texture::Texture;
+use cgmath::Vector2;
 
 pub struct Character {
     pub texture: Texture,

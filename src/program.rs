@@ -74,47 +74,47 @@ impl Program {
 
     /**
      * Set a uniform boolean value.
-     * @param uniform_name The name of the uniform to set.
+     * @param name The name of the uniform to set.
      * @param value The value to set the uniform to.
      */
-    pub fn set_uniform_bool(&self, uniform_name: &str, value: bool) {
+    pub fn set_uniform_bool(&self, name: &str, value: bool) {
         unsafe {
-            gl::Uniform1i(get_uniform_location(self.id, uniform_name), value as i32);
+            gl::Uniform1i(get_uniform_location(self.id, name), value as i32);
         }
     }
 
     /**
      * Set a uniform integer value.
-     * @param uniform_name The name of the uniform to set.
+     * @param name The name of the uniform to set.
      * @param value The value to set the uniform to.
      */
-    pub fn set_uniform_int(&self, uniform_name: &str, value: i32) {
+    pub fn set_uniform_int(&self, name: &str, value: i32) {
         unsafe {
-            gl::Uniform1i(get_uniform_location(self.id, uniform_name), value);
+            gl::Uniform1i(get_uniform_location(self.id, name), value);
         }
     }
 
     /**
      * Set a uniform float value.
-     * @param uniform_name The name of the uniform to set.
+     * @param name The name of the uniform to set.
      * @param value The value to set the uniform to.
      */
-    pub fn set_uniform_float(&self, uniform_name: &str, value: f32) {
+    pub fn set_uniform_float(&self, name: &str, value: f32) {
         unsafe {
-            gl::Uniform1f(get_uniform_location(self.id, uniform_name), value);
+            gl::Uniform1f(get_uniform_location(self.id, name), value);
         }
     }
 
     /**
      * Set a uniform Mat4 value.
-     * @param uniform_name The name of the uniform to set.
+     * @param name The name of the uniform to set.
      * @param value The value to set the uniform to.
      */
     // TODO rename to mat4fv
-    pub fn set_uniform_mat4(&self, uniform_name: &str, value: &Matrix4<f32>) {
+    pub fn set_uniform_mat4(&self, name: &str, value: &Matrix4<f32>) {
         unsafe {
             gl::UniformMatrix4fv(
-                get_uniform_location(self.id, uniform_name),
+                get_uniform_location(self.id, name),
                 1,
                 gl::FALSE,
                 value as *const _ as *const f32,
@@ -124,14 +124,14 @@ impl Program {
 
     /**
      * Set a uniform Vec3 value.
-     * @param uniform_name The name of the uniform to set.
+     * @param name The name of the uniform to set.
      * @param value The value to set the uniform to.
      */
     // TODO rename to vec3f
-    pub fn set_uniform_vec3(&self, uniform_name: &str, value: Vector3<f32>) {
+    pub fn set_uniform_vec3(&self, name: &str, value: Vector3<f32>) {
         unsafe {
             gl::Uniform3f(
-                get_uniform_location(self.id, uniform_name),
+                get_uniform_location(self.id, name),
                 value.x,
                 value.y,
                 value.z,
@@ -140,10 +140,10 @@ impl Program {
     }
 
     // TODO rename to vec3f
-    pub fn set_uniform_point3(&self, uniform_name: &str, value: Point3<f32>) {
+    pub fn set_uniform_point3(&self, name: &str, value: Point3<f32>) {
         unsafe {
             gl::Uniform3f(
-                get_uniform_location(self.id, uniform_name),
+                get_uniform_location(self.id, name),
                 value.x,
                 value.y,
                 value.z,
@@ -152,11 +152,11 @@ impl Program {
     }
 }
 
-fn get_uniform_location(program_id: u32, uniform_name: &str) -> i32 {
-    let name =
-        std::ffi::CString::new(uniform_name).expect("Failed to convert uniform name to CString.");
-    match unsafe { gl::GetUniformLocation(program_id, name.as_ptr()) } {
-        -1 => panic!("Failed to find uniform location: {}", uniform_name),
+fn get_uniform_location(program_id: u32, name: &str) -> i32 {
+    let formatted_name =
+        std::ffi::CString::new(name).expect("Failed to convert uniform name to CString.");
+    match unsafe { gl::GetUniformLocation(program_id, formatted_name.as_ptr()) } {
+        -1 => panic!("Failed to find uniform location: {}", name),
         location => location,
     }
 }
