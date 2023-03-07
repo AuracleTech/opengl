@@ -251,12 +251,9 @@ fn main() {
     let mut characters_hashmap: HashMap<char, Character> = HashMap::new();
 
     let library = freetype::Library::init().expect("Could not init freetype library");
-    let font_path = format!(
-        "{}/assets/fonts/SteinerLight-JR1o.ttf",
-        env!("CARGO_MANIFEST_DIR")
-    );
+    let font_path = format!("{}/assets/fonts/comfortaa.ttf", env!("CARGO_MANIFEST_DIR"));
     let face = library.new_face(font_path, 0).expect("Could not open font");
-    face.set_pixel_sizes(0, 48)
+    face.set_pixel_sizes(0, 24)
         .expect("Could not set pixel size");
 
     for c in 32..=126 {
@@ -480,76 +477,32 @@ fn main() {
 
         // SECTION text render
 
-        let text = format!("{}FPS {:0.4}MS", current_fps, ms_per_frame);
-        let mut render_pos_x = 10.0;
-        let render_pos_y = 10.0;
+        let color = vec3(0.8, 0.8, 0.67);
         let scale = 1.0;
 
-        ui_program.use_program();
-        ui_program.set_uniform_vec3("color", vec3(0.8, 0.8, 0.67));
-        unsafe {
-            gl::ActiveTexture(gl::TEXTURE0);
-            gl::BindVertexArray(ui_vao);
-        }
+        render_text(
+            format!("{} FPS", current_fps),
+            40.0,
+            600.0,
+            scale,
+            &color,
+            &ui_program,
+            &characters_hashmap,
+            &ui_vao,
+            &ui_vbo,
+        );
 
-        // iterate through all characters
-        for (_, c) in text.chars().enumerate() {
-            let character = characters_hashmap
-                .get(&c)
-                .expect(format!("Character {} not found", c).as_str());
-
-            let xpos = render_pos_x + character.bearing.x as f32 * scale;
-            let ypos = render_pos_y - (character.size.y - character.bearing.y) as f32 * scale;
-
-            let w = character.size.x as f32 * scale;
-            let h = character.size.y as f32 * scale;
-            // update VBO for each character
-            let vertices = [
-                xpos,
-                ypos + h,
-                0.0,
-                0.0, // bottom left
-                xpos,
-                ypos,
-                0.0,
-                1.0, // top left
-                xpos + w,
-                ypos,
-                1.0,
-                1.0, // top right
-                xpos,
-                ypos + h,
-                0.0,
-                0.0, // bottom left
-                xpos + w,
-                ypos,
-                1.0,
-                1.0, // top right
-                xpos + w,
-                ypos + h,
-                1.0,
-                0.0, // bottom right
-            ];
-
-            // render glyph texture over quad
-            unsafe {
-                gl::BindTexture(gl::TEXTURE_2D, character.texture.id);
-                // update content of VBO memory
-                gl::BindBuffer(gl::ARRAY_BUFFER, ui_vbo);
-                gl::BufferSubData(
-                    gl::ARRAY_BUFFER,
-                    0,
-                    (vertices.len() * std::mem::size_of::<f32>()) as isize,
-                    vertices.as_ptr() as *const GLvoid,
-                );
-                gl::BindBuffer(gl::ARRAY_BUFFER, 0);
-                // render quad
-                gl::DrawArrays(gl::TRIANGLES, 0, 6);
-            }
-
-            // now advance cursors for next glyph (note that advance is number of 1/64 pixels)
-            render_pos_x += (character.advance >> 6) as f32 * scale; // bitshift by 6 to get value in pixels (2^6 = 64)
-        }
+        render_text(
+            format!("{:0.4} MS/FRAME", ms_per_frame),
+            40.0,
+            560.0,
+            scale,
+            &color,
+            &ui_program,
+            &characters_hashmap,
+            &ui_vao,
+            &ui_vbo,
+        );
 
         frames_rendered += 1;
         let current_time = glfw.get_time();
@@ -665,5 +618,85 @@ fn main() {
                 camera.fov_y = camera.fov_y.max(camera.fov_y_min).min(camera.fov_y_max);
             }
         }
+    }
+}
+
+fn render_text(
+    text: String,
+    x: f32,
+    y: f32,
+    scale: f32,
+    color: &Vector3<f32>,
+    program: &Program,
+    characters: &HashMap<char, Character>,
+    vao: &u32,
+    vbo: &u32,
+) {
+    let mut x = x;
+
+    program.use_program();
+    program.set_uniform_vec3("color", *color);
+    unsafe {
+        gl::ActiveTexture(gl::TEXTURE0);
+        gl::BindVertexArray(*vao);
+    }
+
+    // iterate through all characters
+    for (_, c) in text.chars().enumerate() {
+        let character = characters
+            .get(&c)
+            .expect(format!("Character {} not found", c).as_str());
+
+        let xpos = x + character.bearing.x as f32 * scale;
+        let ypos = y - (character.size.y - character.bearing.y) as f32 * scale;
+
+        let w = character.size.x as f32 * scale;
+        let h = character.size.y as f32 * scale;
+        // update VBO for each character
+        let vertices = [
+            xpos,
+            ypos + h,
+            0.0,
+            0.0, // bottom left
+            xpos,
+            ypos,
+            0.0,
+            1.0, // top left
+            xpos + w,
+            ypos,
+            1.0,
+            1.0, // top right
+            xpos,
+            ypos + h,
+            0.0,
+            0.0, // bottom left
+            xpos + w,
+            ypos,
+            1.0,
+            1.0, // top right
+            xpos + w,
+            ypos + h,
+            1.0,
+            0.0, // bottom right
+        ];
+
+        // render glyph texture over quad
+        unsafe {
+            gl::BindTexture(gl::TEXTURE_2D, character.texture.id);
+            // update content of VBO memory
+            gl::BindBuffer(gl::ARRAY_BUFFER, *vbo);
+            gl::BufferSubData(
+                gl::ARRAY_BUFFER,
+                0,
+                (vertices.len() * std::mem::size_of::<f32>()) as isize,
+                vertices.as_ptr() as *const GLvoid,
+            );
+            gl::BindBuffer(gl::ARRAY_BUFFER, 0);
+            // render quad
+            gl::DrawArrays(gl::TRIANGLES, 0, 6);
+        }
+
+        // now advance cursors for next glyph (note that advance is number of 1/64 pixels)
+        x += (character.advance >> 6) as f32 * scale; // bitshift by 6 to get value in pixels (2^6 = 64)
     }
 }
