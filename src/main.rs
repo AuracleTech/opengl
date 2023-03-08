@@ -47,10 +47,35 @@ fn main() {
         )
         .expect("Failed to create GLFW window.");
 
+    // Print OpenGL version
     let version = window.get_context_version();
     println!("OpenGL version: {}.{}", version.major, version.minor);
 
     gl::load_with(|symbol| window.get_proc_address(symbol) as *const _);
+
+    // Set window icon
+    let icon_path = format!("{}/assets/images/icon.png", env!("CARGO_MANIFEST_DIR"));
+    let icon_image = image::open(icon_path).expect("Could not open icon image");
+    let icon_pixels: Vec<u32> = icon_image
+        .to_rgba8()
+        .into_raw()
+        .chunks(4)
+        .map(|chunk| {
+            let r = chunk[0];
+            let g = chunk[1];
+            let b = chunk[2];
+            let a = chunk[3];
+            // convert each pixel to a 32-bit integer
+            (a as u32) << 24 | (b as u32) << 16 | (g as u32) << 8 | (r as u32)
+        })
+        .collect();
+    let mut icons = Vec::new();
+    icons.push(glfw::PixelImage {
+        width: icon_image.width(),
+        height: icon_image.height(),
+        pixels: icon_pixels,
+    });
+    window.set_icon_from_pixels(icons);
 
     window.set_framebuffer_size_polling(true);
     window.set_key_polling(true);
@@ -621,6 +646,10 @@ fn main() {
     }
 }
 
+// TODO performance improvements : Loss of 500 frames per second
+// To fix this, we need to use a VAO for each character, and then render all the characters in one draw call.
+// This is called "text batching", and can be a real performance improvement.
+// https://learnopengl.com/In-Practice/Text-Rendering
 fn render_text(
     text: String,
     x: f32,
