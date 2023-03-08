@@ -3,7 +3,7 @@ extern crate freetype;
 extern crate gl;
 extern crate glfw;
 
-use cgmath::{ortho, perspective, vec2, vec3, Angle, Deg, Matrix4, SquareMatrix, Vector3};
+use cgmath::{ortho, perspective, vec3, Angle, Deg, Matrix4, SquareMatrix, Vector3};
 use cgmath::{point3, prelude::*};
 use gl::types::*;
 use glfw::{Context, Key};
@@ -273,7 +273,7 @@ fn main() {
     ui_program.set_uniform_mat4("projection", &ui_projection);
 
     // Font
-    let mut characters_hashmap: HashMap<char, Character> = HashMap::new();
+    let mut ascii: HashMap<char, Character> = HashMap::new();
 
     let library = freetype::Library::init().expect("Could not init freetype library");
     let font_path = format!("{}/assets/fonts/comfortaa.ttf", env!("CARGO_MANIFEST_DIR"));
@@ -281,8 +281,8 @@ fn main() {
     face.set_pixel_sizes(0, 24)
         .expect("Could not set pixel size");
 
-    for c in 32..=126 {
-        characters_hashmap.insert(c as u8 as char, Character::from_face(&face, c));
+    for c in 0..128 {
+        ascii.insert(c as u8 as char, Character::from_face(&face, c));
     }
 
     // calculate fps declarations
@@ -500,7 +500,7 @@ fn main() {
             scale,
             &color,
             &ui_program,
-            &characters_hashmap,
+            &ascii,
             &ui_vao,
             &ui_vbo,
         );
@@ -512,7 +512,7 @@ fn main() {
             scale,
             &color,
             &ui_program,
-            &characters_hashmap,
+            &ascii,
             &ui_vao,
             &ui_vbo,
         );
