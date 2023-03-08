@@ -282,19 +282,7 @@ fn main() {
         .expect("Could not set pixel size");
 
     for c in 32..=126 {
-        face.load_char(c as usize, freetype::face::LoadFlag::RENDER)
-            .expect("Could not load character");
-        let glyph = face.glyph();
-        let bitmap = glyph.bitmap();
-        characters_hashmap.insert(
-            c as u8 as char,
-            Character {
-                texture: Texture::from_bitmap(&bitmap),
-                size: vec2(bitmap.width(), bitmap.rows()),
-                bearing: vec2(glyph.bitmap_left(), glyph.bitmap_top()),
-                advance: glyph.advance().x as i64,
-            },
-        );
+        characters_hashmap.insert(c as u8 as char, Character::from_face(&face, c));
     }
 
     // calculate fps declarations
