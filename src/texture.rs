@@ -134,4 +134,11 @@ impl Texture {
             gl::BindTexture(gl::TEXTURE_2D, self.id);
         }
     }
+
+    pub fn set_param_i(&self, param: u32, value: i32) {
+        unsafe {
+            // TODO add texture type (2D, 3D ... ) in Texture struct
+            gl::TexParameteri(gl::TEXTURE_2D, param, value);
+        }
+    }
 }
