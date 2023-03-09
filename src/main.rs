@@ -9,6 +9,7 @@ use gl::types::*;
 use glfw::{Context, Key};
 use std::collections::HashMap;
 
+mod ascii;
 mod camera;
 mod character;
 mod light;
@@ -17,6 +18,7 @@ mod program;
 mod shader;
 mod texture;
 
+use ascii::Ascii;
 use camera::Camera;
 use character::Character;
 use light::{DirLight, PointLight, SpotLight};
@@ -273,17 +275,10 @@ fn main() {
     ui_program.set_uniform_mat4("projection", &ui_projection);
 
     // Font
-    let mut ascii: HashMap<char, Character> = HashMap::new();
-
-    let library = freetype::Library::init().expect("Could not init freetype library");
-    let font_path = format!("{}/assets/fonts/comfortaa.ttf", env!("CARGO_MANIFEST_DIR"));
-    let face = library.new_face(font_path, 0).expect("Could not open font");
-    face.set_pixel_sizes(0, 24)
-        .expect("Could not set pixel size");
-
-    for c in 0..128 {
-        ascii.insert(c as u8 as char, Character::from_face(&face, c));
-    }
+    let font_folder = format!("{}/assets/fonts/", env!("CARGO_MANIFEST_DIR"));
+    let font_name = "comfortaa.ttf".to_string();
+    let font_size = 24;
+    let ascii = Ascii::new(font_folder, font_name, font_size);
 
     // calculate fps declarations
     let mut last_time = glfw.get_time();
@@ -500,7 +495,7 @@ fn main() {
             scale,
             &color,
             &ui_program,
-            &ascii,
+            &ascii.chars,
             &ui_vao,
             &ui_vbo,
         );
@@ -512,7 +507,7 @@ fn main() {
             scale,
             &color,
             &ui_program,
-            &ascii,
+            &ascii.chars,
             &ui_vao,
             &ui_vbo,
         );
