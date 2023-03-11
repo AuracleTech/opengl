@@ -4,14 +4,22 @@ use image::DynamicImage;
 
 pub struct Texture {
     pub id: u32,
+    pub kind: TextureKind,
     pub width: i32,
     pub height: i32,
     pub nr_channels: u32,
 }
 
+pub enum TextureKind {
+    Diffuse,
+    Specular,
+    Normal,
+    Height,
+}
+
 #[allow(dead_code)]
 impl Texture {
-    pub fn from_file_path(path: String) -> Self {
+    pub fn from_file_path(path: String, kind: TextureKind) -> Self {
         // TODO support all image formats
         let extension = path.split('.').last().unwrap();
         if extension != "jpg" {
@@ -37,11 +45,11 @@ impl Texture {
             gl::PixelStorei(gl::UNPACK_ALIGNMENT, 1);
         }
 
-        let mut texture = 0;
+        let mut id = 0;
         unsafe {
             // generate texture id
-            gl::GenTextures(1, &mut texture);
-            gl::BindTexture(gl::TEXTURE_2D, texture);
+            gl::GenTextures(1, &mut id);
+            gl::BindTexture(gl::TEXTURE_2D, id);
             // set texture wrapping
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::REPEAT as i32);
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::REPEAT as i32);
@@ -69,7 +77,8 @@ impl Texture {
         }
 
         Self {
-            id: texture,
+            id,
+            kind,
             width,
             height,
             nr_channels: nr_channels as u32,
@@ -121,6 +130,7 @@ impl Texture {
 
         Self {
             id: texture,
+            kind: TextureKind::Diffuse,
             width,
             height,
             nr_channels: nr_channels as u32,

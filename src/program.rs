@@ -7,7 +7,7 @@ use gl::types::GLchar;
  * @field id The OpenGL ID of the program.
  */
 pub struct Program {
-    id: u32,
+    pub id: u32,
 }
 
 #[allow(dead_code)]

@@ -14,9 +14,11 @@ mod camera;
 mod character;
 mod light;
 mod material;
+mod mesh;
 mod program;
 mod shader;
 mod texture;
+mod vertex;
 
 use ascii::Ascii;
 use camera::Camera;
@@ -26,6 +28,8 @@ use material::Material;
 use program::Program;
 use shader::Shader;
 use texture::Texture;
+
+use crate::texture::TextureKind;
 
 const WIN_WIDTH: u32 = 1200;
 const WIN_HEIGHT: u32 = 900;
@@ -79,6 +83,7 @@ fn main() {
     });
     window.set_icon_from_pixels(icons);
 
+    // window parameters
     window.set_framebuffer_size_polling(true);
     window.set_key_polling(true);
     window.set_scroll_polling(true);
@@ -292,8 +297,14 @@ fn main() {
     let texture_path = format!("{}{}", env!("CARGO_MANIFEST_DIR"), "/assets/textures/");
 
     let material = Material {
-        diffuse: Texture::from_file_path(format!("{}{}", texture_path, "crate_diffuse.jpg")),
-        specular: Texture::from_file_path(format!("{}{}", texture_path, "crate_specular.jpg")),
+        diffuse: Texture::from_file_path(
+            format!("{}{}", texture_path, "crate_diffuse.jpg"),
+            TextureKind::Diffuse,
+        ),
+        specular: Texture::from_file_path(
+            format!("{}{}", texture_path, "crate_specular.jpg"),
+            TextureKind::Specular,
+        ),
         specular_strength: 32.0,
     };
 
@@ -627,12 +638,22 @@ fn main() {
             }
         }
     }
+
+    // SECTION cleanup
+
+    unsafe {
+        gl::DeleteVertexArrays(1, &vao);
+        gl::DeleteBuffers(1, &ui_vbo);
+
+        gl::DeleteProgram(ui_program.id);
+        gl::DeleteProgram(light_program.id);
+        gl::DeleteProgram(phong_program.id);
+    }
 }
 
 // TODO performance improvements : Loss of 500 frames per second
 // To fix this, we need to use a VAO for each character, and then render all the characters in one draw call.
 // This is called "text batching", and can be a real performance improvement.
-// https://learnopengl.com/In-Practice/Text-Rendering
 fn render_text(
     text: String,
     x: f32,
