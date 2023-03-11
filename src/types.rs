@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use cgmath::{Point3, Vector2, Vector3};
+use cgmath::{Point3, Vector2, Vector3, Vector4};
 use gl::types::{GLsizei, GLuint};
 
 pub type Uniaxial = f32;
@@ -19,6 +19,9 @@ pub type TexCoords = Vector2<TexCoord>;
 
 pub type Indice = u32;
 pub type Indices = Vec<Indice>;
+
+pub type RGB = Vector3<f32>;
+pub type RGBA = Vector4<f32>;
 
 pub struct Texture {
     pub id: GLuint,
@@ -130,4 +133,40 @@ pub struct Ascii {
     pub name: String,
     pub size: u32,
     pub chars: HashMap<char, Character>,
+}
+
+pub struct DirLight {
+    pub dir: Direction,
+
+    pub ambient: RGB,
+    pub diffuse: RGB,
+    pub specular: RGB,
+}
+
+pub struct PointLight {
+    pub pos: Position,
+
+    pub constant: f32,
+    pub linear: f32,
+    pub quadratic: f32,
+
+    pub ambient: RGB,
+    pub diffuse: RGB,
+    pub specular: RGB,
+}
+
+pub struct SpotLight {
+    pub pos: Position,
+    pub dir: Direction,
+
+    pub cut_off: f32,
+    pub outer_cut_off: f32,
+
+    pub constant: f32,
+    pub linear: f32,
+    pub quadratic: f32,
+
+    pub ambient: RGB,
+    pub diffuse: RGB,
+    pub specular: RGB,
 }

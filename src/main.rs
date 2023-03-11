@@ -11,7 +11,6 @@ use std::collections::HashMap;
 
 mod ascii;
 mod character;
-mod light;
 #[allow(dead_code)]
 mod mesh;
 mod program;
@@ -19,12 +18,13 @@ mod shader;
 mod texture;
 #[allow(dead_code)]
 mod types;
-
-use light::{DirLight, PointLight, SpotLight};
 use program::Program;
 use shader::Shader;
 
-use crate::types::{Ascii, Camera, Character, Filtering, ImageKind, Material, Texture, Wrapping};
+use crate::types::{
+    Ascii, Camera, Character, DirLight, Filtering, ImageKind, Material, PointLight, Position,
+    Positions, SpotLight, Texture, Wrapping,
+};
 
 const WIN_WIDTH: u32 = 1200;
 const WIN_HEIGHT: u32 = 900;
@@ -329,15 +329,15 @@ fn main() {
         vec3(-1.3, 1.0, -1.5),
     ];
 
-    let pointlight_positions: [Vector3<f32>; 4] = [
-        vec3(0.7, 0.2, 2.0),
-        vec3(2.3, -3.3, -4.0),
-        vec3(-4.0, 2.0, -12.0),
-        vec3(0.0, 0.0, -3.0),
+    let pointlight_positions: [Position; 4] = [
+        point3(0.7, 0.2, 2.0),
+        point3(2.3, -3.3, -4.0),
+        point3(-4.0, 2.0, -12.0),
+        point3(0.0, 0.0, -3.0),
     ];
 
     let spotlight = SpotLight {
-        pos: vec3(1.2, 1.0, 2.0),
+        pos: point3(1.2, 1.0, 2.0),
         dir: vec3(-1.2, -2.0, -0.3),
         cut_off: Angle::cos(Deg(12.5)),
         outer_cut_off: Angle::cos(Deg(60.0)),
@@ -413,7 +413,7 @@ fn main() {
         phong_program.set_uniform_float("material.specular_strength", material.specular_strength);
 
         // Spot light
-        phong_program.set_uniform_vec3("spotlight.pos", spotlight.pos);
+        phong_program.set_uniform_point3("spotlight.pos", spotlight.pos);
         phong_program.set_uniform_vec3("spotlight.dir", spotlight.dir);
 
         phong_program.set_uniform_float("spotlight.cut_off", spotlight.cut_off);
@@ -448,7 +448,7 @@ fn main() {
                 specular: vec3(1.0, 1.0, 1.0),
             };
 
-            phong_program.set_uniform_vec3(&format!("pointlights[{}].pos", i), pointlight.pos);
+            phong_program.set_uniform_point3(&format!("pointlights[{}].pos", i), pointlight.pos);
 
             phong_program
                 .set_uniform_float(&format!("pointlights[{}].constant", i), pointlight.constant);
@@ -491,7 +491,7 @@ fn main() {
         for i in 0..4 {
             let mut model = Matrix4::identity();
             let angle = 40.0 * frame_start_time + i as f32 * 10.0;
-            model = model * Matrix4::from_translation(pointlight_positions[i]);
+            model = model * Matrix4::from_translation(pointlight_positions[i].to_vec());
             model = model
                 * Matrix4::from_axis_angle(vec3(1.0, 0.3, 0.5).normalize(), cgmath::Deg(angle));
             model = model * Matrix4::from_scale(0.1);
