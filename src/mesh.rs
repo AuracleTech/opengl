@@ -1,21 +1,10 @@
 use crate::{
     program::Program,
-    texture::{Texture, TextureKind},
-    vertex::Vertex,
+    types::{Indices, Mesh, Textures, Vertecies},
 };
 
-pub struct Mesh {
-    pub vertices: Vec<Vertex>,
-    pub indices: Vec<u32>,
-    pub textures: Vec<Texture>,
-
-    pub vao: u32,
-    pub vbo: u32,
-    pub ebo: u32,
-}
-
 impl Mesh {
-    pub fn new(vertices: Vec<Vertex>, indices: Vec<u32>, textures: Vec<Texture>) -> Self {
+    pub fn new(vertices: Vertecies, indices: Indices, textures: Textures) -> Self {
         todo!("Implement Mesh::new");
     }
 

@@ -1,11 +1,5 @@
-use crate::character::Character;
+use crate::types::{Ascii, Character};
 use std::collections::HashMap;
-
-pub struct Ascii {
-    pub name: String,
-    pub size: u32,
-    pub chars: HashMap<char, Character>,
-}
 
 impl Ascii {
     pub fn new(font_folder: String, font_name: String, font_size: u32) -> Self {

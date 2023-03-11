@@ -10,26 +10,21 @@ use glfw::{Context, Key};
 use std::collections::HashMap;
 
 mod ascii;
-mod camera;
 mod character;
 mod light;
-mod material;
+#[allow(dead_code)]
 mod mesh;
 mod program;
 mod shader;
 mod texture;
-mod vertex;
+#[allow(dead_code)]
+mod types;
 
-use ascii::Ascii;
-use camera::Camera;
-use character::Character;
 use light::{DirLight, PointLight, SpotLight};
-use material::Material;
 use program::Program;
 use shader::Shader;
-use texture::Texture;
 
-use crate::texture::TextureKind;
+use crate::types::{Ascii, Camera, Character, Filtering, ImageKind, Material, Texture, Wrapping};
 
 const WIN_WIDTH: u32 = 1200;
 const WIN_HEIGHT: u32 = 900;
@@ -295,16 +290,29 @@ fn main() {
     let mut ms_per_frame = 1000.0;
 
     let texture_path = format!("{}{}", env!("CARGO_MANIFEST_DIR"), "/assets/textures/");
+    let diffuse = Texture::from_file(
+        format!("{}{}", texture_path, "crate_diffuse.jpg"),
+        ImageKind::Diffuse,
+        Wrapping::Repeat,
+        Wrapping::Repeat,
+        Filtering::Nearest,
+        Filtering::Nearest,
+        true,
+    );
+
+    let specular = Texture::from_file(
+        format!("{}{}", texture_path, "crate_specular.jpg"),
+        ImageKind::Specular,
+        Wrapping::Repeat,
+        Wrapping::Repeat,
+        Filtering::Nearest,
+        Filtering::Nearest,
+        true,
+    );
 
     let material = Material {
-        diffuse: Texture::from_file_path(
-            format!("{}{}", texture_path, "crate_diffuse.jpg"),
-            TextureKind::Diffuse,
-        ),
-        specular: Texture::from_file_path(
-            format!("{}{}", texture_path, "crate_specular.jpg"),
-            TextureKind::Specular,
-        ),
+        diffuse,
+        specular,
         specular_strength: 32.0,
     };
 
