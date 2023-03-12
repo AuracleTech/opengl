@@ -227,7 +227,10 @@ fn main() {
 
     // Font
     let font_name = "comfortaa";
-    let font = Revenant::create_font(font_name, 24);
+    let font_folder = format!("{}/assets/fonts/", env!("CARGO_MANIFEST_DIR"));
+    let font_filename = format!("{}.ttf", font_name);
+    let font_size = 24;
+    let font = Font::new(font_folder, font_filename, font_size);
     revenant.fonts.insert(font_name.to_owned(), font);
     let font = revenant.fonts.get(font_name).expect("Font not found");
 

@@ -19,6 +19,7 @@
 - [x] Phong Lighting
 - [x] Multiple Lights
 - [x] Library standalone
+- [ ] Asset Manager
 - [ ] Loading Mesh
 - [ ] Loading Model
 - [ ] Setup world environment playground

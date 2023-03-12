@@ -12,8 +12,8 @@ use gl::types::*;
 use glfw::{Context, Glfw, Window, WindowEvent};
 use types::Fonts;
 
-mod ascii;
 mod character;
+mod font;
 #[allow(dead_code)]
 mod mesh;
 #[allow(dead_code)]
@@ -92,16 +92,5 @@ impl Revenant {
         unsafe {
             gl::ClearColor(color.x, color.y, color.z, color.w);
         }
-    }
-
-    pub fn create_font(name: &str, size: u32) -> Font {
-        // TODO asset folder path configuration
-        let font_folder = format!("{}/assets/fonts/", env!("CARGO_MANIFEST_DIR"));
-        Font::new(font_folder, format!("{}.ttf", name), size)
-    }
-
-    // TODO error management
-    pub fn get_font(&self, name: &str) -> &Font {
-        self.fonts.get(name).unwrap()
     }
 }
