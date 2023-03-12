@@ -1,10 +1,8 @@
+use crate::types::{Filtering, ImageFormat, ImageKind, Texture, TextureSize, Wrapping};
 use freetype::Bitmap;
 use gl::types::{GLenum, GLint, GLvoid};
 use image::DynamicImage;
 
-use crate::types::{Filtering, ImageFormat, ImageKind, Texture, TextureSize, Wrapping};
-
-#[allow(dead_code)]
 impl Texture {
     pub fn from_file(
         path: String,

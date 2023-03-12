@@ -170,3 +170,11 @@ pub struct SpotLight {
     pub diffuse: RGB,
     pub specular: RGB,
 }
+
+pub struct Shader {
+    pub id: GLuint,
+}
+
+pub struct Program {
+    pub id: GLuint,
+}

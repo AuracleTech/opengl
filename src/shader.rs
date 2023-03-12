@@ -1,30 +1,17 @@
-use gl::types::{GLchar, GLenum, GLuint};
+use crate::types::Shader;
+use gl::types::{GLchar, GLenum};
 use std::ffi::CString;
 
-/**
- * A shader object.
- * @field id The OpenGL ID of the shader.
- */
-pub struct Shader {
-    pub id: GLuint,
-}
-
 impl Shader {
-    /**
-     * Create a new shader from source code.
-     * @param source The source code for the shader.
-     * @param shader_type The type of shader to create.
-     */
     pub fn new(source: &str, shader_type: GLenum) -> Shader {
         let id = unsafe { gl::CreateShader(shader_type) };
 
-        // Verify ID was created
         if id <= 0 {
-            panic!("Failed to create shader");
+            panic!("The shader id is invalid.");
         }
 
         // Compile shader
-        let source = CString::new(source.as_bytes()).expect("Failed to convert source to CString");
+        let source = CString::new(source.as_bytes()).expect("Failed to convert source to CString.");
         unsafe {
             gl::ShaderSource(id, 1, &source.as_ptr(), std::ptr::null());
             gl::CompileShader(id);
@@ -35,27 +22,32 @@ impl Shader {
         unsafe {
             gl::GetShaderiv(id, gl::COMPILE_STATUS, &mut success);
         }
-        if success == 0 {
-            let mut log_length = 0;
-            unsafe {
-                gl::GetShaderiv(id, gl::INFO_LOG_LENGTH, &mut log_length);
-            }
-            let mut log = Vec::with_capacity(log_length as usize);
-            unsafe {
-                gl::GetShaderInfoLog(
-                    id,
-                    log_length,
-                    std::ptr::null_mut(),
-                    log.as_mut_ptr() as *mut GLchar,
-                );
-                log.set_len(log_length as usize);
-            }
-            panic!(
-                "Failed to compile vertex shader: {}",
-                String::from_utf8(log).expect("Vertex shader log is not valid UTF-8.")
-            );
+
+        if success != 0 {
+            return Self { id };
         }
 
-        Self { id }
+        let mut log_length = 0;
+        unsafe {
+            gl::GetShaderiv(id, gl::INFO_LOG_LENGTH, &mut log_length);
+        }
+        let mut log = Vec::with_capacity(log_length as usize);
+        unsafe {
+            gl::GetShaderInfoLog(
+                id,
+                log_length,
+                std::ptr::null_mut(),
+                log.as_mut_ptr() as *mut GLchar,
+            );
+            log.set_len(log_length as usize);
+        }
+        let shader_type = match shader_type {
+            gl::VERTEX_SHADER => "Vertex",
+            gl::FRAGMENT_SHADER => "Fragment",
+            gl::GEOMETRY_SHADER => "Geometry",
+            _ => "Other",
+        };
+        let why = String::from_utf8(log).expect("Failed to convert log to String.");
+        panic!("Failed to compile '{}' shader: {}", shader_type, why);
     }
 }

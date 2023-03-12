@@ -1,7 +1,4 @@
-use crate::{
-    program::Program,
-    types::{Indices, Mesh, Textures, Vertecies},
-};
+use crate::types::{Indices, Mesh, Program, Textures, Vertecies};
 
 impl Mesh {
     pub fn new(vertices: Vertecies, indices: Indices, textures: Textures) -> Self {

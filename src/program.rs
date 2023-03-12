@@ -1,22 +1,8 @@
-use crate::shader::Shader;
+use crate::types::{Program, Shader};
 use cgmath::{Matrix4, Point3, Vector3};
 use gl::types::GLchar;
 
-/**
- * Program object.
- * @field id The OpenGL ID of the program.
- */
-pub struct Program {
-    pub id: u32,
-}
-
-#[allow(dead_code)]
 impl Program {
-    /**
-     * Create a new shader program.
-     * @param vertex_shader The vertex shader to use.
-     * @param fragment_shader The fragment shader to use.
-     */
     pub fn new(vertex_shader: Shader, fragment_shader: Shader) -> Self {
         // shader program
         let shader_program = unsafe {

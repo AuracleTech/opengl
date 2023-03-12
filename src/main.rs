@@ -3,46 +3,44 @@ extern crate freetype;
 extern crate gl;
 extern crate glfw;
 
-use cgmath::{ortho, perspective, vec3, Angle, Deg, Matrix4, SquareMatrix, Vector3};
+use cgmath::{ortho, perspective, vec3, vec4, Angle, Deg, Matrix4, SquareMatrix, Vector3};
 use cgmath::{point3, prelude::*};
 use gl::types::*;
-use glfw::{Context, Key};
-use std::collections::HashMap;
+use glfw::Context;
 
 mod ascii;
 mod character;
 #[allow(dead_code)]
 mod mesh;
+#[allow(dead_code)]
 mod program;
 mod shader;
 mod texture;
 #[allow(dead_code)]
 mod types;
-use program::Program;
-use shader::Shader;
 
 use crate::types::{
-    Ascii, Camera, Character, DirLight, Filtering, ImageKind, Material, PointLight, Position,
-    Positions, SpotLight, Texture, Wrapping,
+    Ascii, Camera, DirLight, Filtering, ImageKind, Material, PointLight, Position, Program, Shader,
+    SpotLight, Texture, Wrapping, RGBA,
 };
 
-const WIN_WIDTH: u32 = 1200;
-const WIN_HEIGHT: u32 = 900;
-const WIN_ASPECT_RATIO: f32 = WIN_WIDTH as f32 / WIN_HEIGHT as f32;
+const WIN_DIM_X: u32 = 1200;
+const WIN_DIM_Y: u32 = 900;
+const WIN_RATIO_X: f32 = WIN_DIM_X as f32 / WIN_DIM_Y as f32;
+
+// TODO flexible window aspect ratio
+const SCREEN_DIM_X: u32 = 1920;
+const SCREEN_DIM_Y: u32 = 1080;
+#[allow(dead_code)]
+const SCREEN_RATIO_X: f32 = SCREEN_DIM_X as f32 / WIN_DIM_X as f32;
 
 fn main() {
     let mut glfw = glfw::init(glfw::FAIL_ON_ERRORS).expect("Failed to initialize GLFW.");
 
-    // set opengl version to 4.6 core profile
-    glfw.window_hint(glfw::WindowHint::ContextVersion(4, 6));
-    glfw.window_hint(glfw::WindowHint::OpenGlProfile(
-        glfw::OpenGlProfileHint::Core,
-    ));
-
     let (mut window, events) = glfw
         .create_window(
-            WIN_WIDTH,
-            WIN_HEIGHT,
+            WIN_DIM_X,
+            WIN_DIM_Y,
             env!("CARGO_PKG_NAME"),
             glfw::WindowMode::Windowed,
         )
@@ -87,15 +85,16 @@ fn main() {
     window.set_cursor_mode(glfw::CursorMode::Disabled);
     window.make_current();
 
+    // TODO flexible window position
+    window.set_pos(
+        (SCREEN_DIM_X - WIN_DIM_X) as i32 / 2,
+        (SCREEN_DIM_Y - WIN_DIM_Y) as i32 / 2,
+    );
+
     // TODO check if current_vertex_attribs <= max_vertex_attribs before initializing each vertex attributes
     let mut max_vertex_attribs = 0;
     unsafe {
         gl::GetIntegerv(gl::MAX_VERTEX_ATTRIBS, &mut max_vertex_attribs);
-    }
-
-    // opengl settings
-    unsafe {
-        gl::Enable(gl::DEPTH_TEST);
     }
 
     // vertex data (pos 3, normal 3, texcoord 2)
@@ -263,15 +262,16 @@ fn main() {
         gl::EnableVertexAttribArray(0);
     }
 
+    gl_set_clear_color(vec4(0.082, 0.082, 0.125, 1.0));
+
     unsafe {
-        gl::ClearColor(0.3, 0.3, 0.5, 1.0);
         gl::Enable(gl::BLEND);
         gl::BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
     }
 
     // UI
     ui_program.use_program();
-    let ui_projection = ortho(0.0, WIN_WIDTH as f32, 0.0, WIN_HEIGHT as f32, -1.0, 1.0);
+    let ui_projection = ortho(0.0, WIN_DIM_X as f32, 0.0, WIN_DIM_Y as f32, -1.0, 1.0);
     ui_program.set_uniform_mat4("projection", &ui_projection);
 
     // Font
@@ -370,8 +370,8 @@ fn main() {
     const KEY_AMOUNT: usize = glfw::ffi::KEY_LAST as usize;
     let mut key_states = [false; KEY_AMOUNT];
 
-    let mut mouse_last_x = WIN_WIDTH as f64 / 2.0;
-    let mut mouse_last_y = WIN_HEIGHT as f64 / 2.0;
+    let mut mouse_last_x = WIN_DIM_X as f64 / 2.0;
+    let mut mouse_last_y = WIN_DIM_Y as f64 / 2.0;
     let mut mouse_pos_x = 0.0;
     let mut mouse_pos_y = 0.0;
 
@@ -388,6 +388,7 @@ fn main() {
         // SECTION phong render
 
         unsafe {
+            gl::Enable(gl::DEPTH_TEST);
             gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
         }
 
@@ -399,7 +400,7 @@ fn main() {
         material.specular.bind(1);
 
         // TODO Translate - Rotate - Scale matrix manipulations queue to respect order
-        let projection = perspective(cgmath::Deg(camera.fov_y), WIN_ASPECT_RATIO, 0.1, 100.0);
+        let projection = perspective(cgmath::Deg(camera.fov_y), WIN_RATIO_X, 0.1, 100.0);
         let view = Matrix4::look_at_rh(camera.pos, camera.pos + camera.front, camera.up);
 
         // update local uniform values
@@ -504,6 +505,10 @@ fn main() {
 
         // SECTION text render
 
+        unsafe {
+            gl::Disable(gl::DEPTH_TEST);
+        }
+
         let color = vec3(0.8, 0.8, 0.67);
         let scale = 1.0;
 
@@ -514,7 +519,7 @@ fn main() {
             scale,
             &color,
             &ui_program,
-            &ascii.chars,
+            &ascii,
             &ui_vao,
             &ui_vbo,
         );
@@ -526,7 +531,7 @@ fn main() {
             scale,
             &color,
             &ui_program,
-            &ascii.chars,
+            &ascii,
             &ui_vao,
             &ui_vbo,
         );
@@ -572,32 +577,32 @@ fn main() {
         // SECTION keyboard input
 
         // W move forward
-        if key_states[Key::W as usize] {
+        if key_states[glfw::Key::W as usize] {
             camera.pos += camera.front * camera.speed;
         }
         // S move backward
-        if key_states[Key::S as usize] {
+        if key_states[glfw::Key::S as usize] {
             camera.pos -= camera.front * camera.speed;
         }
         // A move left
-        if key_states[Key::A as usize] {
+        if key_states[glfw::Key::A as usize] {
             camera.pos -= camera.right * camera.speed;
         }
         // D move right
-        if key_states[Key::D as usize] {
+        if key_states[glfw::Key::D as usize] {
             camera.pos += camera.right * camera.speed;
         }
         // SPACE move up
-        if key_states[Key::Space as usize] {
+        if key_states[glfw::Key::Space as usize] {
             camera.pos += camera.up * camera.speed;
         }
         // LEFT CTRL move down
-        if key_states[Key::LeftControl as usize] {
+        if key_states[glfw::Key::LeftControl as usize] {
             camera.pos -= camera.up * camera.speed;
         }
 
         // P cycle through polygon modes
-        if key_states[Key::P as usize] {
+        if key_states[glfw::Key::P as usize] {
             let mut polygon_mode = [0];
             unsafe {
                 gl::GetIntegerv(gl::POLYGON_MODE, polygon_mode.as_mut_ptr());
@@ -614,7 +619,7 @@ fn main() {
             println!("Polygon mode: {}", polygon_mode);
         }
         // ESC close window
-        if key_states[Key::Escape as usize] {
+        if key_states[glfw::Key::Escape as usize] {
             window.set_should_close(true);
         }
 
@@ -669,7 +674,7 @@ fn render_text(
     scale: f32,
     color: &Vector3<f32>,
     program: &Program,
-    characters: &HashMap<char, Character>,
+    ascii: &Ascii,
     vao: &u32,
     vbo: &u32,
 ) {
@@ -684,7 +689,8 @@ fn render_text(
 
     // iterate through all characters
     for (_, c) in text.chars().enumerate() {
-        let character = characters
+        let character = ascii
+            .chars
             .get(&c)
             .expect(format!("Character {} not found", c).as_str());
 
@@ -739,5 +745,11 @@ fn render_text(
 
         // now advance cursors for next glyph (note that advance is number of 1/64 pixels)
         x += (character.advance >> 6) as f32 * scale; // bitshift by 6 to get value in pixels (2^6 = 64)
+    }
+}
+
+fn gl_set_clear_color(color: RGBA) {
+    unsafe {
+        gl::ClearColor(color.x, color.y, color.z, color.w);
     }
 }
