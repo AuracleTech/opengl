@@ -24,7 +24,7 @@ use crate::types::{
     SpotLight, Texture, Wrapping, RGBA,
 };
 
-const WIN_DIM_X: u32 = 1200;
+const WIN_DIM_X: u32 = 1600;
 const WIN_DIM_Y: u32 = 900;
 const WIN_RATIO_X: f32 = WIN_DIM_X as f32 / WIN_DIM_Y as f32;
 

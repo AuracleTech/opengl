@@ -18,9 +18,12 @@
 - [x] Specular Lighting
 - [x] Phong Lighting
 - [x] Multiple Lights
+- [ ] Library standalone
 - [ ] Loading Mesh
 - [ ] Loading Model
 - [ ] Setup world environment playground
+- [ ] Client Server Architecture
+- [ ] Multiplayer
 - [ ] Depth Testing
 - [ ] Stencil Testing
 - [ ] Blending
