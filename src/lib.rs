@@ -12,6 +12,7 @@ use gl::types::*;
 use glfw::{Context, Glfw, Window, WindowEvent};
 use types::Fonts;
 
+mod asset;
 mod character;
 mod font;
 #[allow(dead_code)]
@@ -24,8 +25,8 @@ mod texture;
 pub mod types; // TODO SET PRIVATE
 
 use crate::types::{
-    Camera, DirLight, Filtering, Font, ImageKind, Material, PointLight, Position, Program, Shader,
-    SpotLight, Texture, Wrapping, RGBA,
+    AssetManager, Camera, DirLight, Filtering, Font, ImageKind, Material, PointLight, Position,
+    Program, Shader, SpotLight, Texture, Wrapping, RGBA,
 };
 
 pub struct Revenant {
@@ -34,6 +35,7 @@ pub struct Revenant {
     pub events: Receiver<(f64, WindowEvent)>,
     pub camera: Camera,
     pub fonts: Fonts,
+    pub asset_manager: AssetManager,
 }
 
 impl Revenant {
@@ -85,6 +87,7 @@ impl Revenant {
             events,
             camera,
             fonts: HashMap::new(),
+            asset_manager: AssetManager::new(),
         }
     }
 

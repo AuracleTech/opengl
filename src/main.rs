@@ -24,6 +24,7 @@ const SCREEN_DIM_Y: u32 = 1080;
 
 fn main() {
     let mut revenant = Revenant::new(WIN_DIM_X, WIN_DIM_Y);
+    let mut asset_manager = revenant.asset_manager;
 
     // Print OpenGL version
     let version = revenant.window.get_context_version();
@@ -31,7 +32,8 @@ fn main() {
 
     // Set window icon
     let icon_path = format!("{}/assets/images/icon.png", env!("CARGO_MANIFEST_DIR"));
-    let icon_image = image::open(icon_path).expect("Could not open icon image");
+    let icon_asset = asset_manager.new_image_asset(&icon_path);
+    let icon_image = icon_asset.image;
     let icon_pixels: Vec<u32> = icon_image
         .to_rgba8()
         .into_raw()

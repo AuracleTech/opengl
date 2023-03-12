@@ -19,7 +19,7 @@
 - [x] Phong Lighting
 - [x] Multiple Lights
 - [x] Library standalone
-- [ ] Asset Manager
+- [x] Asset Manager
 - [ ] Loading Mesh
 - [ ] Loading Model
 - [ ] Setup world environment playground
@@ -56,4 +56,5 @@
 - [ ] Profiling
 - [ ] Dead code elimination
 - [ ] Performance monitoring
+- [ ] Asset allocator
 - [ ] Optimizations

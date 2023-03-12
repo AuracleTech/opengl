@@ -14,6 +14,7 @@ impl Texture {
         mipmapping: bool,
     ) -> Self {
         let path_copy = path.clone();
+
         let image = image::open(path).unwrap().flipv();
         if image.width() > i32::MAX as u32 {
             panic!(

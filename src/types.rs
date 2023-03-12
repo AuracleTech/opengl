@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use cgmath::{Point3, Vector2, Vector3, Vector4};
 use gl::types::{GLsizei, GLuint};
+use image::DynamicImage;
 
 pub type Uniaxial = f32;
 
@@ -179,4 +180,26 @@ pub struct Shader {
 
 pub struct Program {
     pub id: GLuint,
+}
+
+#[derive(Debug)]
+pub struct Asset {
+    pub name: Name,
+    pub path: String,
+}
+
+#[derive(Debug)]
+pub struct AssetImage2D {
+    pub asset: Asset,
+    pub image: DynamicImage,
+}
+
+pub struct AssetTextFile {
+    pub asset: Asset,
+    pub text: String,
+}
+
+pub struct AssetManager {
+    pub image_assets: Vec<AssetImage2D>,
+    pub text_assets: Vec<AssetTextFile>,
 }
