@@ -23,6 +23,8 @@ pub type Indices = Vec<Indice>;
 pub type RGB = Vector3<f32>;
 pub type RGBA = Vector4<f32>;
 
+pub type Name = String;
+
 pub struct Texture {
     pub id: GLuint,
     pub kind: ImageKind,
@@ -129,11 +131,11 @@ pub struct Character {
     pub advance: i64,
 }
 
-pub struct Ascii {
-    pub name: String,
+pub struct Font {
     pub size: u32,
     pub chars: HashMap<char, Character>,
 }
+pub type Fonts = HashMap<Name, Font>;
 
 pub struct DirLight {
     pub dir: Direction,

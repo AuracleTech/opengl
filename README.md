@@ -18,7 +18,7 @@
 - [x] Specular Lighting
 - [x] Phong Lighting
 - [x] Multiple Lights
-- [ ] Library standalone
+- [x] Library standalone
 - [ ] Loading Mesh
 - [ ] Loading Model
 - [ ] Setup world environment playground
@@ -29,6 +29,7 @@
 - [ ] Blending
 - [ ] Face Culling
 - [ ] Framebuffers
+- [ ] Audio
 - [ ] Cubemaps
 - [ ] Advanced Data
 - [ ] Advanced GLSL

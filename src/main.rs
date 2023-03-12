@@ -1,27 +1,17 @@
-extern crate cgmath;
-extern crate freetype;
-extern crate gl;
 extern crate glfw;
-
-use cgmath::{ortho, perspective, vec3, vec4, Angle, Deg, Matrix4, SquareMatrix, Vector3};
-use cgmath::{point3, prelude::*};
-use gl::types::*;
+use cgmath::{
+    ortho, perspective, point3, vec3, vec4, Angle, Deg, EuclideanSpace, InnerSpace, Matrix4,
+    SquareMatrix, Vector3,
+};
+use gl::types::{GLenum, GLfloat, GLsizei, GLsizeiptr, GLvoid};
 use glfw::Context;
-
-mod ascii;
-mod character;
-#[allow(dead_code)]
-mod mesh;
-#[allow(dead_code)]
-mod program;
-mod shader;
-mod texture;
-#[allow(dead_code)]
-mod types;
-
-use crate::types::{
-    Ascii, Camera, DirLight, Filtering, ImageKind, Material, PointLight, Position, Program, Shader,
-    SpotLight, Texture, Wrapping, RGBA,
+use revenant::{
+    self,
+    types::{
+        DirLight, Filtering, Font, ImageKind, Material, PointLight, Position, Program, Shader,
+        SpotLight, Texture, Wrapping,
+    },
+    Revenant,
 };
 
 const WIN_DIM_X: u32 = 1600;
@@ -31,26 +21,13 @@ const WIN_RATIO_X: f32 = WIN_DIM_X as f32 / WIN_DIM_Y as f32;
 // TODO flexible window aspect ratio
 const SCREEN_DIM_X: u32 = 1920;
 const SCREEN_DIM_Y: u32 = 1080;
-#[allow(dead_code)]
-const SCREEN_RATIO_X: f32 = SCREEN_DIM_X as f32 / WIN_DIM_X as f32;
 
 fn main() {
-    let mut glfw = glfw::init(glfw::FAIL_ON_ERRORS).expect("Failed to initialize GLFW.");
-
-    let (mut window, events) = glfw
-        .create_window(
-            WIN_DIM_X,
-            WIN_DIM_Y,
-            env!("CARGO_PKG_NAME"),
-            glfw::WindowMode::Windowed,
-        )
-        .expect("Failed to create GLFW window.");
+    let mut revenant = Revenant::new(WIN_DIM_X, WIN_DIM_Y);
 
     // Print OpenGL version
-    let version = window.get_context_version();
+    let version = revenant.window.get_context_version();
     println!("OpenGL version: {}.{}", version.major, version.minor);
-
-    gl::load_with(|symbol| window.get_proc_address(symbol) as *const _);
 
     // Set window icon
     let icon_path = format!("{}/assets/images/icon.png", env!("CARGO_MANIFEST_DIR"));
@@ -74,28 +51,17 @@ fn main() {
         height: icon_image.height(),
         pixels: icon_pixels,
     });
-    window.set_icon_from_pixels(icons);
+    revenant.window.set_icon_from_pixels(icons);
 
-    // window parameters
-    window.set_framebuffer_size_polling(true);
-    window.set_key_polling(true);
-    window.set_scroll_polling(true);
-    window.set_cursor_pos_polling(true);
-    glfw.set_swap_interval(glfw::SwapInterval::Sync(0));
-    window.set_cursor_mode(glfw::CursorMode::Disabled);
-    window.make_current();
+    // Unlock framerate
+    revenant.glfw.set_swap_interval(glfw::SwapInterval::Sync(0));
+    // revenant.window.set_swap_interval(glfw::SwapInterval::None);
 
-    // TODO flexible window position
-    window.set_pos(
+    // Center window
+    revenant.window.set_pos(
         (SCREEN_DIM_X - WIN_DIM_X) as i32 / 2,
         (SCREEN_DIM_Y - WIN_DIM_Y) as i32 / 2,
     );
-
-    // TODO check if current_vertex_attribs <= max_vertex_attribs before initializing each vertex attributes
-    let mut max_vertex_attribs = 0;
-    unsafe {
-        gl::GetIntegerv(gl::MAX_VERTEX_ATTRIBS, &mut max_vertex_attribs);
-    }
 
     // vertex data (pos 3, normal 3, texcoord 2)
     const VERTEX_DATA: [GLfloat; 288] = [
@@ -209,21 +175,6 @@ fn main() {
         gl::BindVertexArray(0);
     }
 
-    let mut camera = Camera {
-        pos: point3(0.0, 0.0, 3.0),
-        front: vec3(0.0, 0.0, -1.0),
-        up: vec3(0.0, 1.0, 0.0),
-        right: vec3(0.0, 0.0, 0.0),
-        speed_factor: 2.0,
-        fov_y: 45.0,
-        fov_y_min: 1.0,
-        fov_y_max: 90.0,
-        speed: 0.0,
-        yaw: -90.0,
-        pitch: 0.0,
-        aim_sensitivity: 0.03,
-    };
-
     // shaders
     let vs = Shader::new(include_str!("shaders/phong.vs"), gl::VERTEX_SHADER);
     let fs = Shader::new(include_str!("shaders/phong.fs"), gl::FRAGMENT_SHADER);
@@ -262,7 +213,7 @@ fn main() {
         gl::EnableVertexAttribArray(0);
     }
 
-    gl_set_clear_color(vec4(0.082, 0.082, 0.125, 1.0));
+    Revenant::set_clear_color(vec4(0.082, 0.082, 0.125, 1.0));
 
     unsafe {
         gl::Enable(gl::BLEND);
@@ -275,13 +226,13 @@ fn main() {
     ui_program.set_uniform_mat4("projection", &ui_projection);
 
     // Font
-    let font_folder = format!("{}/assets/fonts/", env!("CARGO_MANIFEST_DIR"));
-    let font_name = "comfortaa.ttf".to_string();
-    let font_size = 24;
-    let ascii = Ascii::new(font_folder, font_name, font_size);
+    let font_name = "comfortaa";
+    let font = Revenant::create_font(font_name, 24);
+    revenant.fonts.insert(font_name.to_owned(), font);
+    let font = revenant.fonts.get(font_name).expect("Font not found");
 
     // calculate fps declarations
-    let mut last_time = glfw.get_time();
+    let mut last_time = revenant.glfw.get_time();
     let mut frames_rendered = 0;
 
     // last frame time and delta time
@@ -377,8 +328,8 @@ fn main() {
 
     let mut mouse_scroll_y = 0.0;
 
-    while !window.should_close() {
-        let frame_start_time = glfw.get_time() as f32;
+    while !revenant.window.should_close() {
+        let frame_start_time = revenant.glfw.get_time() as f32;
         let delta_time = frame_start_time - last_frame;
         last_frame = frame_start_time;
 
@@ -392,7 +343,7 @@ fn main() {
             gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
         }
 
-        camera.speed = camera.speed_factor * delta_time;
+        revenant.camera.speed = revenant.camera.speed_factor * delta_time;
 
         phong_program.use_program();
 
@@ -400,14 +351,18 @@ fn main() {
         material.specular.bind(1);
 
         // TODO Translate - Rotate - Scale matrix manipulations queue to respect order
-        let projection = perspective(cgmath::Deg(camera.fov_y), WIN_RATIO_X, 0.1, 100.0);
-        let view = Matrix4::look_at_rh(camera.pos, camera.pos + camera.front, camera.up);
+        let projection = perspective(cgmath::Deg(revenant.camera.fov_y), WIN_RATIO_X, 0.1, 100.0);
+        let view = Matrix4::look_at_rh(
+            revenant.camera.pos,
+            revenant.camera.pos + revenant.camera.front,
+            revenant.camera.up,
+        );
 
         // update local uniform values
         phong_program.set_uniform_mat4("view", &view);
         phong_program.set_uniform_mat4("projection", &projection);
 
-        phong_program.set_uniform_point3("camera_pos", camera.pos);
+        phong_program.set_uniform_point3("camera_pos", revenant.camera.pos);
 
         phong_program.set_uniform_int("material.diffuse", 0);
         phong_program.set_uniform_int("material.specular", 1);
@@ -519,7 +474,7 @@ fn main() {
             scale,
             &color,
             &ui_program,
-            &ascii,
+            font,
             &ui_vao,
             &ui_vbo,
         );
@@ -531,13 +486,13 @@ fn main() {
             scale,
             &color,
             &ui_program,
-            &ascii,
+            font,
             &ui_vao,
             &ui_vbo,
         );
 
         frames_rendered += 1;
-        let current_time = glfw.get_time();
+        let current_time = revenant.glfw.get_time();
         if current_time - last_time >= 1.0 {
             current_fps = frames_rendered as f64;
             ms_per_frame = 1000.0 / frames_rendered as f64;
@@ -548,10 +503,10 @@ fn main() {
 
         // SECTION swap buffers & poll events
 
-        window.swap_buffers();
-        glfw.poll_events();
+        revenant.window.swap_buffers();
+        revenant.glfw.poll_events();
 
-        for (_, event) in glfw::flush_messages(&events) {
+        for (_, event) in glfw::flush_messages(&revenant.events) {
             match event {
                 glfw::WindowEvent::CursorPos(x, y) => {
                     mouse_updated = true;
@@ -578,27 +533,27 @@ fn main() {
 
         // W move forward
         if key_states[glfw::Key::W as usize] {
-            camera.pos += camera.front * camera.speed;
+            revenant.camera.pos += revenant.camera.front * revenant.camera.speed;
         }
         // S move backward
         if key_states[glfw::Key::S as usize] {
-            camera.pos -= camera.front * camera.speed;
+            revenant.camera.pos -= revenant.camera.front * revenant.camera.speed;
         }
         // A move left
         if key_states[glfw::Key::A as usize] {
-            camera.pos -= camera.right * camera.speed;
+            revenant.camera.pos -= revenant.camera.right * revenant.camera.speed;
         }
         // D move right
         if key_states[glfw::Key::D as usize] {
-            camera.pos += camera.right * camera.speed;
+            revenant.camera.pos += revenant.camera.right * revenant.camera.speed;
         }
         // SPACE move up
         if key_states[glfw::Key::Space as usize] {
-            camera.pos += camera.up * camera.speed;
+            revenant.camera.pos += revenant.camera.up * revenant.camera.speed;
         }
         // LEFT CTRL move down
         if key_states[glfw::Key::LeftControl as usize] {
-            camera.pos -= camera.up * camera.speed;
+            revenant.camera.pos -= revenant.camera.up * revenant.camera.speed;
         }
 
         // P cycle through polygon modes
@@ -620,7 +575,7 @@ fn main() {
         }
         // ESC close window
         if key_states[glfw::Key::Escape as usize] {
-            window.set_should_close(true);
+            revenant.window.set_should_close(true);
         }
 
         // SECTION mouse input
@@ -630,24 +585,28 @@ fn main() {
             let x_offset = mouse_pos_x - mouse_last_x;
             let y_offset = mouse_last_y - mouse_pos_y;
 
-            camera.yaw += x_offset as f32 * camera.aim_sensitivity;
-            camera.pitch += y_offset as f32 * camera.aim_sensitivity;
+            revenant.camera.yaw += x_offset as f32 * revenant.camera.aim_sensitivity;
+            revenant.camera.pitch += y_offset as f32 * revenant.camera.aim_sensitivity;
 
-            camera.pitch = camera.pitch.clamp(-89.9, 89.9);
-            camera.yaw = camera.yaw.rem_euclid(360.0);
+            revenant.camera.pitch = revenant.camera.pitch.clamp(-89.9, 89.9);
+            revenant.camera.yaw = revenant.camera.yaw.rem_euclid(360.0);
 
-            camera.front = vec3(
-                camera.pitch.to_radians().cos() * camera.yaw.to_radians().cos(),
-                camera.pitch.to_radians().sin(),
-                camera.pitch.to_radians().cos() * camera.yaw.to_radians().sin(),
+            revenant.camera.front = vec3(
+                revenant.camera.pitch.to_radians().cos() * revenant.camera.yaw.to_radians().cos(),
+                revenant.camera.pitch.to_radians().sin(),
+                revenant.camera.pitch.to_radians().cos() * revenant.camera.yaw.to_radians().sin(),
             )
             .normalize();
-            camera.right = camera.front.cross(camera.up);
+            revenant.camera.right = revenant.camera.front.cross(revenant.camera.up);
 
             // scroll
             if mouse_scroll_updated {
-                camera.fov_y -= mouse_scroll_y as f32;
-                camera.fov_y = camera.fov_y.max(camera.fov_y_min).min(camera.fov_y_max);
+                revenant.camera.fov_y -= mouse_scroll_y as f32;
+                revenant.camera.fov_y = revenant
+                    .camera
+                    .fov_y
+                    .max(revenant.camera.fov_y_min)
+                    .min(revenant.camera.fov_y_max);
             }
         }
     }
@@ -674,7 +633,7 @@ fn render_text(
     scale: f32,
     color: &Vector3<f32>,
     program: &Program,
-    ascii: &Ascii,
+    font: &Font,
     vao: &u32,
     vbo: &u32,
 ) {
@@ -689,7 +648,7 @@ fn render_text(
 
     // iterate through all characters
     for (_, c) in text.chars().enumerate() {
-        let character = ascii
+        let character = font
             .chars
             .get(&c)
             .expect(format!("Character {} not found", c).as_str());
@@ -745,11 +704,5 @@ fn render_text(
 
         // now advance cursors for next glyph (note that advance is number of 1/64 pixels)
         x += (character.advance >> 6) as f32 * scale; // bitshift by 6 to get value in pixels (2^6 = 64)
-    }
-}
-
-fn gl_set_clear_color(color: RGBA) {
-    unsafe {
-        gl::ClearColor(color.x, color.y, color.z, color.w);
     }
 }
