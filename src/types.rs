@@ -1,4 +1,4 @@
-use std::{collections::HashMap, sync::mpsc::Receiver};
+use std::{collections::HashMap, path::PathBuf, sync::mpsc::Receiver};
 
 use cgmath::{Point3, Vector2, Vector3, Vector4};
 use gl::types::{GLsizei, GLuint};
@@ -13,8 +13,6 @@ pub type TexCoord = f32;
 pub type Indice = u32;
 pub type RGB = Vector3<f32>;
 pub type RGBA = Vector4<f32>;
-pub type Name = String;
-pub type Path = String;
 
 pub struct Revenant {
     pub glfw: Glfw,
@@ -160,25 +158,19 @@ pub struct Program {
 }
 
 #[derive(Debug)]
-pub struct Asset {
-    pub name: Name,
-    pub path: Path,
-}
-
-#[derive(Debug)]
 pub struct AssetImage2D {
-    pub asset: Asset,
+    pub filename: String,
     pub image: DynamicImage,
 }
 
 pub struct AssetFont {
-    pub asset: Asset,
+    pub filename: String,
     pub size: u32,
     pub chars: HashMap<char, Character>,
 }
 
 pub struct AssetTexture {
-    pub asset: Asset,
+    pub filename: String,
     pub id: GLuint,
     pub kind: ImageKind,
     pub format: ImageFormat,
@@ -191,7 +183,11 @@ pub struct AssetTexture {
 }
 
 pub struct AssetManager {
-    pub image_assets: HashMap<Path, AssetImage2D>,
-    pub font_assets: HashMap<Path, AssetFont>,
-    pub texture_assets: HashMap<Path, AssetTexture>,
+    pub image_assets: HashMap<String, AssetImage2D>,
+    pub image_assets_path: PathBuf,
+    pub font_assets: HashMap<String, AssetFont>,
+    pub font_assets_path: PathBuf,
+    pub texture_assets: HashMap<String, AssetTexture>,
+    pub texture_assets_path: PathBuf,
+    pub assets_path: PathBuf,
 }

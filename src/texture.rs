@@ -1,4 +1,4 @@
-use crate::types::{Asset, AssetTexture, Filtering, ImageFormat, ImageKind, TextureSize, Wrapping};
+use crate::types::{AssetTexture, Filtering, ImageFormat, ImageKind, TextureSize, Wrapping};
 use freetype::Bitmap;
 use gl::types::{GLenum, GLint, GLvoid};
 
@@ -23,14 +23,9 @@ impl AssetTexture {
 
         let mipmapping = false;
 
-        // TODO bitmap is not an asset
-        let asset = Asset {
-            name: "".to_string(),
-            path: "".to_string(),
-        };
-
         AssetTexture::create_texture(
-            asset,
+            // TODO no filename for bitmaps
+            "",
             data,
             kind,
             size,
@@ -59,7 +54,7 @@ impl AssetTexture {
     }
 
     pub fn create_texture(
-        asset: Asset,
+        filename: &str,
         data: Vec<u8>,
         kind: ImageKind,
         size: TextureSize,
@@ -132,7 +127,7 @@ impl AssetTexture {
         }
 
         Self {
-            asset,
+            filename: filename.to_string(),
             id,
             kind,
             format,

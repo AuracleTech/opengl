@@ -2,45 +2,57 @@ use freetype::Library;
 use image::DynamicImage;
 
 use crate::types::{
-    Asset, AssetFont, AssetImage2D, AssetManager, AssetTexture, Character, Filtering, ImageFormat,
-    ImageKind, Name, Path, TextureSize, Wrapping,
+    AssetFont, AssetImage2D, AssetManager, AssetTexture, Character, Filtering, ImageFormat,
+    ImageKind, TextureSize, Wrapping,
 };
-use std::collections::HashMap;
+use std::{collections::HashMap, path::PathBuf};
 
 impl AssetManager {
-    pub fn new() -> Self {
+    pub fn new(assets_path: PathBuf) -> Self {
         Self {
             image_assets: HashMap::new(),
+            image_assets_path: assets_path.join("images"),
             font_assets: HashMap::new(),
+            font_assets_path: assets_path.join("fonts"),
             texture_assets: HashMap::new(),
+            texture_assets_path: assets_path.join("textures"),
+            assets_path,
         }
     }
 
     // Image
 
-    pub fn new_image_asset(&mut self, path: &Path) -> AssetImage2D {
-        let (name, ext) = parse_path(path);
+    pub fn new_image_asset(&mut self, filename: &str) -> AssetImage2D {
+        let path = self.image_assets_path.join(filename);
+        let ext = path
+            .extension()
+            .expect("Failed to get file extension.")
+            .to_str()
+            .expect("Failed to convert file extension to str.");
 
-        let image = match ext.as_str() {
+        let image = match ext {
             "jpg" | "png" => image::open(path).expect("Failed to load image."),
             _ => panic!("Unsupported asset type"),
         };
 
-        let asset = Asset {
-            name: name.to_string(),
-            path: path.to_string(),
-        };
-
-        AssetImage2D { asset, image }
+        AssetImage2D {
+            filename: filename.to_string(),
+            image,
+        }
     }
 
     // Font
 
-    pub fn new_font_asset(&mut self, path: &Path, size: u32) -> AssetFont {
-        let (name, ext) = parse_path(path);
+    pub fn new_font_asset(&mut self, filename: &str, size: u32) -> AssetFont {
+        let path = self.font_assets_path.join(filename);
+        let ext = path
+            .extension()
+            .expect("Failed to get file extension.")
+            .to_str()
+            .expect("Failed to convert file extension to str.");
 
         let library = Library::init().expect("Could not init freetype library");
-        let face = match ext.as_str() {
+        let face = match ext {
             "ttf" => library.new_face(path, 0).expect("Could not open font"),
             _ => panic!("Unsupported asset type"),
         };
@@ -55,19 +67,18 @@ impl AssetManager {
             chars.insert(c as u8 as char, Character::from_face(&face, c));
         }
 
-        let asset = Asset {
-            name: name.to_string(),
-            path: path.to_string(),
-        };
-
-        AssetFont { asset, size, chars }
+        AssetFont {
+            filename: filename.to_string(),
+            size,
+            chars,
+        }
     }
 
     // Texture
 
     pub fn new_texture_asset(
         &mut self,
-        path: &Path,
+        filename: &str,
         kind: ImageKind,
         s_wrapping: Wrapping,
         t_wrapping: Wrapping,
@@ -75,18 +86,29 @@ impl AssetManager {
         mag_filtering: Filtering,
         mipmapping: bool,
     ) -> AssetTexture {
-        let (name, ext) = parse_path(path);
+        let path = self.texture_assets_path.join(filename);
+        let ext = path
+            .extension()
+            .expect("Failed to get file extension.")
+            .to_str()
+            .expect("Failed to convert file extension to str.");
 
-        let image = match ext.as_str() {
+        let image = match ext {
             "jpg" | "png" => image::open(path).expect("Failed to load image.").flipv(),
             _ => panic!("Unsupported asset type"),
         };
 
         if image.width() > i32::MAX as u32 {
-            panic!("Texture '{}' width too large dataloss not tolerated.", path);
+            panic!(
+                "Texture '{}' width too large dataloss not tolerated.",
+                filename
+            );
         }
         if image.height() > i32::MAX as u32 {
-            panic!("Texture '{}' height too tall dataloss not tolerated.", path);
+            panic!(
+                "Texture '{}' height too tall dataloss not tolerated.",
+                filename
+            );
         }
 
         let size = TextureSize::TwoD {
@@ -105,13 +127,8 @@ impl AssetManager {
             _ => panic!("Image format not supported"),
         };
 
-        let asset = Asset {
-            name: name.to_string(),
-            path: path.to_string(),
-        };
-
         AssetTexture::create_texture(
-            asset,
+            filename,
             data,
             kind,
             size,
@@ -123,11 +140,4 @@ impl AssetManager {
             mipmapping,
         )
     }
-}
-
-fn parse_path(path: &str) -> (Name, Path) {
-    let ext = path.split('.').last().expect("No file extension.");
-    let name = path.split('.').next().expect("No file name.");
-
-    (name.to_owned(), ext.to_owned())
 }

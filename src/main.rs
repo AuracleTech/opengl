@@ -31,8 +31,8 @@ fn main() {
     println!("OpenGL version: {}.{}", version.major, version.minor);
 
     // Set window icon
-    let icon_path = format!("{}/assets/images/icon.png", env!("CARGO_MANIFEST_DIR"));
-    let icon_asset = asset_manager.new_image_asset(&icon_path);
+    let icon_filename = "icon.png";
+    let icon_asset = asset_manager.new_image_asset(&icon_filename);
     let icon_image = icon_asset.image;
     let icon_pixels: Vec<u32> = icon_image
         .to_rgba8()
@@ -228,20 +228,20 @@ fn main() {
     ui_program.set_uniform_mat4("projection", &ui_projection);
 
     // font Comfortaa
-    let comfortaa_path = format!("{}/assets/fonts/comfortaa.ttf", env!("CARGO_MANIFEST_DIR"));
+    let comfortaa_filename = "comfortaa.ttf";
     let comfortaa_size = 32;
-    let comfortaa = asset_manager.new_font_asset(&comfortaa_path, comfortaa_size);
+    let comfortaa = asset_manager.new_font_asset(&comfortaa_filename, comfortaa_size);
     asset_manager
         .font_assets
-        .insert(comfortaa_path.to_owned(), comfortaa);
+        .insert(comfortaa_filename.to_owned(), comfortaa);
 
     // font Teko
-    let teko_path = format!("{}/assets/fonts/teko.ttf", env!("CARGO_MANIFEST_DIR"));
+    let teko_filename = "teko.ttf";
     let teko_size = 22;
-    let teko_regular = asset_manager.new_font_asset(&teko_path, teko_size);
+    let teko_regular = asset_manager.new_font_asset(teko_filename, teko_size);
     asset_manager
         .font_assets
-        .insert(teko_path.to_owned(), teko_regular);
+        .insert(teko_filename.to_owned(), teko_regular);
 
     // calculate fps declarations
     let mut last_time = revenant.glfw.get_time();
@@ -252,9 +252,9 @@ fn main() {
     let mut current_fps = 0.0;
     let mut ms_per_frame = 1000.0;
 
-    let texture_path = format!("{}{}", env!("CARGO_MANIFEST_DIR"), "/assets/textures/");
+    let diffuse_filename = "crate_diffuse.jpg";
     let diffuse = asset_manager.new_texture_asset(
-        &format!("{}{}", texture_path, "crate_diffuse.jpg"),
+        diffuse_filename,
         ImageKind::Diffuse,
         Wrapping::Repeat,
         Wrapping::Repeat,
@@ -263,8 +263,9 @@ fn main() {
         true,
     );
 
+    let specular_filename = "crate_specular.jpg";
     let specular = asset_manager.new_texture_asset(
-        &format!("{}{}", texture_path, "crate_specular.jpg"),
+        specular_filename,
         ImageKind::Specular,
         Wrapping::Repeat,
         Wrapping::Repeat,
@@ -574,11 +575,11 @@ fn main() {
 
         let comfortaa = asset_manager
             .font_assets
-            .get(&comfortaa_path)
+            .get(comfortaa_filename)
             .expect("Font not found");
         let teko = asset_manager
             .font_assets
-            .get(&teko_path)
+            .get(teko_filename)
             .expect("Font not found");
 
         render_text(

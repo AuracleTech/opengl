@@ -6,7 +6,8 @@ extern crate glfw;
 use cgmath::point3;
 use cgmath::vec3;
 use glfw::Context;
-pub use types::Revenant;
+use std::env;
+use std::path::PathBuf;
 
 mod asset;
 mod character;
@@ -20,6 +21,7 @@ mod texture;
 pub mod types; // TODO SET PRIVATE
 
 use crate::types::{AssetManager, Camera, RGBA};
+pub use types::Revenant;
 
 impl Revenant {
     pub fn new(width: u32, height: u32) -> Self {
@@ -69,7 +71,7 @@ impl Revenant {
             window,
             events,
             camera,
-            asset_manager: AssetManager::new(),
+            asset_manager: AssetManager::new(get_assets_path()),
         }
     }
 
@@ -78,4 +80,19 @@ impl Revenant {
             gl::ClearColor(color.x, color.y, color.z, color.w);
         }
     }
+}
+
+#[cfg(not(debug_assertions))]
+fn get_assets_path() -> PathBuf {
+    let exe_path = env::current_exe().expect("Failed to get current exe path");
+    let mut assets_path = PathBuf::from(exe_path.parent().expect("Failed to get parent directory"));
+    assets_path.push("assets");
+    assets_path
+}
+
+#[cfg(debug_assertions)]
+fn get_assets_path() -> PathBuf {
+    let mut assets_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    assets_path.push("assets");
+    assets_path
 }
