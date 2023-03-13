@@ -8,8 +8,8 @@ use glfw::Context;
 use revenant::{
     self,
     types::{
-        AssetManager, DirLight, Filtering, ImageKind, Material, Path, PointLight, Position,
-        Program, Shader, SpotLight, Wrapping,
+        AssetFont, DirLight, Filtering, ImageKind, Material, PointLight, Position, Program, Shader,
+        SpotLight, Wrapping,
     },
     Revenant,
 };
@@ -229,7 +229,7 @@ fn main() {
 
     // font Comfortaa
     let comfortaa_path = format!("{}/assets/fonts/comfortaa.ttf", env!("CARGO_MANIFEST_DIR"));
-    let comfortaa_size = 24;
+    let comfortaa_size = 32;
     let comfortaa = asset_manager.new_font_asset(&comfortaa_path, comfortaa_size);
     asset_manager
         .font_assets
@@ -237,7 +237,7 @@ fn main() {
 
     // font Teko
     let teko_path = format!("{}/assets/fonts/teko.ttf", env!("CARGO_MANIFEST_DIR"));
-    let teko_size = 24;
+    let teko_size = 22;
     let teko_regular = asset_manager.new_font_asset(&teko_path, teko_size);
     asset_manager
         .font_assets
@@ -333,20 +333,113 @@ fn main() {
     const KEY_AMOUNT: usize = glfw::ffi::KEY_LAST as usize;
     let mut key_states = [false; KEY_AMOUNT];
 
-    let mut mouse_last_x = WIN_DIM_X as f64 / 2.0;
-    let mut mouse_last_y = WIN_DIM_Y as f64 / 2.0;
     let mut mouse_pos_x = 0.0;
     let mut mouse_pos_y = 0.0;
-
-    let mut mouse_scroll_y = 0.0;
 
     while !revenant.window.should_close() {
         let frame_start_time = revenant.glfw.get_time() as f32;
         let delta_time = frame_start_time - last_frame;
         last_frame = frame_start_time;
 
-        let mut mouse_updated = false;
-        let mut mouse_scroll_updated = false;
+        // SECTION poll events
+
+        revenant.glfw.poll_events();
+
+        for (_, event) in glfw::flush_messages(&revenant.events) {
+            match event {
+                glfw::WindowEvent::CursorPos(x, y) => {
+                    let mouse_last_x = mouse_pos_x;
+                    let mouse_last_y = mouse_pos_y;
+                    mouse_pos_x = x;
+                    mouse_pos_y = y;
+
+                    let x_offset = mouse_pos_x - mouse_last_x;
+                    let y_offset = mouse_last_y - mouse_pos_y;
+
+                    revenant.camera.yaw += x_offset as f32 * revenant.camera.aim_sensitivity;
+                    revenant.camera.pitch += y_offset as f32 * revenant.camera.aim_sensitivity;
+
+                    revenant.camera.pitch = revenant.camera.pitch.clamp(-89.9, 89.9);
+                    revenant.camera.yaw = revenant.camera.yaw.rem_euclid(360.0);
+
+                    revenant.camera.front = vec3(
+                        revenant.camera.pitch.to_radians().cos()
+                            * revenant.camera.yaw.to_radians().cos(),
+                        revenant.camera.pitch.to_radians().sin(),
+                        revenant.camera.pitch.to_radians().cos()
+                            * revenant.camera.yaw.to_radians().sin(),
+                    )
+                    .normalize();
+                    revenant.camera.right = revenant.camera.front.cross(revenant.camera.up);
+                }
+                glfw::WindowEvent::Key(key, _, action, _) => {
+                    key_states[key as usize] = action != glfw::Action::Release;
+                }
+                glfw::WindowEvent::Scroll(_x_offset, y_offset) => {
+                    let mouse_scroll_y = y_offset;
+
+                    revenant.camera.fov_y -= mouse_scroll_y as f32;
+                    revenant.camera.fov_y = revenant
+                        .camera
+                        .fov_y
+                        .max(revenant.camera.fov_y_min)
+                        .min(revenant.camera.fov_y_max);
+                }
+                glfw::WindowEvent::FramebufferSize(width, height) => unsafe {
+                    gl::Viewport(0, 0, width, height);
+                },
+                _ => {}
+            }
+        }
+
+        // SECTION keyboard input
+
+        // W move forward
+        if key_states[glfw::Key::W as usize] {
+            revenant.camera.pos += revenant.camera.front * revenant.camera.speed;
+        }
+        // S move backward
+        if key_states[glfw::Key::S as usize] {
+            revenant.camera.pos -= revenant.camera.front * revenant.camera.speed;
+        }
+        // A move left
+        if key_states[glfw::Key::A as usize] {
+            revenant.camera.pos -= revenant.camera.right * revenant.camera.speed;
+        }
+        // D move right
+        if key_states[glfw::Key::D as usize] {
+            revenant.camera.pos += revenant.camera.right * revenant.camera.speed;
+        }
+        // SPACE move up
+        if key_states[glfw::Key::Space as usize] {
+            revenant.camera.pos += revenant.camera.up * revenant.camera.speed;
+        }
+        // LEFT CTRL move down
+        if key_states[glfw::Key::LeftControl as usize] {
+            revenant.camera.pos -= revenant.camera.up * revenant.camera.speed;
+        }
+
+        // P cycle through polygon modes
+        if key_states[glfw::Key::P as usize] {
+            let mut polygon_mode = [0];
+            unsafe {
+                gl::GetIntegerv(gl::POLYGON_MODE, polygon_mode.as_mut_ptr());
+            }
+            let polygon_mode = match polygon_mode[0] as GLenum {
+                gl::FILL => gl::LINE,
+                gl::LINE => gl::POINT,
+                gl::POINT => gl::FILL,
+                _ => panic!("Unknown polygon mode"),
+            };
+            unsafe {
+                gl::PolygonMode(gl::FRONT_AND_BACK, polygon_mode);
+            }
+            println!("Polygon mode: {}", polygon_mode);
+        }
+        // ESC close window
+        if key_states[glfw::Key::Escape as usize] {
+            revenant.window.set_should_close(true);
+        }
 
         // SECTION phong render
 
@@ -479,28 +572,65 @@ fn main() {
         let color = vec3(0.8, 0.8, 0.67);
         let scale = 1.0;
 
+        let comfortaa = asset_manager
+            .font_assets
+            .get(&comfortaa_path)
+            .expect("Font not found");
+        let teko = asset_manager
+            .font_assets
+            .get(&teko_path)
+            .expect("Font not found");
+
         render_text(
-            &mut asset_manager,
             format!("{} FPS", current_fps),
             40.0,
             600.0,
             scale,
             &color,
             &ui_program,
-            &comfortaa_path,
+            &comfortaa,
             &ui_vao,
             &ui_vbo,
         );
 
         render_text(
-            &mut asset_manager,
             format!("{:0.4} MS/FRAME", ms_per_frame),
             40.0,
-            560.0,
+            570.0,
             scale,
             &color,
             &ui_program,
-            &teko_path,
+            &teko,
+            &ui_vao,
+            &ui_vbo,
+        );
+
+        render_text(
+            format!(
+                "Camera.pos x{:0.2} y{:0.2} z{:0.2}",
+                revenant.camera.pos.x, revenant.camera.pos.y, revenant.camera.pos.z
+            ),
+            20.0,
+            20.0,
+            scale,
+            &color,
+            &ui_program,
+            &teko,
+            &ui_vao,
+            &ui_vbo,
+        );
+
+        render_text(
+            format!(
+                "Camera.yaw {:0.2} Camera.pitch {:0.2}",
+                revenant.camera.yaw, revenant.camera.pitch
+            ),
+            20.0,
+            50.0,
+            scale,
+            &color,
+            &ui_program,
+            &teko,
             &ui_vao,
             &ui_vbo,
         );
@@ -515,114 +645,9 @@ fn main() {
             last_time = current_time;
         }
 
-        // SECTION swap buffers & poll events
+        // SECTION swap buffers
 
         revenant.window.swap_buffers();
-        revenant.glfw.poll_events();
-
-        for (_, event) in glfw::flush_messages(&revenant.events) {
-            match event {
-                glfw::WindowEvent::CursorPos(x, y) => {
-                    mouse_updated = true;
-                    mouse_last_x = mouse_pos_x;
-                    mouse_last_y = mouse_pos_y;
-                    mouse_pos_x = x;
-                    mouse_pos_y = y;
-                }
-                glfw::WindowEvent::Key(key, _, action, _) => {
-                    key_states[key as usize] = action != glfw::Action::Release;
-                }
-                glfw::WindowEvent::Scroll(_x_offset, y_offset) => {
-                    mouse_scroll_updated = true;
-                    mouse_scroll_y = y_offset;
-                }
-                glfw::WindowEvent::FramebufferSize(width, height) => unsafe {
-                    gl::Viewport(0, 0, width, height);
-                },
-                _ => {}
-            }
-        }
-
-        // SECTION keyboard input
-
-        // W move forward
-        if key_states[glfw::Key::W as usize] {
-            revenant.camera.pos += revenant.camera.front * revenant.camera.speed;
-        }
-        // S move backward
-        if key_states[glfw::Key::S as usize] {
-            revenant.camera.pos -= revenant.camera.front * revenant.camera.speed;
-        }
-        // A move left
-        if key_states[glfw::Key::A as usize] {
-            revenant.camera.pos -= revenant.camera.right * revenant.camera.speed;
-        }
-        // D move right
-        if key_states[glfw::Key::D as usize] {
-            revenant.camera.pos += revenant.camera.right * revenant.camera.speed;
-        }
-        // SPACE move up
-        if key_states[glfw::Key::Space as usize] {
-            revenant.camera.pos += revenant.camera.up * revenant.camera.speed;
-        }
-        // LEFT CTRL move down
-        if key_states[glfw::Key::LeftControl as usize] {
-            revenant.camera.pos -= revenant.camera.up * revenant.camera.speed;
-        }
-
-        // P cycle through polygon modes
-        if key_states[glfw::Key::P as usize] {
-            let mut polygon_mode = [0];
-            unsafe {
-                gl::GetIntegerv(gl::POLYGON_MODE, polygon_mode.as_mut_ptr());
-            }
-            let polygon_mode = match polygon_mode[0] as GLenum {
-                gl::FILL => gl::LINE,
-                gl::LINE => gl::POINT,
-                gl::POINT => gl::FILL,
-                _ => panic!("Unknown polygon mode"),
-            };
-            unsafe {
-                gl::PolygonMode(gl::FRONT_AND_BACK, polygon_mode);
-            }
-            println!("Polygon mode: {}", polygon_mode);
-        }
-        // ESC close window
-        if key_states[glfw::Key::Escape as usize] {
-            revenant.window.set_should_close(true);
-        }
-
-        // SECTION mouse input
-
-        // camera aim
-        if mouse_updated {
-            let x_offset = mouse_pos_x - mouse_last_x;
-            let y_offset = mouse_last_y - mouse_pos_y;
-
-            revenant.camera.yaw += x_offset as f32 * revenant.camera.aim_sensitivity;
-            revenant.camera.pitch += y_offset as f32 * revenant.camera.aim_sensitivity;
-
-            revenant.camera.pitch = revenant.camera.pitch.clamp(-89.9, 89.9);
-            revenant.camera.yaw = revenant.camera.yaw.rem_euclid(360.0);
-
-            revenant.camera.front = vec3(
-                revenant.camera.pitch.to_radians().cos() * revenant.camera.yaw.to_radians().cos(),
-                revenant.camera.pitch.to_radians().sin(),
-                revenant.camera.pitch.to_radians().cos() * revenant.camera.yaw.to_radians().sin(),
-            )
-            .normalize();
-            revenant.camera.right = revenant.camera.front.cross(revenant.camera.up);
-
-            // scroll
-            if mouse_scroll_updated {
-                revenant.camera.fov_y -= mouse_scroll_y as f32;
-                revenant.camera.fov_y = revenant
-                    .camera
-                    .fov_y
-                    .max(revenant.camera.fov_y_min)
-                    .min(revenant.camera.fov_y_max);
-            }
-        }
     }
 
     // SECTION cleanup
@@ -641,17 +666,18 @@ fn main() {
 // To fix this, we need to use a VAO for each character, and then render all the characters in one draw call.
 // This is called "text batching", and can be a real performance improvement.
 fn render_text(
-    asset_manager: &mut AssetManager,
     text: String,
     x: f32,
     y: f32,
     scale: f32,
     color: &Vector3<f32>,
     program: &Program,
-    font_path: &Path,
+    font: &AssetFont,
     vao: &u32,
     vbo: &u32,
 ) {
+    // TODO anchor pos
+    // TODO render scale
     let mut x = x;
 
     program.use_program();
@@ -663,11 +689,6 @@ fn render_text(
 
     // iterate through all characters
     for (_, c) in text.chars().enumerate() {
-        let font = asset_manager
-            .font_assets
-            .get(font_path)
-            .expect("Font not found");
-
         let character = font
             .chars
             .get(&c)

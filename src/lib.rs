@@ -50,7 +50,7 @@ impl Revenant {
         }
 
         let camera = Camera {
-            pos: point3(-2.0, 3.0, 3.0),
+            pos: point3(1.84, 0.8, 3.1),
             front: vec3(0.0, 0.0, -1.0),
             up: vec3(0.0, 1.0, 0.0),
             right: vec3(0.0, 0.0, 0.0),
@@ -59,8 +59,8 @@ impl Revenant {
             fov_y_min: 1.0,
             fov_y_max: 90.0,
             speed: 0.0,
-            yaw: -90.0,
-            pitch: 0.0,
+            yaw: 200.0,
+            pitch: -20.0,
             aim_sensitivity: 0.03,
         };
 

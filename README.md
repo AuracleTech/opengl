@@ -30,6 +30,7 @@
 - [ ] Stencil Testing
 - [ ] Blending
 - [ ] Face Culling
+- [ ] Hotkey Register
 - [ ] Framebuffers
 - [ ] Audio
 - [ ] Cubemaps
