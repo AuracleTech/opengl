@@ -3,18 +3,13 @@ extern crate freetype;
 extern crate gl;
 extern crate glfw;
 
-use std::collections::HashMap;
-use std::sync::mpsc::Receiver;
-
-use cgmath::{ortho, perspective, vec3, vec4, Angle, Deg, Matrix4, SquareMatrix, Vector3};
-use cgmath::{point3, prelude::*};
-use gl::types::*;
-use glfw::{Context, Glfw, Window, WindowEvent};
-use types::Fonts;
+use cgmath::point3;
+use cgmath::vec3;
+use glfw::Context;
+pub use types::Revenant;
 
 mod asset;
 mod character;
-mod font;
 #[allow(dead_code)]
 mod mesh;
 #[allow(dead_code)]
@@ -24,19 +19,7 @@ mod texture;
 #[allow(dead_code)]
 pub mod types; // TODO SET PRIVATE
 
-use crate::types::{
-    AssetManager, Camera, DirLight, Filtering, Font, ImageKind, Material, PointLight, Position,
-    Program, Shader, SpotLight, Texture, Wrapping, RGBA,
-};
-
-pub struct Revenant {
-    pub glfw: Glfw,
-    pub window: Window,
-    pub events: Receiver<(f64, WindowEvent)>,
-    pub camera: Camera,
-    pub fonts: Fonts,
-    pub asset_manager: AssetManager,
-}
+use crate::types::{AssetManager, Camera, RGBA};
 
 impl Revenant {
     pub fn new(width: u32, height: u32) -> Self {
@@ -67,7 +50,7 @@ impl Revenant {
         }
 
         let camera = Camera {
-            pos: point3(0.0, 0.0, 3.0),
+            pos: point3(-2.0, 3.0, 3.0),
             front: vec3(0.0, 0.0, -1.0),
             up: vec3(0.0, 1.0, 0.0),
             right: vec3(0.0, 0.0, 0.0),
@@ -86,7 +69,6 @@ impl Revenant {
             window,
             events,
             camera,
-            fonts: HashMap::new(),
             asset_manager: AssetManager::new(),
         }
     }

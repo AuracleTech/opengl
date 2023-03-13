@@ -8,8 +8,8 @@ use glfw::Context;
 use revenant::{
     self,
     types::{
-        DirLight, Filtering, Font, ImageKind, Material, PointLight, Position, Program, Shader,
-        SpotLight, Texture, Wrapping,
+        AssetManager, DirLight, Filtering, ImageKind, Material, Path, PointLight, Position,
+        Program, Shader, SpotLight, Texture, Wrapping,
     },
     Revenant,
 };
@@ -227,14 +227,21 @@ fn main() {
     let ui_projection = ortho(0.0, WIN_DIM_X as f32, 0.0, WIN_DIM_Y as f32, -1.0, 1.0);
     ui_program.set_uniform_mat4("projection", &ui_projection);
 
-    // Font
-    let font_name = "comfortaa";
-    let font_folder = format!("{}/assets/fonts/", env!("CARGO_MANIFEST_DIR"));
-    let font_filename = format!("{}.ttf", font_name);
-    let font_size = 24;
-    let font = Font::new(font_folder, font_filename, font_size);
-    revenant.fonts.insert(font_name.to_owned(), font);
-    let font = revenant.fonts.get(font_name).expect("Font not found");
+    // font Comfortaa
+    let comfortaa_path = format!("{}/assets/fonts/comfortaa.ttf", env!("CARGO_MANIFEST_DIR"));
+    let comfortaa_size = 24;
+    let comfortaa = asset_manager.new_font_asset(&comfortaa_path, comfortaa_size);
+    asset_manager
+        .font_assets
+        .insert(comfortaa_path.to_owned(), comfortaa);
+
+    // font Teko
+    let teko_path = format!("{}/assets/fonts/teko.ttf", env!("CARGO_MANIFEST_DIR"));
+    let teko_size = 24;
+    let teko_regular = asset_manager.new_font_asset(&teko_path, teko_size);
+    asset_manager
+        .font_assets
+        .insert(teko_path.to_owned(), teko_regular);
 
     // calculate fps declarations
     let mut last_time = revenant.glfw.get_time();
@@ -473,25 +480,27 @@ fn main() {
         let scale = 1.0;
 
         render_text(
+            &mut asset_manager,
             format!("{} FPS", current_fps),
             40.0,
             600.0,
             scale,
             &color,
             &ui_program,
-            font,
+            &comfortaa_path,
             &ui_vao,
             &ui_vbo,
         );
 
         render_text(
+            &mut asset_manager,
             format!("{:0.4} MS/FRAME", ms_per_frame),
             40.0,
             560.0,
             scale,
             &color,
             &ui_program,
-            font,
+            &teko_path,
             &ui_vao,
             &ui_vbo,
         );
@@ -632,13 +641,14 @@ fn main() {
 // To fix this, we need to use a VAO for each character, and then render all the characters in one draw call.
 // This is called "text batching", and can be a real performance improvement.
 fn render_text(
+    asset_manager: &mut AssetManager,
     text: String,
     x: f32,
     y: f32,
     scale: f32,
     color: &Vector3<f32>,
     program: &Program,
-    font: &Font,
+    font_path: &Path,
     vao: &u32,
     vbo: &u32,
 ) {
@@ -653,6 +663,11 @@ fn render_text(
 
     // iterate through all characters
     for (_, c) in text.chars().enumerate() {
+        let font = asset_manager
+            .font_assets
+            .get(font_path)
+            .expect("Font not found");
+
         let character = font
             .chars
             .get(&c)

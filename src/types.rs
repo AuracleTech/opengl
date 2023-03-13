@@ -1,30 +1,28 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::mpsc::Receiver};
 
 use cgmath::{Point3, Vector2, Vector3, Vector4};
 use gl::types::{GLsizei, GLuint};
+use glfw::{Glfw, Window, WindowEvent};
 use image::DynamicImage;
 
 pub type Uniaxial = f32;
-
 pub type Position = Point3<Uniaxial>;
-pub type Positions = Vec<Position>;
-
 pub type Direction = Vector3<Uniaxial>;
-pub type Directions = Vec<Direction>;
-
 pub type Normal = f32;
-pub type Normals = Vector3<Normal>;
-
 pub type TexCoord = f32;
-pub type TexCoords = Vector2<TexCoord>;
-
 pub type Indice = u32;
-pub type Indices = Vec<Indice>;
-
 pub type RGB = Vector3<f32>;
 pub type RGBA = Vector4<f32>;
-
 pub type Name = String;
+pub type Path = String;
+
+pub struct Revenant {
+    pub glfw: Glfw,
+    pub window: Window,
+    pub events: Receiver<(f64, WindowEvent)>,
+    pub camera: Camera,
+    pub asset_manager: AssetManager,
+}
 
 pub struct Texture {
     pub id: GLuint,
@@ -37,7 +35,6 @@ pub struct Texture {
     pub mag_filtering: Filtering,
     pub mipmapping: bool,
 }
-pub type Textures = Vec<Texture>;
 
 pub enum ImageKind {
     Diffuse,
@@ -89,18 +86,16 @@ pub struct Material {
     pub specular_strength: f32,
 }
 
-pub type Vertecies = Vec<Vertex>;
 pub struct Vertex {
-    pub positions: Positions,
-    pub normals: Normals,
-    pub tex_coords: TexCoords,
+    pub positions: Vec<Position>,
+    pub normals: Vec<Normal>,
+    pub tex_coords: Vec<TexCoord>,
 }
 
-pub type Meshes = Vec<Mesh>;
 pub struct Mesh {
-    pub vertices: Vertecies,
-    pub indices: Indices,
-    pub textures: Textures,
+    pub vertices: Vec<Vertex>,
+    pub indices: Vec<Indice>,
+    pub textures: Vec<Texture>,
 
     pub vao: GLuint,
     pub vbo: GLuint,
@@ -133,10 +128,10 @@ pub struct Character {
 }
 
 pub struct Font {
+    pub asset: Asset,
     pub size: u32,
     pub chars: HashMap<char, Character>,
 }
-pub type Fonts = HashMap<Name, Font>;
 
 pub struct DirLight {
     pub dir: Direction,
@@ -185,7 +180,7 @@ pub struct Program {
 #[derive(Debug)]
 pub struct Asset {
     pub name: Name,
-    pub path: String,
+    pub path: Path,
 }
 
 #[derive(Debug)]
@@ -194,12 +189,7 @@ pub struct AssetImage2D {
     pub image: DynamicImage,
 }
 
-pub struct AssetTextFile {
-    pub asset: Asset,
-    pub text: String,
-}
-
 pub struct AssetManager {
-    pub image_assets: Vec<AssetImage2D>,
-    pub text_assets: Vec<AssetTextFile>,
+    pub image_assets: HashMap<Name, AssetImage2D>,
+    pub font_assets: HashMap<Name, Font>,
 }

@@ -20,6 +20,7 @@
 - [x] Multiple Lights
 - [x] Library standalone
 - [x] Asset Manager
+- [ ] Emissive Textures
 - [ ] Loading Mesh
 - [ ] Loading Model
 - [ ] Setup world environment playground

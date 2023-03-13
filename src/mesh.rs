@@ -1,7 +1,7 @@
-use crate::types::{Indices, Mesh, Program, Textures, Vertecies};
+use crate::types::{Indice, Mesh, Program, Texture, Vertex};
 
 impl Mesh {
-    pub fn new(vertices: Vertecies, indices: Indices, textures: Textures) -> Self {
+    pub fn new(vertices: Vec<Vertex>, indices: Vec<Indice>, textures: Vec<Texture>) -> Self {
         todo!("Implement Mesh::new");
     }
 
