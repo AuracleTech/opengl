@@ -21,7 +21,7 @@
 - [x] Library standalone
 - [x] Asset Manager
 - [x] Serialization & Deserialization
-- [ ] Emissive Textures
+- [x] Emissive Textures
 - [ ] Loading Mesh
 - [ ] Loading Model
 - [ ] Setup world environment playground

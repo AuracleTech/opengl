@@ -293,8 +293,6 @@ fn main() {
     // }
     let material = asset_manager.deserialize_material_asset("crate.material");
 
-    dbg!(&material);
-
     let cube_positions: [Vector3<f32>; 10] = [
         vec3(0.0, 0.0, 0.0),
         vec3(2.0, 5.0, -15.0),
@@ -434,6 +432,12 @@ fn main() {
         if key_states[glfw::Key::LeftControl as usize] {
             revenant.camera.pos -= revenant.camera.up * revenant.camera.speed;
         }
+        // LEFT SHIFT increase speed
+        if key_states[glfw::Key::LeftShift as usize] {
+            revenant.camera.speed_factor = revenant.camera.speed_factor_boost;
+        } else {
+            revenant.camera.speed_factor = revenant.camera.speed_factor_default;
+        }
 
         // P cycle through polygon modes
         if key_states[glfw::Key::P as usize] {
@@ -470,6 +474,7 @@ fn main() {
 
         material.diffuse.bind(0);
         material.specular.bind(1);
+        material.emissive.bind(2);
 
         // TODO Translate - Rotate - Scale matrix manipulations queue to respect order
         let projection = perspective(cgmath::Deg(revenant.camera.fov_y), WIN_RATIO_X, 0.1, 100.0);
@@ -488,6 +493,7 @@ fn main() {
         phong_program.set_uniform_int("material.diffuse", 0);
         phong_program.set_uniform_int("material.specular", 1);
         phong_program.set_uniform_float("material.specular_strength", material.specular_strength);
+        phong_program.set_uniform_int("material.emissive", 2);
 
         // Spot light
         phong_program.set_uniform_point3("spotlight.pos", spotlight.pos);

@@ -100,11 +100,13 @@ pub struct Camera {
     pub fov_y_min: f32,
     pub fov_y_max: f32,
 
+    pub speed_factor_default: f32,
+    pub speed_factor_boost: f32,
+    pub speed_factor: f32,
     pub speed: f32,
     pub yaw: f32,
     pub pitch: f32,
     pub aim_sensitivity: f32,
-    pub speed_factor: f32,
 }
 
 pub struct Character {
