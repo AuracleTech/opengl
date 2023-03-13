@@ -4,6 +4,7 @@ use cgmath::{Point3, Vector2, Vector3, Vector4};
 use gl::types::{GLsizei, GLuint};
 use glfw::{Glfw, Window, WindowEvent};
 use image::DynamicImage;
+use serde::{Deserialize, Serialize};
 
 pub type Uniaxial = f32;
 pub type Position = Point3<Uniaxial>;
@@ -22,13 +23,16 @@ pub struct Revenant {
     pub asset_manager: AssetManager,
 }
 
+#[derive(Debug)]
 pub enum ImageKind {
     Diffuse,
     Specular,
     Normal,
     Height,
+    Emissive,
 }
 
+#[derive(Debug)]
 pub enum ImageFormat {
     RGBA,
     RGB,
@@ -37,6 +41,7 @@ pub enum ImageFormat {
     Unicolor,
 }
 
+#[derive(Debug)]
 pub enum TextureSize {
     TwoD {
         width: GLsizei,
@@ -49,6 +54,7 @@ pub enum TextureSize {
     },
 }
 
+#[derive(Debug)]
 pub enum Wrapping {
     Repeat,
     MirroredRepeat,
@@ -56,6 +62,7 @@ pub enum Wrapping {
     ClampToBorder,
 }
 
+#[derive(Debug)]
 pub enum Filtering {
     Nearest,
     Linear,
@@ -64,12 +71,6 @@ pub enum Filtering {
     NearestMipmapLinear,
     LinearMipmapLinear,
     // TODO add anisotropic filtering
-}
-
-pub struct Material {
-    pub diffuse: AssetTexture,
-    pub specular: AssetTexture,
-    pub specular_strength: f32,
 }
 
 pub struct Vertex {
@@ -169,6 +170,7 @@ pub struct AssetFont {
     pub chars: HashMap<char, Character>,
 }
 
+#[derive(Debug)]
 pub struct AssetTexture {
     pub filename: String,
     pub id: GLuint,
@@ -182,6 +184,23 @@ pub struct AssetTexture {
     pub mipmapping: bool,
 }
 
+#[derive(Debug)]
+pub struct AssetMaterial {
+    pub filename: String,
+    pub diffuse: AssetTexture,
+    pub specular: AssetTexture,
+    pub specular_strength: f32,
+    pub emissive: AssetTexture,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct AssetMaterialSerialized {
+    pub diffuse: String,
+    pub specular: String,
+    pub specular_strength: f32,
+    pub emissive: String,
+}
+
 pub struct AssetManager {
     pub image_assets: HashMap<String, AssetImage2D>,
     pub image_assets_path: PathBuf,
@@ -189,5 +208,7 @@ pub struct AssetManager {
     pub font_assets_path: PathBuf,
     pub texture_assets: HashMap<String, AssetTexture>,
     pub texture_assets_path: PathBuf,
+    pub material_assets: HashMap<String, AssetMaterial>,
+    pub material_assets_path: PathBuf,
     pub assets_path: PathBuf,
 }

@@ -7,10 +7,7 @@ use gl::types::{GLenum, GLfloat, GLsizei, GLsizeiptr, GLvoid};
 use glfw::Context;
 use revenant::{
     self,
-    types::{
-        AssetFont, DirLight, Filtering, ImageKind, Material, PointLight, Position, Program, Shader,
-        SpotLight, Wrapping,
-    },
+    types::{AssetFont, DirLight, PointLight, Position, Program, Shader, SpotLight},
     Revenant,
 };
 
@@ -215,7 +212,7 @@ fn main() {
         gl::EnableVertexAttribArray(0);
     }
 
-    Revenant::set_clear_color(vec4(0.082, 0.082, 0.125, 1.0));
+    revenant::set_clear_color(vec4(0.082, 0.082, 0.125, 1.0));
 
     unsafe {
         gl::Enable(gl::BLEND);
@@ -252,33 +249,51 @@ fn main() {
     let mut current_fps = 0.0;
     let mut ms_per_frame = 1000.0;
 
-    let diffuse_filename = "crate_diffuse.jpg";
-    let diffuse = asset_manager.new_texture_asset(
-        diffuse_filename,
-        ImageKind::Diffuse,
-        Wrapping::Repeat,
-        Wrapping::Repeat,
-        Filtering::Nearest,
-        Filtering::Nearest,
-        true,
-    );
+    // {
+    //     // CREATE A MATERIAL AND SERIALIZE IT
+    //     let diffuse_filename = "crate_diffuse.jpg";
+    //     let diffuse = asset_manager.new_texture_asset(
+    //         diffuse_filename,
+    //         ImageKind::Diffuse,
+    //         Wrapping::Repeat,
+    //         Wrapping::Repeat,
+    //         Filtering::Nearest,
+    //         Filtering::Nearest,
+    //         true,
+    //     );
+    //     let specular_filename = "crate_specular.jpg";
+    //     let specular = asset_manager.new_texture_asset(
+    //         specular_filename,
+    //         ImageKind::Specular,
+    //         Wrapping::Repeat,
+    //         Wrapping::Repeat,
+    //         Filtering::Nearest,
+    //         Filtering::Nearest,
+    //         true,
+    //     );
+    //     let emissive_filename = "crate_emissive.jpg";
+    //     let emissive = asset_manager.new_texture_asset(
+    //         emissive_filename,
+    //         ImageKind::Emissive,
+    //         Wrapping::Repeat,
+    //         Wrapping::Repeat,
+    //         Filtering::Nearest,
+    //         Filtering::Nearest,
+    //         true,
+    //     );
+    //     let specular_strength = 32.0;
+    //     let material = AssetMaterial {
+    //         filename: "crate.material".to_owned(),
+    //         diffuse,
+    //         specular,
+    //         specular_strength,
+    //         emissive,
+    //     };
+    //     asset_manager.serialize_material_asset(&material);
+    // }
+    let material = asset_manager.deserialize_material_asset("crate.material");
 
-    let specular_filename = "crate_specular.jpg";
-    let specular = asset_manager.new_texture_asset(
-        specular_filename,
-        ImageKind::Specular,
-        Wrapping::Repeat,
-        Wrapping::Repeat,
-        Filtering::Nearest,
-        Filtering::Nearest,
-        true,
-    );
-
-    let material = Material {
-        diffuse,
-        specular,
-        specular_strength: 32.0,
-    };
+    dbg!(&material);
 
     let cube_positions: [Vector3<f32>; 10] = [
         vec3(0.0, 0.0, 0.0),

@@ -20,6 +20,7 @@
 - [x] Multiple Lights
 - [x] Library standalone
 - [x] Asset Manager
+- [x] Serialization & Deserialization
 - [ ] Emissive Textures
 - [ ] Loading Mesh
 - [ ] Loading Model

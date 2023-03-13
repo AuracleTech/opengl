@@ -74,11 +74,11 @@ impl Revenant {
             asset_manager: AssetManager::new(get_assets_path()),
         }
     }
+}
 
-    pub fn set_clear_color(color: RGBA) {
-        unsafe {
-            gl::ClearColor(color.x, color.y, color.z, color.w);
-        }
+pub fn set_clear_color(color: RGBA) {
+    unsafe {
+        gl::ClearColor(color.x, color.y, color.z, color.w);
     }
 }
 
