@@ -1,4 +1,4 @@
-use crate::types::{Character, Texture};
+use crate::types::{AssetTexture, Character};
 use cgmath::Vector2;
 use freetype::Face;
 
@@ -8,7 +8,7 @@ impl Character {
             .expect("Could not load character");
         let glyphslot = face.glyph();
         let bitmap = glyphslot.bitmap();
-        let gltexture = Texture::from_bitmap(&bitmap);
+        let gltexture = AssetTexture::from_bitmap(&bitmap);
         let size = Vector2::new(bitmap.width(), bitmap.rows());
         let bearing = Vector2::new(glyphslot.bitmap_left(), glyphslot.bitmap_top());
         let advance = glyphslot.advance().x as i64;

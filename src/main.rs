@@ -9,7 +9,7 @@ use revenant::{
     self,
     types::{
         AssetManager, DirLight, Filtering, ImageKind, Material, Path, PointLight, Position,
-        Program, Shader, SpotLight, Texture, Wrapping,
+        Program, Shader, SpotLight, Wrapping,
     },
     Revenant,
 };
@@ -253,8 +253,8 @@ fn main() {
     let mut ms_per_frame = 1000.0;
 
     let texture_path = format!("{}{}", env!("CARGO_MANIFEST_DIR"), "/assets/textures/");
-    let diffuse = Texture::from_file(
-        format!("{}{}", texture_path, "crate_diffuse.jpg"),
+    let diffuse = asset_manager.new_texture_asset(
+        &format!("{}{}", texture_path, "crate_diffuse.jpg"),
         ImageKind::Diffuse,
         Wrapping::Repeat,
         Wrapping::Repeat,
@@ -263,8 +263,8 @@ fn main() {
         true,
     );
 
-    let specular = Texture::from_file(
-        format!("{}{}", texture_path, "crate_specular.jpg"),
+    let specular = asset_manager.new_texture_asset(
+        &format!("{}{}", texture_path, "crate_specular.jpg"),
         ImageKind::Specular,
         Wrapping::Repeat,
         Wrapping::Repeat,

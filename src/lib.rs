@@ -10,7 +10,7 @@ pub use types::Revenant;
 
 mod asset;
 mod character;
-#[allow(dead_code)]
+#[allow(dead_code, unused_variables)]
 mod mesh;
 #[allow(dead_code)]
 mod program;

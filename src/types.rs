@@ -24,18 +24,6 @@ pub struct Revenant {
     pub asset_manager: AssetManager,
 }
 
-pub struct Texture {
-    pub id: GLuint,
-    pub kind: ImageKind,
-    pub format: ImageFormat,
-    pub size: TextureSize,
-    pub s_wrapping: Wrapping,
-    pub t_wrapping: Wrapping,
-    pub min_filtering: Filtering,
-    pub mag_filtering: Filtering,
-    pub mipmapping: bool,
-}
-
 pub enum ImageKind {
     Diffuse,
     Specular,
@@ -81,8 +69,8 @@ pub enum Filtering {
 }
 
 pub struct Material {
-    pub diffuse: Texture,
-    pub specular: Texture,
+    pub diffuse: AssetTexture,
+    pub specular: AssetTexture,
     pub specular_strength: f32,
 }
 
@@ -95,7 +83,7 @@ pub struct Vertex {
 pub struct Mesh {
     pub vertices: Vec<Vertex>,
     pub indices: Vec<Indice>,
-    pub textures: Vec<Texture>,
+    pub textures: Vec<AssetTexture>,
 
     pub vao: GLuint,
     pub vbo: GLuint,
@@ -121,16 +109,10 @@ pub struct Camera {
 }
 
 pub struct Character {
-    pub texture: Texture,
+    pub texture: AssetTexture,
     pub size: Vector2<i32>,
     pub bearing: Vector2<i32>,
     pub advance: i64,
-}
-
-pub struct Font {
-    pub asset: Asset,
-    pub size: u32,
-    pub chars: HashMap<char, Character>,
 }
 
 pub struct DirLight {
@@ -189,7 +171,27 @@ pub struct AssetImage2D {
     pub image: DynamicImage,
 }
 
+pub struct AssetFont {
+    pub asset: Asset,
+    pub size: u32,
+    pub chars: HashMap<char, Character>,
+}
+
+pub struct AssetTexture {
+    pub asset: Asset,
+    pub id: GLuint,
+    pub kind: ImageKind,
+    pub format: ImageFormat,
+    pub size: TextureSize,
+    pub s_wrapping: Wrapping,
+    pub t_wrapping: Wrapping,
+    pub min_filtering: Filtering,
+    pub mag_filtering: Filtering,
+    pub mipmapping: bool,
+}
+
 pub struct AssetManager {
-    pub image_assets: HashMap<Name, AssetImage2D>,
-    pub font_assets: HashMap<Name, Font>,
+    pub image_assets: HashMap<Path, AssetImage2D>,
+    pub font_assets: HashMap<Path, AssetFont>,
+    pub texture_assets: HashMap<Path, AssetTexture>,
 }

@@ -1,6 +1,10 @@
 use freetype::Library;
+use image::DynamicImage;
 
-use crate::types::{Asset, AssetImage2D, AssetManager, Character, Font, Name, Path};
+use crate::types::{
+    Asset, AssetFont, AssetImage2D, AssetManager, AssetTexture, Character, Filtering, ImageFormat,
+    ImageKind, Name, Path, TextureSize, Wrapping,
+};
 use std::collections::HashMap;
 
 impl AssetManager {
@@ -8,6 +12,7 @@ impl AssetManager {
         Self {
             image_assets: HashMap::new(),
             font_assets: HashMap::new(),
+            texture_assets: HashMap::new(),
         }
     }
 
@@ -17,7 +22,7 @@ impl AssetManager {
         let (name, ext) = parse_path(path);
 
         let image = match ext.as_str() {
-            "jpg" | "png" => image::open(path).expect("Failed to load image.").flipv(),
+            "jpg" | "png" => image::open(path).expect("Failed to load image."),
             _ => panic!("Unsupported asset type"),
         };
 
@@ -29,13 +34,9 @@ impl AssetManager {
         AssetImage2D { asset, image }
     }
 
-    pub fn stock_image_asset(&mut self, path: &Path, image_asset: AssetImage2D) {
-        self.image_assets.insert(path.to_owned(), image_asset);
-    }
-
     // Font
 
-    pub fn new_font_asset(&mut self, path: &Path, size: u32) -> Font {
+    pub fn new_font_asset(&mut self, path: &Path, size: u32) -> AssetFont {
         let (name, ext) = parse_path(path);
 
         let library = Library::init().expect("Could not init freetype library");
@@ -59,11 +60,68 @@ impl AssetManager {
             path: path.to_string(),
         };
 
-        Font { asset, size, chars }
+        AssetFont { asset, size, chars }
     }
 
-    pub fn stock_font_asset(&mut self, path: &Path, font_asset: Font) {
-        self.font_assets.insert(path.to_owned(), font_asset);
+    // Texture
+
+    pub fn new_texture_asset(
+        &mut self,
+        path: &Path,
+        kind: ImageKind,
+        s_wrapping: Wrapping,
+        t_wrapping: Wrapping,
+        min_filtering: Filtering,
+        mag_filtering: Filtering,
+        mipmapping: bool,
+    ) -> AssetTexture {
+        let (name, ext) = parse_path(path);
+
+        let image = match ext.as_str() {
+            "jpg" | "png" => image::open(path).expect("Failed to load image.").flipv(),
+            _ => panic!("Unsupported asset type"),
+        };
+
+        if image.width() > i32::MAX as u32 {
+            panic!("Texture '{}' width too large dataloss not tolerated.", path);
+        }
+        if image.height() > i32::MAX as u32 {
+            panic!("Texture '{}' height too tall dataloss not tolerated.", path);
+        }
+
+        let size = TextureSize::TwoD {
+            width: image.width() as i32,
+            height: image.height() as i32,
+        };
+
+        // TODO support more than 3 channels
+        let format = match image.color() {
+            image::ColorType::Rgb8 => ImageFormat::RGB,
+            _ => panic!("Texture format not supported."),
+        };
+
+        let data = match image {
+            DynamicImage::ImageRgb8(texture_image) => texture_image.into_raw(),
+            _ => panic!("Image format not supported"),
+        };
+
+        let asset = Asset {
+            name: name.to_string(),
+            path: path.to_string(),
+        };
+
+        AssetTexture::create_texture(
+            asset,
+            data,
+            kind,
+            size,
+            format,
+            s_wrapping,
+            t_wrapping,
+            min_filtering,
+            mag_filtering,
+            mipmapping,
+        )
     }
 }
 

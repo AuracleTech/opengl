@@ -1,63 +1,8 @@
-use crate::types::{Filtering, ImageFormat, ImageKind, Texture, TextureSize, Wrapping};
+use crate::types::{Asset, AssetTexture, Filtering, ImageFormat, ImageKind, TextureSize, Wrapping};
 use freetype::Bitmap;
 use gl::types::{GLenum, GLint, GLvoid};
-use image::DynamicImage;
 
-impl Texture {
-    pub fn from_file(
-        path: String,
-        kind: ImageKind,
-        s_wrapping: Wrapping,
-        t_wrapping: Wrapping,
-        min_filtering: Filtering,
-        mag_filtering: Filtering,
-        mipmapping: bool,
-    ) -> Self {
-        let path_copy = path.clone();
-
-        let image = image::open(path).unwrap().flipv();
-        if image.width() > i32::MAX as u32 {
-            panic!(
-                "Texture '{}' width too large dataloss not tolerated.",
-                path_copy
-            );
-        }
-        if image.height() > i32::MAX as u32 {
-            panic!(
-                "Texture '{}' height too tall dataloss not tolerated.",
-                path_copy
-            );
-        }
-
-        let size = TextureSize::TwoD {
-            width: image.width() as i32,
-            height: image.height() as i32,
-        };
-
-        // TODO support more than 3 channels
-        let format = match image.color() {
-            image::ColorType::Rgb8 => ImageFormat::RGB,
-            _ => panic!("Texture format not supported."),
-        };
-
-        let data = match image {
-            DynamicImage::ImageRgb8(texture_image) => texture_image.into_raw(),
-            _ => panic!("Image format not supported"),
-        };
-
-        create_texture(
-            data,
-            kind,
-            size,
-            format,
-            s_wrapping,
-            t_wrapping,
-            min_filtering,
-            mag_filtering,
-            mipmapping,
-        )
-    }
-
+impl AssetTexture {
     pub fn from_bitmap(bitmap: &Bitmap) -> Self {
         let data = bitmap.buffer().to_vec();
 
@@ -78,7 +23,14 @@ impl Texture {
 
         let mipmapping = false;
 
-        create_texture(
+        // TODO bitmap is not an asset
+        let asset = Asset {
+            name: "".to_string(),
+            path: "".to_string(),
+        };
+
+        AssetTexture::create_texture(
+            asset,
             data,
             kind,
             size,
@@ -105,90 +57,92 @@ impl Texture {
             gl::TexParameteri(gl::TEXTURE_2D, param, value);
         }
     }
-}
 
-fn create_texture(
-    data: Vec<u8>,
-    kind: ImageKind,
-    size: TextureSize,
-    format: ImageFormat,
-    s_wrapping: Wrapping,
-    t_wrapping: Wrapping,
-    min_filtering: Filtering,
-    mag_filtering: Filtering,
-    mipmapping: bool,
-) -> Texture {
-    // TODO 3D texture
-    let target = gl::TEXTURE_2D;
+    pub fn create_texture(
+        asset: Asset,
+        data: Vec<u8>,
+        kind: ImageKind,
+        size: TextureSize,
+        format: ImageFormat,
+        s_wrapping: Wrapping,
+        t_wrapping: Wrapping,
+        min_filtering: Filtering,
+        mag_filtering: Filtering,
+        mipmapping: bool,
+    ) -> AssetTexture {
+        // TODO 3D texture
+        let target = gl::TEXTURE_2D;
 
-    let (width, height) = match size {
-        TextureSize::TwoD { width, height } => (width, height),
-        _ => panic!("Texture size not supported yet."),
-    };
+        let (width, height) = match size {
+            TextureSize::TwoD { width, height } => (width, height),
+            _ => panic!("Texture size not supported yet."),
+        };
 
-    let internal_format = match format {
-        ImageFormat::RGB => gl::RGB,
-        ImageFormat::RGBA => gl::RGBA,
-        ImageFormat::RG => panic!("RG format not supported yet."),
-        ImageFormat::R => panic!("R format not supported yet."),
-        ImageFormat::Unicolor => gl::RED,
-    };
-    let alignment = match internal_format {
-        gl::RGB => 1,
-        gl::RGBA => 4,
-        gl::RED => 1,
-        _ => panic!("Texture format not supported yet."),
-    };
-    unsafe {
-        gl::PixelStorei(gl::UNPACK_ALIGNMENT, alignment);
-    }
-
-    let gl_s_wrapping = gl_wrapping_from(&s_wrapping);
-    let gl_t_wrapping = gl_wrapping_from(&t_wrapping);
-    let gl_min_filtering = gl_filtering_from(&min_filtering);
-    let gl_mag_filtering = gl_filtering_from(&mag_filtering);
-
-    let mut id = 0;
-    unsafe {
-        // generate texture id
-        gl::GenTextures(1, &mut id);
-        gl::BindTexture(target, id);
-        // texture data
-        gl::TexImage2D(
-            target,
-            0,
-            internal_format as GLint,
-            width,
-            height,
-            0,
-            internal_format,
-            gl::UNSIGNED_BYTE,
-            data.as_ptr() as *const GLvoid,
-        );
-        // wrapping
-        gl::TexParameteri(target, gl::TEXTURE_WRAP_S, gl_s_wrapping as i32);
-        gl::TexParameteri(target, gl::TEXTURE_WRAP_T, gl_t_wrapping as i32);
-        // filtering
-        gl::TexParameteri(target, gl::TEXTURE_MIN_FILTER, gl_min_filtering as i32);
-        gl::TexParameteri(target, gl::TEXTURE_MAG_FILTER, gl_mag_filtering as i32);
-    }
-    // mipmapping
-    if mipmapping {
+        let internal_format = match format {
+            ImageFormat::RGB => gl::RGB,
+            ImageFormat::RGBA => gl::RGBA,
+            ImageFormat::RG => panic!("RG format not supported yet."),
+            ImageFormat::R => panic!("R format not supported yet."),
+            ImageFormat::Unicolor => gl::RED,
+        };
+        let alignment = match internal_format {
+            gl::RGB => 1,
+            gl::RGBA => 4,
+            gl::RED => 1,
+            _ => panic!("Texture format not supported yet."),
+        };
         unsafe {
-            gl::GenerateMipmap(target);
+            gl::PixelStorei(gl::UNPACK_ALIGNMENT, alignment);
         }
-    }
 
-    Texture {
-        id,
-        kind,
-        format,
-        size,
-        s_wrapping,
-        t_wrapping,
-        min_filtering,
-        mag_filtering,
-        mipmapping,
+        let gl_s_wrapping = gl_wrapping_from(&s_wrapping);
+        let gl_t_wrapping = gl_wrapping_from(&t_wrapping);
+        let gl_min_filtering = gl_filtering_from(&min_filtering);
+        let gl_mag_filtering = gl_filtering_from(&mag_filtering);
+
+        let mut id = 0;
+        unsafe {
+            // generate texture id
+            gl::GenTextures(1, &mut id);
+            gl::BindTexture(target, id);
+            // texture data
+            gl::TexImage2D(
+                target,
+                0,
+                internal_format as GLint,
+                width,
+                height,
+                0,
+                internal_format,
+                gl::UNSIGNED_BYTE,
+                data.as_ptr() as *const GLvoid,
+            );
+            // wrapping
+            gl::TexParameteri(target, gl::TEXTURE_WRAP_S, gl_s_wrapping as i32);
+            gl::TexParameteri(target, gl::TEXTURE_WRAP_T, gl_t_wrapping as i32);
+            // filtering
+            gl::TexParameteri(target, gl::TEXTURE_MIN_FILTER, gl_min_filtering as i32);
+            gl::TexParameteri(target, gl::TEXTURE_MAG_FILTER, gl_mag_filtering as i32);
+        }
+        // mipmapping
+        if mipmapping {
+            unsafe {
+                gl::GenerateMipmap(target);
+            }
+        }
+
+        Self {
+            asset,
+            id,
+            kind,
+            format,
+            size,
+            s_wrapping,
+            t_wrapping,
+            min_filtering,
+            mag_filtering,
+            mipmapping,
+        }
     }
 }
 
