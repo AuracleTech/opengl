@@ -71,7 +71,7 @@ void main()
     result += CalcSpotLight(spotlight, norm, frag_pos, view_dir);
 
     vec3 emissive = texture(material.emissive, tex_coord).rgb;
-    emissive *= 2.0; // increase the emissive effect
+    // emissive *= 2.0; // increase the emissive effect
     result += emissive;
     
     frag_color = vec4(result, 1.0);
