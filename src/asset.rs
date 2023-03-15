@@ -1,9 +1,12 @@
 use freetype::Library;
 use image::DynamicImage;
 
-use crate::types::{
-    AssetFont, AssetImage2D, AssetManager, AssetMaterial, AssetMaterialSerialized, AssetTexture,
-    Character, Filtering, ImageFormat, ImageKind, TextureSize, Wrapping,
+use crate::{
+    serialization::{deserialize_camera, serialize_camera},
+    types::{
+        AssetCamera, AssetFont, AssetImage2D, AssetManager, AssetMaterial, AssetMaterialSerialized,
+        AssetTexture, Character, Filtering, ImageFormat, ImageKind, TextureSize, Wrapping,
+    },
 };
 use std::{
     collections::HashMap,
@@ -12,8 +15,24 @@ use std::{
     path::PathBuf,
 };
 
+#[cfg(not(debug_assertions))]
+fn get_assets_path() -> PathBuf {
+    let exe_path = env::current_exe().expect("Failed to get current exe path");
+    let mut assets_path = PathBuf::from(exe_path.parent().expect("Failed to get parent directory"));
+    assets_path.push("assets");
+    assets_path
+}
+
+#[cfg(debug_assertions)]
+fn get_assets_path() -> PathBuf {
+    let mut assets_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    assets_path.push("assets");
+    assets_path
+}
+
 impl AssetManager {
-    pub fn new(assets_path: PathBuf) -> Self {
+    pub fn new() -> Self {
+        let assets_path = get_assets_path();
         Self {
             image_assets: HashMap::new(),
             image_assets_path: assets_path.join("images"),
@@ -23,13 +42,15 @@ impl AssetManager {
             texture_assets_path: assets_path.join("textures"),
             material_assets: HashMap::new(),
             material_assets_path: assets_path.join("materials"),
+            camera_assets: HashMap::new(),
+            camera_assets_path: assets_path.join("cameras"),
             assets_path,
         }
     }
 
     // Image
 
-    pub fn new_image_asset(&mut self, filename: &str) -> AssetImage2D {
+    pub fn load_image_asset(&mut self, filename: &str) -> AssetImage2D {
         let path = self.image_assets_path.join(filename);
         let ext = path
             .extension()
@@ -50,7 +71,7 @@ impl AssetManager {
 
     // Font
 
-    pub fn new_font_asset(&mut self, filename: &str, size: u32) -> AssetFont {
+    pub fn load_font_asset(&mut self, filename: &str, size: u32) -> AssetFont {
         let path = self.font_assets_path.join(filename);
         let ext = path
             .extension()
@@ -83,7 +104,8 @@ impl AssetManager {
 
     // Texture
 
-    pub fn new_texture_asset(
+    // TODO serialize and deserialize
+    pub fn load_texture_asset(
         &mut self,
         filename: &str,
         kind: ImageKind,
@@ -152,6 +174,10 @@ impl AssetManager {
 
     // Material
 
+    // TODO make load_material_asset
+    // TODO make make_material_asset
+    // TODO make load_material_asset use another function called deserialize_material_asset
+    // TODO make make_material_asset use another function called serialize_material_asset
     pub fn serialize_material_asset(&mut self, material: &AssetMaterial) {
         let path = self.material_assets_path.join(&material.filename);
         let ext = path
@@ -174,6 +200,7 @@ impl AssetManager {
         file.write_all(&encoded).expect("Failed to write to file.");
     }
 
+    // TODO returns hard written values what the heckk
     pub fn deserialize_material_asset(&mut self, filename: &str) -> AssetMaterial {
         let path = self.material_assets_path.join(filename);
         let ext = path
@@ -195,7 +222,7 @@ impl AssetManager {
 
         AssetMaterial {
             filename: filename.to_string(),
-            diffuse: self.new_texture_asset(
+            diffuse: self.load_texture_asset(
                 &serialized.diffuse,
                 ImageKind::Diffuse,
                 Wrapping::Repeat,
@@ -204,7 +231,7 @@ impl AssetManager {
                 Filtering::Nearest,
                 true,
             ),
-            specular: self.new_texture_asset(
+            specular: self.load_texture_asset(
                 &serialized.specular,
                 ImageKind::Specular,
                 Wrapping::Repeat,
@@ -214,7 +241,7 @@ impl AssetManager {
                 true,
             ),
             specular_strength: serialized.specular_strength,
-            emissive: self.new_texture_asset(
+            emissive: self.load_texture_asset(
                 &serialized.emissive,
                 ImageKind::Emissive,
                 Wrapping::Repeat,
@@ -224,5 +251,21 @@ impl AssetManager {
                 true,
             ),
         }
+    }
+
+    // Camera
+
+    // TODO rename camera to AssetCamera
+    pub fn load_camera_asset(&mut self, name: &str) -> AssetCamera {
+        deserialize_camera(&self.camera_assets_path.join(name).with_extension("camera"))
+    }
+
+    pub fn save_camera_asset(&mut self, camera: AssetCamera) {
+        serialize_camera(
+            self.camera_assets_path
+                .join(&camera.filename)
+                .with_extension("camera"),
+            camera,
+        )
     }
 }

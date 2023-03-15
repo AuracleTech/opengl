@@ -1,13 +1,16 @@
-extern crate glfw;
 use cgmath::{
-    ortho, perspective, point3, vec3, vec4, Angle, Deg, EuclideanSpace, InnerSpace, Matrix4,
-    SquareMatrix, Vector3,
+    ortho, point3, vec3, vec4, Angle, Deg, EuclideanSpace, InnerSpace, Matrix4, SquareMatrix,
+    Vector3,
 };
 use gl::types::{GLenum, GLfloat, GLsizei, GLsizeiptr, GLvoid};
 use glfw::Context;
+use gltf::Gltf;
 use revenant::{
     self,
-    types::{AssetFont, DirLight, PointLight, Position, Program, Shader, SpotLight},
+    types::{
+        AssetCamera, AssetFont, DirLight, PointLight, Position, Program, ProjectionKind, Shader,
+        SpotLight,
+    },
     Revenant,
 };
 
@@ -29,7 +32,7 @@ fn main() {
 
     // Set window icon
     let icon_filename = "icon.png";
-    let icon_asset = asset_manager.new_image_asset(&icon_filename);
+    let icon_asset = asset_manager.load_image_asset(&icon_filename);
     let icon_image = icon_asset.image;
     let icon_pixels: Vec<u32> = icon_image
         .to_rgba8()
@@ -53,14 +56,78 @@ fn main() {
     revenant.window.set_icon_from_pixels(icons);
 
     // Unlock framerate
-    revenant.glfw.set_swap_interval(glfw::SwapInterval::Sync(0));
-    // revenant.window.set_swap_interval(glfw::SwapInterval::None);
+    revenant.glfw.set_swap_interval(glfw::SwapInterval::None);
 
     // Center window
     revenant.window.set_pos(
         (SCREEN_DIM_X - WIN_DIM_X) as i32 / 2,
         (SCREEN_DIM_Y - WIN_DIM_Y) as i32 / 2,
     );
+
+    // FIX
+    // GLTF loading
+    let binding = asset_manager.assets_path.join("models/pot_light_cam.gltf");
+    // let binding = asset_manager.assets_path.join("models/tree.glb");
+    let blend_path = binding.to_str().expect("Failed to convert path to string");
+
+    let gltf = Gltf::open(blend_path).expect("Failed to open gltf file");
+    // get the first camera in the scene
+
+    let scenes = gltf.scenes();
+
+    for scene in scenes {
+        println!("Scene #{} has {} nodes", scene.index(), scene.nodes().len());
+        for node in scene.nodes() {
+            let cameras = node.camera();
+            if let Some(camera) = cameras {
+                match camera.projection() {
+                    gltf::camera::Projection::Orthographic(ortho) => {
+                        println!("Orthographic camera");
+                        println!("xmag: {}", ortho.xmag());
+                        println!("ymag: {}", ortho.ymag());
+                        println!("znear: {}", ortho.znear());
+                        println!("zfar: {}", ortho.zfar());
+                        println!("extras: {:?}", ortho.extras());
+                    }
+                    gltf::camera::Projection::Perspective(persp) => {
+                        println!("Perspective camera");
+                        println!("aspect_ratio: {:?}", persp.aspect_ratio());
+                        println!("yfov: {}", persp.yfov());
+                        println!("znear: {}", persp.znear());
+                        println!("zfar: {:?}", persp.zfar());
+                        println!("extras: {:?}", persp.extras());
+                    }
+                }
+            }
+            // for child in node.children() {
+            //     println!(
+            //         "Child #{} has {} children",
+            //         child.index(),
+            //         child.children().len()
+            //     );
+            // }
+        }
+    }
+
+    // Camera
+    let main_camera_filename = "main".to_owned();
+    let mut main_camera = AssetCamera {
+        filename: main_camera_filename.clone(),
+        pos: point3(1.84, 0.8, 3.1),
+        front: vec3(0.0, 0.0, -1.0),
+        up: vec3(0.0, 1.0, 0.0),
+        right: vec3(0.0, 0.0, 0.0),
+
+        update_projection: true,
+        projection_kind: ProjectionKind::Perspective {
+            aspect_ratio: WIN_RATIO_X,
+            fov_y: 45.0,
+            near: 0.1,
+            far: 100.0,
+        },
+        projection: Matrix4::identity(),
+    };
+    // let mut main_camera = asset_manager.load_camera_asset(&main_camera_filename);
 
     // vertex data (pos 3, normal 3, texcoord 2)
     const VERTEX_DATA: [GLfloat; 288] = [
@@ -221,13 +288,15 @@ fn main() {
 
     // UI
     ui_program.use_program();
+    // TODO Camera UI
+    // FIX
     let ui_projection = ortho(0.0, WIN_DIM_X as f32, 0.0, WIN_DIM_Y as f32, -1.0, 1.0);
     ui_program.set_uniform_mat4("projection", &ui_projection);
 
     // font Comfortaa
     let comfortaa_filename = "comfortaa.ttf";
     let comfortaa_size = 32;
-    let comfortaa = asset_manager.new_font_asset(&comfortaa_filename, comfortaa_size);
+    let comfortaa = asset_manager.load_font_asset(&comfortaa_filename, comfortaa_size);
     asset_manager
         .font_assets
         .insert(comfortaa_filename.to_owned(), comfortaa);
@@ -235,7 +304,7 @@ fn main() {
     // font Teko
     let teko_filename = "teko.ttf";
     let teko_size = 22;
-    let teko_regular = asset_manager.new_font_asset(teko_filename, teko_size);
+    let teko_regular = asset_manager.load_font_asset(teko_filename, teko_size);
     asset_manager
         .font_assets
         .insert(teko_filename.to_owned(), teko_regular);
@@ -249,48 +318,6 @@ fn main() {
     let mut current_fps = 0.0;
     let mut ms_per_frame = 1000.0;
 
-    // {
-    //     // CREATE A MATERIAL AND SERIALIZE IT
-    //     let diffuse_filename = "crate_diffuse.jpg";
-    //     let diffuse = asset_manager.new_texture_asset(
-    //         diffuse_filename,
-    //         ImageKind::Diffuse,
-    //         Wrapping::Repeat,
-    //         Wrapping::Repeat,
-    //         Filtering::Nearest,
-    //         Filtering::Nearest,
-    //         true,
-    //     );
-    //     let specular_filename = "crate_specular.jpg";
-    //     let specular = asset_manager.new_texture_asset(
-    //         specular_filename,
-    //         ImageKind::Specular,
-    //         Wrapping::Repeat,
-    //         Wrapping::Repeat,
-    //         Filtering::Nearest,
-    //         Filtering::Nearest,
-    //         true,
-    //     );
-    //     let emissive_filename = "crate_emissive.jpg";
-    //     let emissive = asset_manager.new_texture_asset(
-    //         emissive_filename,
-    //         ImageKind::Emissive,
-    //         Wrapping::Repeat,
-    //         Wrapping::Repeat,
-    //         Filtering::Nearest,
-    //         Filtering::Nearest,
-    //         true,
-    //     );
-    //     let specular_strength = 32.0;
-    //     let material = AssetMaterial {
-    //         filename: "crate.material".to_owned(),
-    //         diffuse,
-    //         specular,
-    //         specular_strength,
-    //         emissive,
-    //     };
-    //     asset_manager.serialize_material_asset(&material);
-    // }
     let material = asset_manager.deserialize_material_asset("crate.material");
 
     let cube_positions: [Vector3<f32>; 10] = [
@@ -335,25 +362,33 @@ fn main() {
         specular: vec3(0.5, 0.5, 0.5),
     };
 
-    // let light = DirLight {
-    //     dir: vec3(-0.2, -1.0, -0.3),
-    //     light: Light {
-    //         ambient: vec3(0.05, 0.05, 0.05),
-    //         diffuse: vec3(0.4, 0.4, 0.4),
-    //         specular: vec3(0.5, 0.5, 0.5),
-    //     },
-    // };
-
     const KEY_AMOUNT: usize = glfw::ffi::KEY_LAST as usize;
     let mut key_states = [false; KEY_AMOUNT];
 
     let mut mouse_pos_x = 0.0;
     let mut mouse_pos_y = 0.0;
 
+    let speed_factor_default = 3.0;
+    let speed_factor_boost = 6.0;
+    let mut speed_factor;
+    let mut speed = 0.0;
+    let mut yaw = 200.0;
+    let mut pitch = -20.0;
+    let aim_sensitivity = 0.03;
+    let fov_y_min = 30.0;
+    let fov_y_max = 90.0;
+
+    // SECTION ALIVE LOOP
+
     while !revenant.window.should_close() {
         let frame_start_time = revenant.glfw.get_time() as f32;
         let delta_time = frame_start_time - last_frame;
         last_frame = frame_start_time;
+
+        // SECTION update variables
+
+        // TODO iterate over all cameras
+        main_camera.update();
 
         // SECTION poll events
 
@@ -370,21 +405,19 @@ fn main() {
                     let x_offset = mouse_pos_x - mouse_last_x;
                     let y_offset = mouse_last_y - mouse_pos_y;
 
-                    revenant.camera.yaw += x_offset as f32 * revenant.camera.aim_sensitivity;
-                    revenant.camera.pitch += y_offset as f32 * revenant.camera.aim_sensitivity;
+                    yaw += x_offset as f32 * aim_sensitivity;
+                    pitch += y_offset as f32 * aim_sensitivity;
 
-                    revenant.camera.pitch = revenant.camera.pitch.clamp(-89.9, 89.9);
-                    revenant.camera.yaw = revenant.camera.yaw.rem_euclid(360.0);
+                    pitch = pitch.clamp(-89.9, 89.9); // FIX use quaternions
+                    yaw = yaw.rem_euclid(360.0);
 
-                    revenant.camera.front = vec3(
-                        revenant.camera.pitch.to_radians().cos()
-                            * revenant.camera.yaw.to_radians().cos(),
-                        revenant.camera.pitch.to_radians().sin(),
-                        revenant.camera.pitch.to_radians().cos()
-                            * revenant.camera.yaw.to_radians().sin(),
+                    main_camera.front = vec3(
+                        pitch.to_radians().cos() * yaw.to_radians().cos(),
+                        pitch.to_radians().sin(),
+                        pitch.to_radians().cos() * yaw.to_radians().sin(),
                     )
                     .normalize();
-                    revenant.camera.right = revenant.camera.front.cross(revenant.camera.up);
+                    main_camera.right = main_camera.front.cross(main_camera.up);
                 }
                 glfw::WindowEvent::Key(key, _, action, _) => {
                     key_states[key as usize] = action != glfw::Action::Release;
@@ -392,12 +425,33 @@ fn main() {
                 glfw::WindowEvent::Scroll(_x_offset, y_offset) => {
                     let mouse_scroll_y = y_offset;
 
-                    revenant.camera.fov_y -= mouse_scroll_y as f32;
-                    revenant.camera.fov_y = revenant
-                        .camera
-                        .fov_y
-                        .max(revenant.camera.fov_y_min)
-                        .min(revenant.camera.fov_y_max);
+                    match main_camera.projection_kind {
+                        ProjectionKind::Perspective {
+                            fov_y,
+                            near,
+                            far,
+                            aspect_ratio,
+                        } => {
+                            let mut fov_y = fov_y - mouse_scroll_y as f32;
+                            fov_y = fov_y.clamp(fov_y_min, fov_y_max);
+                            main_camera.projection_kind = ProjectionKind::Perspective {
+                                fov_y,
+                                near,
+                                far,
+                                aspect_ratio,
+                            };
+                        }
+                        ProjectionKind::Orthographic {
+                            left: _,
+                            right: _,
+                            bottom: _,
+                            top: _,
+                            near: _,
+                            far: _,
+                        } => {
+                            // TODO implement
+                        }
+                    };
                 }
                 glfw::WindowEvent::FramebufferSize(width, height) => unsafe {
                     gl::Viewport(0, 0, width, height);
@@ -410,33 +464,33 @@ fn main() {
 
         // W move forward
         if key_states[glfw::Key::W as usize] {
-            revenant.camera.pos += revenant.camera.front * revenant.camera.speed;
+            main_camera.pos += main_camera.front * speed;
         }
         // S move backward
         if key_states[glfw::Key::S as usize] {
-            revenant.camera.pos -= revenant.camera.front * revenant.camera.speed;
+            main_camera.pos -= main_camera.front * speed;
         }
         // A move left
         if key_states[glfw::Key::A as usize] {
-            revenant.camera.pos -= revenant.camera.right * revenant.camera.speed;
+            main_camera.pos -= main_camera.right * speed;
         }
         // D move right
         if key_states[glfw::Key::D as usize] {
-            revenant.camera.pos += revenant.camera.right * revenant.camera.speed;
+            main_camera.pos += main_camera.right * speed;
         }
         // SPACE move up
         if key_states[glfw::Key::Space as usize] {
-            revenant.camera.pos += revenant.camera.up * revenant.camera.speed;
+            main_camera.pos += main_camera.up * speed;
         }
         // LEFT CTRL move down
         if key_states[glfw::Key::LeftControl as usize] {
-            revenant.camera.pos -= revenant.camera.up * revenant.camera.speed;
+            main_camera.pos -= main_camera.up * speed;
         }
         // LEFT SHIFT increase speed
         if key_states[glfw::Key::LeftShift as usize] {
-            revenant.camera.speed_factor = revenant.camera.speed_factor_boost;
+            speed_factor = speed_factor_boost;
         } else {
-            revenant.camera.speed_factor = revenant.camera.speed_factor_default;
+            speed_factor = speed_factor_default;
         }
 
         // P cycle through polygon modes
@@ -468,7 +522,7 @@ fn main() {
             gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
         }
 
-        revenant.camera.speed = revenant.camera.speed_factor * delta_time;
+        speed = speed_factor * delta_time;
 
         phong_program.use_program();
 
@@ -477,18 +531,18 @@ fn main() {
         material.emissive.bind(2);
 
         // TODO Translate - Rotate - Scale matrix manipulations queue to respect order
-        let projection = perspective(cgmath::Deg(revenant.camera.fov_y), WIN_RATIO_X, 0.1, 100.0);
+        // FIX rework
         let view = Matrix4::look_at_rh(
-            revenant.camera.pos,
-            revenant.camera.pos + revenant.camera.front,
-            revenant.camera.up,
+            main_camera.pos,
+            main_camera.pos + main_camera.front,
+            main_camera.up,
         );
 
         // update local uniform values
         phong_program.set_uniform_mat4("view", &view);
-        phong_program.set_uniform_mat4("projection", &projection);
+        phong_program.set_uniform_mat4("projection", &main_camera.projection);
 
-        phong_program.set_uniform_point3("camera_pos", revenant.camera.pos);
+        phong_program.set_uniform_point3("camera_pos", main_camera.pos);
 
         phong_program.set_uniform_int("material.diffuse", 0);
         phong_program.set_uniform_int("material.specular", 1);
@@ -569,8 +623,7 @@ fn main() {
         light_program.use_program();
 
         light_program.set_uniform_mat4("view", &view);
-        light_program.set_uniform_mat4("projection", &projection);
-
+        light_program.set_uniform_mat4("projection", &main_camera.projection);
         for i in 0..4 {
             let mut model = Matrix4::identity();
             let angle = 40.0 * frame_start_time + i as f32 * 10.0;
@@ -630,7 +683,7 @@ fn main() {
         render_text(
             format!(
                 "Camera.pos x{:0.2} y{:0.2} z{:0.2}",
-                revenant.camera.pos.x, revenant.camera.pos.y, revenant.camera.pos.z
+                main_camera.pos.x, main_camera.pos.y, main_camera.pos.z
             ),
             20.0,
             20.0,
@@ -643,10 +696,7 @@ fn main() {
         );
 
         render_text(
-            format!(
-                "Camera.yaw {:0.2} Camera.pitch {:0.2}",
-                revenant.camera.yaw, revenant.camera.pitch
-            ),
+            format!("Camera.yaw {:0.2} Camera.pitch {:0.2}", yaw, pitch),
             20.0,
             50.0,
             scale,

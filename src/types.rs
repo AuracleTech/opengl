@@ -1,10 +1,9 @@
-use std::{collections::HashMap, path::PathBuf, sync::mpsc::Receiver};
-
-use cgmath::{Point3, Vector2, Vector3, Vector4};
+use cgmath::{Matrix4, Point3, Vector2, Vector3, Vector4};
 use gl::types::{GLsizei, GLuint};
 use glfw::{Glfw, Window, WindowEvent};
 use image::DynamicImage;
 use serde::{Deserialize, Serialize};
+use std::{collections::HashMap, path::PathBuf, sync::mpsc::Receiver};
 
 pub type Uniaxial = f32;
 pub type Position = Point3<Uniaxial>;
@@ -19,7 +18,6 @@ pub struct Revenant {
     pub glfw: Glfw,
     pub window: Window,
     pub events: Receiver<(f64, WindowEvent)>,
-    pub camera: Camera,
     pub asset_manager: AssetManager,
 }
 
@@ -89,24 +87,46 @@ pub struct Mesh {
     pub ebo: GLuint,
 }
 
-pub struct Camera {
+pub struct AssetCamera {
+    pub filename: String,
     pub pos: Position,
-
     pub up: Direction,
     pub front: Direction,
     pub right: Direction,
 
-    pub fov_y: f32,
-    pub fov_y_min: f32,
-    pub fov_y_max: f32,
+    // TODO make a list of assets to update or something like that to avoid adding a bool to each asset
+    pub update_projection: bool,
+    pub projection_kind: ProjectionKind,
+    pub projection: Matrix4<f32>,
+}
 
-    pub speed_factor_default: f32,
-    pub speed_factor_boost: f32,
-    pub speed_factor: f32,
-    pub speed: f32,
-    pub yaw: f32,
-    pub pitch: f32,
-    pub aim_sensitivity: f32,
+// TODO remove debug
+#[derive(Serialize, Deserialize, Debug)]
+pub struct CameraSerialized {
+    pub pos: Vec<f32>,
+    pub up: Vec<f32>,
+    pub front: Vec<f32>,
+    pub right: Vec<f32>,
+    pub projection_kind: ProjectionKind,
+}
+
+// TODO remove debug
+#[derive(Serialize, Deserialize, Debug)]
+pub enum ProjectionKind {
+    Perspective {
+        aspect_ratio: f32,
+        near: f32,
+        far: f32,
+        fov_y: f32, // TODO OPTIMIZATION use Degree
+    },
+    Orthographic {
+        left: f32,
+        right: f32,
+        bottom: f32,
+        top: f32,
+        near: f32,
+        far: f32,
+    },
 }
 
 pub struct Character {
@@ -195,6 +215,7 @@ pub struct AssetMaterial {
     pub emissive: AssetTexture,
 }
 
+// TODO remove debug everywhere
 #[derive(Serialize, Deserialize, Debug)]
 pub struct AssetMaterialSerialized {
     pub diffuse: String,
@@ -212,5 +233,7 @@ pub struct AssetManager {
     pub texture_assets_path: PathBuf,
     pub material_assets: HashMap<String, AssetMaterial>,
     pub material_assets_path: PathBuf,
+    pub camera_assets: HashMap<String, AssetCamera>,
+    pub camera_assets_path: PathBuf, // TODO serialize camera
     pub assets_path: PathBuf,
 }
