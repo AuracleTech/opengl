@@ -255,7 +255,6 @@ impl AssetManager {
 
     // Camera
 
-    // TODO rename camera to AssetCamera
     pub fn load_camera_asset(&mut self, name: &str) -> AssetCamera {
         deserialize_camera(&self.camera_assets_path.join(name).with_extension("camera"))
     }
