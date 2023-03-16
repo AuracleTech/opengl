@@ -1,15 +1,17 @@
-mod camera;
-mod character;
-mod font;
-mod image;
-mod material;
+mod assets {
+    mod camera;
+    mod font;
+    mod image;
+    mod material;
+    mod texture;
+}
+
 #[allow(dead_code, unused_variables)]
 mod mesh;
 #[allow(dead_code)]
 mod program;
 mod serialization;
 mod shader;
-mod texture;
 #[allow(dead_code)]
 pub mod types; // TODO SET PRIVATE
 
@@ -22,6 +24,7 @@ use types::GLConfig;
 use crate::types::RGBA;
 pub use types::Revenant;
 
+// TODO OPTIMIZE there's certainly a better way, compiler should be able to optimize this
 #[cfg(not(debug_assertions))]
 pub fn get_assets_path() -> PathBuf {
     let exe_path = env::current_exe().expect("Failed to get current exe path");

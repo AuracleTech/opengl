@@ -1,3 +1,5 @@
+mod character;
+
 use crate::{
     assets_path,
     types::{AssetFont, Character},
@@ -22,7 +24,9 @@ impl AssetFont {
 
         // TODO make this configurable
         for c in 0..128 {
-            chars.insert(c as u8 as char, Character::new(&face, c, &name));
+            let mut character = Character::new(&face, c, &name);
+            character.texture.gl_register();
+            chars.insert(c as u8 as char, character);
         }
 
         Self { name, size, chars }

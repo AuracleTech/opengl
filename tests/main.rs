@@ -8,13 +8,13 @@ use gltf::Gltf;
 use revenant::{
     assets_path,
     types::{
-        AssetCamera, AssetFont, AssetImage, AssetMaterial, AssetTexture, DirLight, Filtering,
-        PointLight, Position, Program, ProjectionKind, Shader, SpotLight, TextureKind, TextureSize,
-        Wrapping,
+        AssetCamera, AssetFont, AssetImage, AssetMaterial, DirLight, PointLight, Position, Program,
+        ProjectionKind, Shader, SpotLight, TextureSize,
     },
     Revenant,
 };
 
+// TODO flexible window size
 const WIN_DIM_X: u32 = 1600;
 const WIN_DIM_Y: u32 = 900;
 const WIN_RATIO_X: f32 = WIN_DIM_X as f32 / WIN_DIM_Y as f32;
@@ -25,110 +25,6 @@ const SCREEN_DIM_Y: u32 = 1080;
 
 #[test]
 fn main() {
-    // Create assets
-    let diffuse = AssetTexture {
-        name: "crate_diffuse".to_owned(),
-        gl_id: 0,
-        image: AssetImage::load("crate_diffuse.jpg"),
-        kind: TextureKind::Diffuse,
-        s_wrapping: Wrapping::Repeat,
-        t_wrapping: Wrapping::Repeat,
-        min_filtering: Filtering::Nearest,
-        mag_filtering: Filtering::Nearest,
-        mipmapping: true,
-    };
-
-    let specular = AssetTexture {
-        name: "crate_specular".to_owned(),
-        gl_id: 0,
-        image: AssetImage::load("crate_specular.jpg"),
-        kind: TextureKind::Specular,
-        s_wrapping: Wrapping::Repeat,
-        t_wrapping: Wrapping::Repeat,
-        min_filtering: Filtering::Nearest,
-        mag_filtering: Filtering::Nearest,
-        mipmapping: true,
-    };
-
-    let emissive = AssetTexture {
-        name: "crate_emissive".to_owned(),
-        gl_id: 0,
-        image: AssetImage::load("crate_emissive.jpg"),
-        kind: TextureKind::Emissive,
-        s_wrapping: Wrapping::Repeat,
-        t_wrapping: Wrapping::Repeat,
-        min_filtering: Filtering::Nearest,
-        mag_filtering: Filtering::Nearest,
-        mipmapping: true,
-    };
-
-    AssetMaterial {
-        name: "crate".to_owned(),
-        diffuse,
-        specular,
-        specular_strength: 32.0,
-        emissive,
-    }
-    .save();
-
-    let diffuse = AssetTexture {
-        name: "crate_diffuse".to_owned(),
-        gl_id: 0,
-        image: AssetImage::load("crate_diffuse.jpg"),
-        kind: TextureKind::Diffuse,
-        s_wrapping: Wrapping::Repeat,
-        t_wrapping: Wrapping::Repeat,
-        min_filtering: Filtering::Nearest,
-        mag_filtering: Filtering::Nearest,
-        mipmapping: true,
-    };
-
-    let specular = AssetTexture {
-        name: "crate_specular".to_owned(),
-        gl_id: 0,
-        image: AssetImage::load("crate_specular.jpg"),
-        kind: TextureKind::Specular,
-        s_wrapping: Wrapping::Repeat,
-        t_wrapping: Wrapping::Repeat,
-        min_filtering: Filtering::Nearest,
-        mag_filtering: Filtering::Nearest,
-        mipmapping: true,
-    };
-
-    let emissive = AssetTexture {
-        name: "crate_emissive".to_owned(),
-        gl_id: 0,
-        image: AssetImage::load("crate_emissive.jpg"),
-        kind: TextureKind::Emissive,
-        s_wrapping: Wrapping::Repeat,
-        t_wrapping: Wrapping::Repeat,
-        min_filtering: Filtering::Nearest,
-        mag_filtering: Filtering::Nearest,
-        mipmapping: true,
-    };
-
-    diffuse.save();
-    specular.save();
-    emissive.save();
-
-    AssetCamera {
-        name: "main".to_owned(),
-        pos: point3(1.84, 0.8, 3.1),
-        front: vec3(0.0, 0.0, -1.0),
-        up: vec3(0.0, 1.0, 0.0),
-        right: vec3(0.0, 0.0, 0.0),
-
-        update_projection: true,
-        projection_kind: ProjectionKind::Perspective {
-            aspect_ratio: WIN_RATIO_X,
-            fov_y: 45.0,
-            near: 0.1,
-            far: 100.0,
-        },
-        projection: Matrix4::identity(),
-    }
-    .save();
-
     let mut revenant = Revenant::new(WIN_DIM_X, WIN_DIM_Y);
 
     // Print OpenGL version
@@ -146,7 +42,7 @@ fn main() {
 
     let (width, height) = match icon_asset.size {
         TextureSize::TwoD { width, height } => (width, height),
-        _ => panic!("Icon size is not 2D"),
+        _ => panic!("Icon size is not 2D."),
     };
 
     let mut icons = Vec::new();
@@ -167,8 +63,9 @@ fn main() {
     );
 
     // FIX
+    // TODO 3d models & more
     // GLTF loading
-    let binding = assets_path().join("models").join("pot_light_cam.gltf");
+    let binding = assets_path().join("models").join("tree_cam_light.glb");
     // let binding = asset_manager.assets_path.join("models/tree.glb");
     let blend_path = binding.to_str().expect("Failed to convert path to string");
 
@@ -344,17 +241,17 @@ fn main() {
     }
 
     // shaders
-    let vs = Shader::new(include_str!("../src/shaders/phong.vs"), gl::VERTEX_SHADER);
-    let fs = Shader::new(include_str!("../src/shaders/phong.fs"), gl::FRAGMENT_SHADER);
+    let vs = Shader::new("phong", gl::VERTEX_SHADER);
+    let fs = Shader::new("phong", gl::FRAGMENT_SHADER);
     let phong_program = Program::new(vs, fs);
 
-    let vs = Shader::new(include_str!("../src/shaders/light.vs"), gl::VERTEX_SHADER);
-    let fs = Shader::new(include_str!("../src/shaders/light.fs"), gl::FRAGMENT_SHADER);
+    let vs = Shader::new("light", gl::VERTEX_SHADER);
+    let fs = Shader::new("light", gl::FRAGMENT_SHADER);
     let light_program = Program::new(vs, fs);
 
     // TODO ui
-    let vs = Shader::new(include_str!("../src/shaders/ui.vs"), gl::VERTEX_SHADER);
-    let fs = Shader::new(include_str!("../src/shaders/ui.fs"), gl::FRAGMENT_SHADER);
+    let vs = Shader::new("ui", gl::VERTEX_SHADER);
+    let fs = Shader::new("ui", gl::FRAGMENT_SHADER);
     let ui_program = Program::new(vs, fs);
 
     // copy vertex data to buffer

@@ -19,8 +19,6 @@ pub fn deserialize<T>(path: PathBuf) -> T
 where
     T: DeserializeOwned,
 {
-    dbg!("Deserializing: ");
-    dbg!(&path);
     let mut file = File::open(path).expect("Failed to open file.");
     let mut encoded = Vec::new();
     file.read_to_end(&mut encoded)

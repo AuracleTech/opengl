@@ -138,7 +138,7 @@ impl AssetTexture {
     pub fn load(name: String) -> Self {
         let path = assets_path().join(PATH).join(&name).with_extension(EXT);
         let data = deserialize::<AssetTextureSerialized>(path);
-        let mut texture = Self {
+        Self {
             name,
             gl_id: 0,
             image: AssetImage::load(&data.filename),
@@ -148,9 +148,7 @@ impl AssetTexture {
             min_filtering: data.min_filtering,
             mag_filtering: data.mag_filtering,
             mipmapping: data.mipmapping,
-        };
-        texture.gl_register();
-        texture
+        }
     }
     pub fn save(self) {
         let path = assets_path()

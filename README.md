@@ -22,6 +22,7 @@
 - [x] Asset Manager
 - [x] Serialization & Deserialization
 - [x] Emissive Textures
+- [x] Bikeshedding
 - [ ] Loading Mesh
 - [ ] Loading Model
 - [ ] Setup world environment playground

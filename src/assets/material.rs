@@ -11,12 +11,18 @@ impl AssetMaterial {
     pub fn load(name: &str) -> Self {
         let path = assets_path().join(PATH).join(&name).with_extension(EXT);
         let data = deserialize::<AssetMaterialSerialized>(path);
+        let mut diffuse = AssetTexture::load(data.diffuse);
+        let mut specular = AssetTexture::load(data.specular);
+        let mut emissive = AssetTexture::load(data.emissive);
+        diffuse.gl_register();
+        specular.gl_register();
+        emissive.gl_register();
         Self {
             name: name.to_string(),
-            diffuse: AssetTexture::load(data.diffuse),
-            specular: AssetTexture::load(data.specular),
+            diffuse,
+            specular,
             specular_strength: data.specular_strength,
-            emissive: AssetTexture::load(data.emissive),
+            emissive,
         }
     }
     pub fn save(self) {

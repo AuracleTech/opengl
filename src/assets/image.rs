@@ -15,9 +15,6 @@ impl AssetImage {
             .to_str()
             .expect("Failed to convert file extension to str.");
 
-        dbg!("Loading texture: ");
-        dbg!(&path);
-
         // TODO support more than 3 channels
         let image = match extension {
             "jpg" | "png" => image::open(path).expect("Failed to load image."),
