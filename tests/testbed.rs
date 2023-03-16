@@ -24,7 +24,7 @@ const SCREEN_DIM_X: u32 = 1920;
 const SCREEN_DIM_Y: u32 = 1080;
 
 #[test]
-fn main() {
+fn testbed() {
     let mut revenant = Revenant::new(WIN_DIM_X, WIN_DIM_Y);
 
     // Print OpenGL version
