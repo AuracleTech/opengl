@@ -1,6 +1,12 @@
-use cgmath::{perspective, Deg};
+use crate::{
+    assets_path,
+    serialization::{deserialize, dir_to_vec, pos_to_vec, serialize, vec_to_dir, vec_to_pos},
+    types::{AssetCamera, CameraSerialized, ProjectionKind},
+};
+use cgmath::{perspective, Deg, Matrix4, SquareMatrix};
 
-use crate::types::{AssetCamera, ProjectionKind};
+const EXT: &str = "camera";
+const PATH: &str = "cameras";
 
 impl AssetCamera {
     pub fn update(&mut self) {
@@ -27,5 +33,31 @@ impl AssetCamera {
                 // FIX
             }
         }
+    }
+
+    pub fn load(name: String) -> Self {
+        let path = assets_path().join(PATH).join(&name).with_extension(EXT);
+        let data = deserialize::<CameraSerialized>(path);
+        Self {
+            name,
+            pos: vec_to_pos(data.pos),
+            up: vec_to_dir(data.up),
+            front: vec_to_dir(data.front),
+            right: vec_to_dir(data.right),
+            update_projection: true,
+            projection_kind: data.projection_kind,
+            projection: Matrix4::identity(),
+        }
+    }
+    pub fn save(self) {
+        let path = assets_path().join(PATH).join(self.name).with_extension(EXT);
+        let data = CameraSerialized {
+            pos: pos_to_vec(self.pos),
+            up: dir_to_vec(self.up),
+            front: dir_to_vec(self.front),
+            right: dir_to_vec(self.right),
+            projection_kind: self.projection_kind,
+        };
+        serialize(path, data);
     }
 }

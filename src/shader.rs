@@ -3,7 +3,7 @@ use gl::types::{GLchar, GLenum};
 use std::ffi::CString;
 
 impl Shader {
-    pub fn new(source: &str, shader_type: GLenum) -> Shader {
+    pub fn new(source: &str, shader_type: GLenum) -> Self {
         let id = unsafe { gl::CreateShader(shader_type) };
 
         if id <= 0 {

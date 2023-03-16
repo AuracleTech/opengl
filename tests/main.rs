@@ -6,10 +6,11 @@ use gl::types::{GLenum, GLfloat, GLsizei, GLsizeiptr, GLvoid};
 use glfw::Context;
 use gltf::Gltf;
 use revenant::{
-    self,
+    assets_path,
     types::{
-        AssetCamera, AssetFont, DirLight, PointLight, Position, Program, ProjectionKind, Shader,
-        SpotLight,
+        AssetCamera, AssetFont, AssetImage, AssetMaterial, AssetTexture, DirLight, Filtering,
+        PointLight, Position, Program, ProjectionKind, Shader, SpotLight, TextureKind, TextureSize,
+        Wrapping,
     },
     Revenant,
 };
@@ -22,9 +23,113 @@ const WIN_RATIO_X: f32 = WIN_DIM_X as f32 / WIN_DIM_Y as f32;
 const SCREEN_DIM_X: u32 = 1920;
 const SCREEN_DIM_Y: u32 = 1080;
 
+#[test]
 fn main() {
+    // Create assets
+    let diffuse = AssetTexture {
+        name: "crate_diffuse".to_owned(),
+        gl_id: 0,
+        image: AssetImage::load("crate_diffuse.jpg"),
+        kind: TextureKind::Diffuse,
+        s_wrapping: Wrapping::Repeat,
+        t_wrapping: Wrapping::Repeat,
+        min_filtering: Filtering::Nearest,
+        mag_filtering: Filtering::Nearest,
+        mipmapping: true,
+    };
+
+    let specular = AssetTexture {
+        name: "crate_specular".to_owned(),
+        gl_id: 0,
+        image: AssetImage::load("crate_specular.jpg"),
+        kind: TextureKind::Specular,
+        s_wrapping: Wrapping::Repeat,
+        t_wrapping: Wrapping::Repeat,
+        min_filtering: Filtering::Nearest,
+        mag_filtering: Filtering::Nearest,
+        mipmapping: true,
+    };
+
+    let emissive = AssetTexture {
+        name: "crate_emissive".to_owned(),
+        gl_id: 0,
+        image: AssetImage::load("crate_emissive.jpg"),
+        kind: TextureKind::Emissive,
+        s_wrapping: Wrapping::Repeat,
+        t_wrapping: Wrapping::Repeat,
+        min_filtering: Filtering::Nearest,
+        mag_filtering: Filtering::Nearest,
+        mipmapping: true,
+    };
+
+    AssetMaterial {
+        name: "crate".to_owned(),
+        diffuse,
+        specular,
+        specular_strength: 32.0,
+        emissive,
+    }
+    .save();
+
+    let diffuse = AssetTexture {
+        name: "crate_diffuse".to_owned(),
+        gl_id: 0,
+        image: AssetImage::load("crate_diffuse.jpg"),
+        kind: TextureKind::Diffuse,
+        s_wrapping: Wrapping::Repeat,
+        t_wrapping: Wrapping::Repeat,
+        min_filtering: Filtering::Nearest,
+        mag_filtering: Filtering::Nearest,
+        mipmapping: true,
+    };
+
+    let specular = AssetTexture {
+        name: "crate_specular".to_owned(),
+        gl_id: 0,
+        image: AssetImage::load("crate_specular.jpg"),
+        kind: TextureKind::Specular,
+        s_wrapping: Wrapping::Repeat,
+        t_wrapping: Wrapping::Repeat,
+        min_filtering: Filtering::Nearest,
+        mag_filtering: Filtering::Nearest,
+        mipmapping: true,
+    };
+
+    let emissive = AssetTexture {
+        name: "crate_emissive".to_owned(),
+        gl_id: 0,
+        image: AssetImage::load("crate_emissive.jpg"),
+        kind: TextureKind::Emissive,
+        s_wrapping: Wrapping::Repeat,
+        t_wrapping: Wrapping::Repeat,
+        min_filtering: Filtering::Nearest,
+        mag_filtering: Filtering::Nearest,
+        mipmapping: true,
+    };
+
+    diffuse.save();
+    specular.save();
+    emissive.save();
+
+    AssetCamera {
+        name: "main".to_owned(),
+        pos: point3(1.84, 0.8, 3.1),
+        front: vec3(0.0, 0.0, -1.0),
+        up: vec3(0.0, 1.0, 0.0),
+        right: vec3(0.0, 0.0, 0.0),
+
+        update_projection: true,
+        projection_kind: ProjectionKind::Perspective {
+            aspect_ratio: WIN_RATIO_X,
+            fov_y: 45.0,
+            near: 0.1,
+            far: 100.0,
+        },
+        projection: Matrix4::identity(),
+    }
+    .save();
+
     let mut revenant = Revenant::new(WIN_DIM_X, WIN_DIM_Y);
-    let mut asset_manager = revenant.asset_manager;
 
     // Print OpenGL version
     let version = revenant.window.get_context_version();
@@ -32,25 +137,22 @@ fn main() {
 
     // Set window icon
     let icon_filename = "icon.png";
-    let icon_asset = asset_manager.load_image_asset(&icon_filename);
-    let icon_image = icon_asset.image;
-    let icon_pixels: Vec<u32> = icon_image
-        .to_rgba8()
-        .into_raw()
-        .chunks(4)
-        .map(|chunk| {
-            let r = chunk[0];
-            let g = chunk[1];
-            let b = chunk[2];
-            let a = chunk[3];
-            // convert each pixel to a 32-bit integer
-            (a as u32) << 24 | (b as u32) << 16 | (g as u32) << 8 | (r as u32)
-        })
-        .collect();
+    let icon_asset = AssetImage::load(&icon_filename);
+    let mut icon_pixels: Vec<u32> = vec![];
+    for chunk in icon_asset.data.chunks_exact(4) {
+        let u32_value = u32::from_le_bytes([chunk[0], chunk[1], chunk[2], chunk[3]]);
+        icon_pixels.push(u32_value);
+    }
+
+    let (width, height) = match icon_asset.size {
+        TextureSize::TwoD { width, height } => (width, height),
+        _ => panic!("Icon size is not 2D"),
+    };
+
     let mut icons = Vec::new();
     icons.push(glfw::PixelImage {
-        width: icon_image.width(),
-        height: icon_image.height(),
+        width: width as u32,
+        height: height as u32,
         pixels: icon_pixels,
     });
     revenant.window.set_icon_from_pixels(icons);
@@ -66,7 +168,7 @@ fn main() {
 
     // FIX
     // GLTF loading
-    let binding = asset_manager.assets_path.join("models/pot_light_cam.gltf");
+    let binding = assets_path().join("models").join("pot_light_cam.gltf");
     // let binding = asset_manager.assets_path.join("models/tree.glb");
     let blend_path = binding.to_str().expect("Failed to convert path to string");
 
@@ -110,9 +212,9 @@ fn main() {
     }
 
     // Camera
-    let main_camera_filename = "main".to_owned();
+    let main_camera_name = "main".to_owned();
     let mut main_camera = AssetCamera {
-        filename: main_camera_filename.clone(),
+        name: main_camera_name.clone(),
         pos: point3(1.84, 0.8, 3.1),
         front: vec3(0.0, 0.0, -1.0),
         up: vec3(0.0, 1.0, 0.0),
@@ -242,17 +344,17 @@ fn main() {
     }
 
     // shaders
-    let vs = Shader::new(include_str!("shaders/phong.vs"), gl::VERTEX_SHADER);
-    let fs = Shader::new(include_str!("shaders/phong.fs"), gl::FRAGMENT_SHADER);
+    let vs = Shader::new(include_str!("../src/shaders/phong.vs"), gl::VERTEX_SHADER);
+    let fs = Shader::new(include_str!("../src/shaders/phong.fs"), gl::FRAGMENT_SHADER);
     let phong_program = Program::new(vs, fs);
 
-    let vs = Shader::new(include_str!("shaders/light.vs"), gl::VERTEX_SHADER);
-    let fs = Shader::new(include_str!("shaders/light.fs"), gl::FRAGMENT_SHADER);
+    let vs = Shader::new(include_str!("../src/shaders/light.vs"), gl::VERTEX_SHADER);
+    let fs = Shader::new(include_str!("../src/shaders/light.fs"), gl::FRAGMENT_SHADER);
     let light_program = Program::new(vs, fs);
 
     // TODO ui
-    let vs = Shader::new(include_str!("shaders/ui.vs"), gl::VERTEX_SHADER);
-    let fs = Shader::new(include_str!("shaders/ui.fs"), gl::FRAGMENT_SHADER);
+    let vs = Shader::new(include_str!("../src/shaders/ui.vs"), gl::VERTEX_SHADER);
+    let fs = Shader::new(include_str!("../src/shaders/ui.fs"), gl::FRAGMENT_SHADER);
     let ui_program = Program::new(vs, fs);
 
     // copy vertex data to buffer
@@ -294,20 +396,14 @@ fn main() {
     ui_program.set_uniform_mat4("projection", &ui_projection);
 
     // font Comfortaa
-    let comfortaa_filename = "comfortaa.ttf";
+    let comfortaa_name = "comfortaa".to_owned();
     let comfortaa_size = 32;
-    let comfortaa = asset_manager.load_font_asset(&comfortaa_filename, comfortaa_size);
-    asset_manager
-        .font_assets
-        .insert(comfortaa_filename.to_owned(), comfortaa);
+    let comfortaa = AssetFont::load(comfortaa_name, comfortaa_size);
 
     // font Teko
-    let teko_filename = "teko.ttf";
+    let teko_name = "teko".to_owned();
     let teko_size = 22;
-    let teko_regular = asset_manager.load_font_asset(teko_filename, teko_size);
-    asset_manager
-        .font_assets
-        .insert(teko_filename.to_owned(), teko_regular);
+    let teko = AssetFont::load(teko_name, teko_size);
 
     // calculate fps declarations
     let mut last_time = revenant.glfw.get_time();
@@ -318,7 +414,7 @@ fn main() {
     let mut current_fps = 0.0;
     let mut ms_per_frame = 1000.0;
 
-    let material = asset_manager.deserialize_material_asset("crate.material");
+    let material = AssetMaterial::load("crate");
 
     let cube_positions: [Vector3<f32>; 10] = [
         vec3(0.0, 0.0, 0.0),
@@ -647,15 +743,6 @@ fn main() {
         let color = vec3(0.8, 0.8, 0.67);
         let scale = 1.0;
 
-        let comfortaa = asset_manager
-            .font_assets
-            .get(comfortaa_filename)
-            .expect("Font not found");
-        let teko = asset_manager
-            .font_assets
-            .get(teko_filename)
-            .expect("Font not found");
-
         render_text(
             format!("{} FPS", current_fps),
             40.0,
@@ -801,7 +888,7 @@ fn render_text(
 
         // render glyph texture over quad
         unsafe {
-            gl::BindTexture(gl::TEXTURE_2D, character.texture.id);
+            gl::BindTexture(gl::TEXTURE_2D, character.texture.gl_id);
             // update content of VBO memory
             gl::BindBuffer(gl::ARRAY_BUFFER, *vbo);
             gl::BufferSubData(

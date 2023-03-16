@@ -1,9 +1,8 @@
 use cgmath::{Matrix4, Point3, Vector2, Vector3, Vector4};
 use gl::types::{GLsizei, GLuint};
 use glfw::{Glfw, Window, WindowEvent};
-use image::DynamicImage;
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, path::PathBuf, sync::mpsc::Receiver};
+use std::{collections::HashMap, sync::mpsc::Receiver};
 
 pub type Uniaxial = f32;
 pub type Position = Point3<Uniaxial>;
@@ -18,11 +17,20 @@ pub struct Revenant {
     pub glfw: Glfw,
     pub window: Window,
     pub events: Receiver<(f64, WindowEvent)>,
-    pub asset_manager: AssetManager,
+    pub gl: GLConfig,
+    pub font_assets: HashMap<String, AssetFont>,
+    pub texture_assets: HashMap<String, AssetTexture>,
+    pub material_assets: HashMap<String, AssetMaterial>,
+    pub camera_assets: HashMap<String, AssetCamera>,
 }
 
-#[derive(Debug)]
-pub enum ImageKind {
+pub struct GLConfig {
+    pub max_vertex_attribs: i32,
+}
+
+// TODO remove debug everywhere
+#[derive(Serialize, Deserialize, Debug)]
+pub enum TextureKind {
     Diffuse,
     Specular,
     Normal,
@@ -30,7 +38,8 @@ pub enum ImageKind {
     Emissive,
 }
 
-#[derive(Debug)]
+// TODO remove debug everywhere
+#[derive(Serialize, Deserialize, Debug)]
 pub enum ImageFormat {
     RGBA,
     RGB,
@@ -52,7 +61,8 @@ pub enum TextureSize {
     },
 }
 
-#[derive(Debug)]
+// TODO remove debug everywhere
+#[derive(Serialize, Deserialize, Debug)]
 pub enum Wrapping {
     Repeat,
     MirroredRepeat,
@@ -60,7 +70,8 @@ pub enum Wrapping {
     ClampToBorder,
 }
 
-#[derive(Debug)]
+// TODO remove debug everywhere
+#[derive(Serialize, Deserialize, Debug)]
 pub enum Filtering {
     Nearest,
     Linear,
@@ -88,7 +99,7 @@ pub struct Mesh {
 }
 
 pub struct AssetCamera {
-    pub filename: String,
+    pub name: String,
     pub pos: Position,
     pub up: Direction,
     pub front: Direction,
@@ -180,25 +191,32 @@ pub struct Program {
     pub id: GLuint,
 }
 
-#[derive(Debug)]
-pub struct AssetImage2D {
-    pub filename: String,
-    pub image: DynamicImage,
-}
-
 pub struct AssetFont {
-    pub filename: String,
+    pub name: String,
     pub size: u32,
     pub chars: HashMap<char, Character>,
 }
 
 #[derive(Debug)]
 pub struct AssetTexture {
+    pub name: String,
+    pub gl_id: GLuint,
+
+    pub image: AssetImage,
+
+    pub kind: TextureKind,
+    pub s_wrapping: Wrapping,
+    pub t_wrapping: Wrapping,
+    pub min_filtering: Filtering,
+    pub mag_filtering: Filtering,
+    pub mipmapping: bool,
+}
+
+// TODO remove debug everywhere
+#[derive(Serialize, Deserialize, Debug)]
+pub struct AssetTextureSerialized {
     pub filename: String,
-    pub id: GLuint,
-    pub kind: ImageKind,
-    pub format: ImageFormat,
-    pub size: TextureSize,
+    pub kind: TextureKind,
     pub s_wrapping: Wrapping,
     pub t_wrapping: Wrapping,
     pub min_filtering: Filtering,
@@ -207,8 +225,16 @@ pub struct AssetTexture {
 }
 
 #[derive(Debug)]
-pub struct AssetMaterial {
+pub struct AssetImage {
     pub filename: String,
+    pub data: Vec<u8>,
+    pub format: ImageFormat,
+    pub size: TextureSize,
+}
+
+#[derive(Debug)]
+pub struct AssetMaterial {
+    pub name: String,
     pub diffuse: AssetTexture,
     pub specular: AssetTexture,
     pub specular_strength: f32,
@@ -222,18 +248,4 @@ pub struct AssetMaterialSerialized {
     pub specular: String,
     pub specular_strength: f32,
     pub emissive: String,
-}
-
-pub struct AssetManager {
-    pub image_assets: HashMap<String, AssetImage2D>,
-    pub image_assets_path: PathBuf,
-    pub font_assets: HashMap<String, AssetFont>,
-    pub font_assets_path: PathBuf,
-    pub texture_assets: HashMap<String, AssetTexture>,
-    pub texture_assets_path: PathBuf,
-    pub material_assets: HashMap<String, AssetMaterial>,
-    pub material_assets_path: PathBuf,
-    pub camera_assets: HashMap<String, AssetCamera>,
-    pub camera_assets_path: PathBuf, // TODO serialize camera
-    pub assets_path: PathBuf,
 }

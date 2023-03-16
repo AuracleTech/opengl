@@ -1,7 +1,8 @@
-#[allow(dead_code)]
-pub mod asset; // TODO SET PRIVATE maybe
 mod camera;
 mod character;
+mod font;
+mod image;
+mod material;
 #[allow(dead_code, unused_variables)]
 mod mesh;
 #[allow(dead_code)]
@@ -13,10 +14,28 @@ mod texture;
 pub mod types; // TODO SET PRIVATE
 
 use glfw::Context;
+use std::collections::HashMap;
 use std::env;
+use std::path::PathBuf;
+use types::GLConfig;
 
-use crate::types::{AssetManager, RGBA};
+use crate::types::RGBA;
 pub use types::Revenant;
+
+#[cfg(not(debug_assertions))]
+pub fn get_assets_path() -> PathBuf {
+    let exe_path = env::current_exe().expect("Failed to get current exe path");
+    let mut assets_path = PathBuf::from(exe_path.parent().expect("Failed to get parent directory"));
+    assets_path.push("assets");
+    assets_path
+}
+
+#[cfg(debug_assertions)]
+pub fn assets_path() -> PathBuf {
+    let mut assets_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    assets_path.push("assets");
+    assets_path
+}
 
 impl Revenant {
     pub fn new(width: u32, height: u32) -> Self {
@@ -40,7 +59,6 @@ impl Revenant {
         window.set_cursor_mode(glfw::CursorMode::Disabled);
         window.make_current();
 
-        // TODO check if current_vertex_attribs <= max_vertex_attribs before initializing each vertex attributes
         let mut max_vertex_attribs = 0;
         unsafe {
             gl::GetIntegerv(gl::MAX_VERTEX_ATTRIBS, &mut max_vertex_attribs);
@@ -50,7 +68,12 @@ impl Revenant {
             glfw,
             window,
             events,
-            asset_manager: AssetManager::new(),
+            // TODO check if current_vertex_attribs <= max_vertex_attribs before initializing each vertex attributes
+            gl: GLConfig { max_vertex_attribs },
+            font_assets: HashMap::new(),
+            texture_assets: HashMap::new(),
+            material_assets: HashMap::new(),
+            camera_assets: HashMap::new(),
         }
     }
 }
