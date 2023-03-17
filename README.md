@@ -26,6 +26,8 @@
 - [x] Serialization & Deserialization
 - [x] Emissive Textures
 - [x] Bikeshedding
+- [ ] Outlining
+- [ ] Profiling
 - [ ] Loading Mesh
 - [ ] Loading Model
 - [ ] Setup world environment playground
@@ -60,8 +62,8 @@
 - [ ] BRDF Lookup Texture
 - [ ] Skybox
 - [ ] Test laboratory
-- [ ] Profiling
 - [ ] Dead code elimination
 - [ ] Performance monitoring
 - [ ] Asset allocator
 - [ ] Optimizations
+- [ ] Loading screen
