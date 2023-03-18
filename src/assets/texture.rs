@@ -1,55 +1,7 @@
-use crate::{
-    assets_path,
-    serialization::{deserialize, serialize},
-    types::{
-        AssetImage, AssetTexture, AssetTextureSerialized, Filtering, ImageFormat, TextureKind,
-        TextureSize, Wrapping,
-    },
-};
-use freetype::Bitmap;
+use crate::types::{Filtering, ImageFormat, ImageSize, Texture, Wrapping};
 use gl::types::{GLenum, GLint, GLvoid};
 
-const EXT: &str = "texture";
-const PATH: &str = "textures";
-
-impl AssetTexture {
-    pub fn from_bitmap(bitmap: &Bitmap, character: usize, font: &str) -> Self {
-        let data = bitmap.buffer().to_vec();
-        let size = TextureSize::TwoD {
-            width: bitmap.width(),
-            height: bitmap.rows(),
-        };
-        let format = ImageFormat::Unicolor;
-
-        // TODO make all these configurable
-        let kind = TextureKind::Diffuse;
-        let s_wrapping = Wrapping::Repeat;
-        let t_wrapping = Wrapping::Repeat;
-        let min_filtering = Filtering::Linear;
-        let mag_filtering = Filtering::Linear;
-
-        let mipmapping = false;
-
-        Self {
-            name: font.to_owned() + "_" + &character.to_string(),
-            gl_id: 0,
-
-            image: AssetImage {
-                filename: character.to_string(),
-                data,
-                format,
-                size,
-            },
-
-            kind,
-            s_wrapping,
-            t_wrapping,
-            min_filtering,
-            mag_filtering,
-            mipmapping,
-        }
-    }
-
+impl Texture {
     pub fn gl_register(&mut self) {
         let internal_format = match self.image.format {
             ImageFormat::RGB => gl::RGB,
@@ -83,15 +35,15 @@ impl AssetTexture {
             gl::BindTexture(target, id);
         }
         match self.image.size {
-            TextureSize::TwoD { width, height } => {
+            ImageSize::I2D { x, y } => {
                 unsafe {
                     // texture data
                     gl::TexImage2D(
                         target,
                         0,
                         internal_format as GLint,
-                        width,
-                        height,
+                        x,
+                        y,
                         0,
                         internal_format,
                         gl::UNSIGNED_BYTE,
@@ -133,38 +85,6 @@ impl AssetTexture {
             // TODO add texture type (2D, 3D ... ) in Texture struct
             gl::TexParameteri(gl::TEXTURE_2D, param, value);
         }
-    }
-
-    pub fn load(name: String) -> Self {
-        let path = assets_path().join(PATH).join(&name).with_extension(EXT);
-        let data = deserialize::<AssetTextureSerialized>(path);
-        Self {
-            name,
-            gl_id: 0,
-            image: AssetImage::load(&data.filename),
-            kind: data.kind,
-            s_wrapping: data.s_wrapping,
-            t_wrapping: data.t_wrapping,
-            min_filtering: data.min_filtering,
-            mag_filtering: data.mag_filtering,
-            mipmapping: data.mipmapping,
-        }
-    }
-    pub fn save(self) {
-        let path = assets_path()
-            .join(PATH)
-            .join(&self.name)
-            .with_extension(EXT);
-        let data = AssetTextureSerialized {
-            filename: self.image.filename,
-            kind: self.kind,
-            s_wrapping: self.s_wrapping,
-            t_wrapping: self.t_wrapping,
-            min_filtering: self.min_filtering,
-            mag_filtering: self.mag_filtering,
-            mipmapping: self.mipmapping,
-        };
-        serialize(path, data);
     }
 }
 

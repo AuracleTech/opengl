@@ -1,49 +1,21 @@
-mod assets {
-    mod camera;
-    mod font;
-    mod image;
-    mod material;
-    mod texture;
-}
-
-#[allow(dead_code, unused_variables)]
+mod assets;
 mod mesh;
-#[allow(dead_code)]
-mod program;
-mod serialization;
 mod shader;
 #[allow(dead_code)]
-pub mod types; // TODO SET PRIVATE
-
-use glfw::Context;
-use std::collections::HashMap;
-use std::env;
-use std::path::PathBuf;
-use types::GLConfig;
-
+pub mod types;
+pub mod vault; // TODO SET PRIVATE
 use crate::types::RGBA;
+use glfw::Context;
+use std::env;
 pub use types::Revenant;
-
-// TODO OPTIMIZE there's certainly a better way, compiler should be able to optimize this
-#[cfg(not(debug_assertions))]
-pub fn get_assets_path() -> PathBuf {
-    let exe_path = env::current_exe().expect("Failed to get current exe path");
-    let mut assets_path = PathBuf::from(exe_path.parent().expect("Failed to get parent directory"));
-    assets_path.push("assets");
-    assets_path
-}
-
-#[cfg(debug_assertions)]
-pub fn assets_path() -> PathBuf {
-    let mut assets_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    assets_path.push("assets");
-    assets_path
-}
+use types::{Assets, GLConfig};
 
 impl Revenant {
     pub fn new(width: u32, height: u32) -> Self {
         let mut glfw = glfw::init(glfw::FAIL_ON_ERRORS).expect("Failed to initialize GLFW.");
 
+        // TODO custom window name
+        // TODO custom window size and start position / fullscreen / borderless etc
         let (mut window, events) = glfw
             .create_window(
                 width,
@@ -72,11 +44,9 @@ impl Revenant {
             window,
             events,
             // TODO check if current_vertex_attribs <= max_vertex_attribs before initializing each vertex attributes
-            gl: GLConfig { max_vertex_attribs },
-            font_assets: HashMap::new(),
-            texture_assets: HashMap::new(),
-            material_assets: HashMap::new(),
-            camera_assets: HashMap::new(),
+            gl_config: GLConfig { max_vertex_attribs },
+            // TODO custom allocator? Maybe not necessary
+            assets: Assets::new(),
         }
     }
 }

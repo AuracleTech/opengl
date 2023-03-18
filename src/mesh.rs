@@ -1,12 +1,13 @@
-use crate::types::{AssetTexture, Indice, Mesh, Program, Vertex};
+use crate::types::{Indice, Mesh, Program, Texture, Vertex};
 
 impl Mesh {
-    pub fn new(vertices: Vec<Vertex>, indices: Vec<Indice>, textures: Vec<AssetTexture>) -> Self {
-        // IMPLEMENT
+    // IMPLEMENT
+    pub fn new(_vertices: Vec<Vertex>, _indices: Vec<Indice>, _textures: Vec<Texture>) -> Self {
         unimplemented!()
     }
 
-    pub fn draw(&self, program: &Program) {
-        // IMPLEMENT
+    // IMPLEMENT
+    pub fn draw(&self, _program: &Program) {
+        unimplemented!()
     }
 }

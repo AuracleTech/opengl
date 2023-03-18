@@ -1,36 +1,26 @@
-use crate::{
-    assets_path,
-    types::{AssetImage, ImageFormat, TextureSize},
-};
+use crate::types::{Image, ImageFormat, ImageSize};
 use image::DynamicImage;
+use std::path::PathBuf;
 
-const PATH: &str = "images";
-
-impl AssetImage {
-    pub fn load(filename: &str) -> Self {
-        let path = assets_path().join(PATH).join(&filename);
-        let extension = path
-            .extension()
-            .expect("Failed to get file extension.")
-            .to_str()
-            .expect("Failed to convert file extension to str.");
-
+impl Image {
+    pub fn from_foreign(path: PathBuf, extension: &str) -> Self {
         // TODO support more than 3 channels
         let image = match extension {
             "jpg" | "png" => image::open(path).expect("Failed to load image."),
             _ => panic!("Unsupported image extension: {}", extension),
         };
 
-        if image.width() > i32::MAX as u32 {
-            panic!("Texture '{}' width too large dataloss imminent.", filename);
-        }
-        if image.height() > i32::MAX as u32 {
-            panic!("Texture '{}' height too tall dataloss imminent.", filename);
+        const MAX_TEXTURE_SIZE: u32 = std::i32::MAX as u32;
+        if image.width() > MAX_TEXTURE_SIZE || image.height() > MAX_TEXTURE_SIZE {
+            panic!(
+                "Texture size exceeds maximum allowed size of {} pixels",
+                MAX_TEXTURE_SIZE
+            );
         }
 
-        let size = TextureSize::TwoD {
-            width: image.width() as i32,
-            height: image.height() as i32,
+        let size = ImageSize::I2D {
+            x: image.width() as i32,
+            y: image.height() as i32,
         };
 
         // TODO support more than 3 channels
@@ -46,11 +36,6 @@ impl AssetImage {
             _ => panic!("Image format not supported"),
         };
 
-        Self {
-            filename: filename.to_string(),
-            data,
-            format,
-            size,
-        }
+        Self { data, format, size }
     }
 }

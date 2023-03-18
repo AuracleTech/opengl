@@ -1,0 +1,16 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"type": "cargo",
+			"command": "run",
+			"args": ["--example", "general"],
+			"problemMatcher": ["$rustc"],
+			"label": "Run example general by default",
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			}
+		}
+	]
+}

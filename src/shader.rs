@@ -1,20 +1,14 @@
-use crate::{assets_path, types::Shader};
-use gl::types::{GLchar, GLenum};
-use std::{ffi::CString, fs::File, io::Read};
-
-const PATH: &str = "shaders";
-const EXT_VERTEX_SHADER: &str = "vs";
-const EXT_FRAGMENT_SHADER: &str = "fs";
-const EXT_GEOMETRY_SHADER: &str = "gs";
+use crate::types::Shader;
+use gl::types::GLchar;
+use std::{ffi::CString, fs::File, io::Read, path::PathBuf};
 
 impl Shader {
-    pub fn new(name: &str, shader_type: GLenum) -> Self {
-        let mut path = assets_path().join(PATH).join(&name);
-        path = match shader_type {
-            gl::VERTEX_SHADER => path.with_extension(EXT_VERTEX_SHADER),
-            gl::FRAGMENT_SHADER => path.with_extension(EXT_FRAGMENT_SHADER),
-            gl::GEOMETRY_SHADER => path.with_extension(EXT_GEOMETRY_SHADER),
-            _ => panic!("Invalid shader type."),
+    pub fn from_foreign(path: PathBuf, extension: &str) -> Self {
+        let shader_type = match extension {
+            "vs" => gl::VERTEX_SHADER,
+            "fs" => gl::FRAGMENT_SHADER,
+            "gs" => gl::GEOMETRY_SHADER,
+            _ => panic!("Unknown shader extension: '{}'.", extension),
         };
 
         let mut source = String::new();
@@ -42,7 +36,7 @@ impl Shader {
         }
 
         if success != 0 {
-            return Self { id };
+            return Self { gl_id: id };
         }
 
         let mut log_length = 0;

@@ -1,4 +1,4 @@
-use cgmath::{Matrix4, Point3, Vector2, Vector3, Vector4};
+use cgmath::{Matrix4, Point3, Vector3, Vector4};
 use gl::types::{GLsizei, GLuint};
 use glfw::{Glfw, Window, WindowEvent};
 use serde::{Deserialize, Serialize};
@@ -12,16 +12,27 @@ pub type TexCoord = f32;
 pub type Indice = u32;
 pub type RGB = Vector3<f32>;
 pub type RGBA = Vector4<f32>;
+pub type Rect = Vector4<f32>;
 
 pub struct Revenant {
     pub glfw: Glfw,
     pub window: Window,
     pub events: Receiver<(f64, WindowEvent)>,
-    pub gl: GLConfig,
-    pub font_assets: HashMap<String, AssetFont>,
-    pub texture_assets: HashMap<String, AssetTexture>,
-    pub material_assets: HashMap<String, AssetMaterial>,
-    pub camera_assets: HashMap<String, AssetCamera>,
+    pub gl_config: GLConfig,
+    pub assets: Assets,
+}
+
+pub struct Assets {
+    pub programs: HashMap<String, Program>,
+    pub images: HashMap<String, Image>,
+    pub textures: HashMap<String, Texture>,
+    pub materials: HashMap<String, Material>,
+    pub fonts: HashMap<String, Font>,
+    // TODO meshes: HashMap::new(),
+    pub cameras: HashMap<String, Camera>,
+    pub point_lights: HashMap<String, PointLight>,
+    pub dir_lights: HashMap<String, DirLight>,
+    pub spot_lights: HashMap<String, SpotLight>,
 }
 
 pub struct GLConfig {
@@ -48,17 +59,10 @@ pub enum ImageFormat {
     Unicolor,
 }
 
-#[derive(Debug)]
-pub enum TextureSize {
-    TwoD {
-        width: GLsizei,
-        height: GLsizei,
-    },
-    ThreeD {
-        width: GLsizei,
-        height: GLsizei,
-        depth: GLsizei,
-    },
+#[derive(Serialize, Deserialize, Debug)]
+pub enum ImageSize {
+    I2D { x: GLsizei, y: GLsizei },
+    I3D { x: GLsizei, y: GLsizei, z: GLsizei },
 }
 
 // TODO remove debug everywhere
@@ -91,15 +95,15 @@ pub struct Vertex {
 pub struct Mesh {
     pub vertices: Vec<Vertex>,
     pub indices: Vec<Indice>,
-    pub textures: Vec<AssetTexture>,
+    pub textures: Vec<Texture>,
 
     pub vao: GLuint,
     pub vbo: GLuint,
     pub ebo: GLuint,
 }
 
-pub struct AssetCamera {
-    pub name: String,
+#[derive(Serialize, Deserialize, Debug)]
+pub struct Camera {
     pub pos: Position,
     pub up: Direction,
     pub front: Direction,
@@ -109,16 +113,6 @@ pub struct AssetCamera {
     pub update_projection: bool,
     pub projection_kind: ProjectionKind,
     pub projection: Matrix4<f32>,
-}
-
-// TODO remove debug
-#[derive(Serialize, Deserialize, Debug)]
-pub struct CameraSerialized {
-    pub pos: Vec<f32>,
-    pub up: Vec<f32>,
-    pub front: Vec<f32>,
-    pub right: Vec<f32>,
-    pub projection_kind: ProjectionKind,
 }
 
 // TODO remove debug
@@ -140,13 +134,7 @@ pub enum ProjectionKind {
     },
 }
 
-pub struct Character {
-    pub texture: AssetTexture,
-    pub size: Vector2<i32>,
-    pub bearing: Vector2<i32>,
-    pub advance: i64,
-}
-
+#[derive(Serialize, Deserialize, Debug)]
 pub struct DirLight {
     pub dir: Direction,
 
@@ -155,6 +143,7 @@ pub struct DirLight {
     pub specular: RGB,
 }
 
+#[derive(Serialize, Deserialize, Debug)]
 pub struct PointLight {
     pub pos: Position,
 
@@ -167,6 +156,7 @@ pub struct PointLight {
     pub specular: RGB,
 }
 
+#[derive(Serialize, Deserialize, Debug)]
 pub struct SpotLight {
     pub pos: Position,
     pub dir: Direction,
@@ -184,26 +174,37 @@ pub struct SpotLight {
 }
 
 pub struct Shader {
-    pub id: GLuint,
+    pub gl_id: GLuint,
 }
 
 pub struct Program {
-    pub id: GLuint,
-}
-
-pub struct AssetFont {
-    pub name: String,
-    pub size: u32,
-    pub chars: HashMap<char, Character>,
-}
-
-#[derive(Debug)]
-pub struct AssetTexture {
-    pub name: String,
     pub gl_id: GLuint,
+}
 
-    pub image: AssetImage,
+pub struct Font {
+    pub sprite: Texture,
+    pub glyphs: HashMap<char, Glyph>,
+    pub width: u32,
+    pub height: u32,
+    pub line_height: u32,
+}
 
+pub struct Glyph {
+    pub width: i32,
+    pub height: i32,
+    pub sprite_x: i32,
+    pub sprite_y: i32,
+    pub bearing_x: i32,
+    pub bearing_y: i32,
+    pub advance_x: i32,
+    pub advance_y: i32,
+}
+
+// TODO remove debug everywhere
+#[derive(Serialize, Deserialize, Debug)]
+pub struct Texture {
+    pub gl_id: GLuint,
+    pub image: Image,
     pub kind: TextureKind,
     pub s_wrapping: Wrapping,
     pub t_wrapping: Wrapping,
@@ -214,38 +215,17 @@ pub struct AssetTexture {
 
 // TODO remove debug everywhere
 #[derive(Serialize, Deserialize, Debug)]
-pub struct AssetTextureSerialized {
-    pub filename: String,
-    pub kind: TextureKind,
-    pub s_wrapping: Wrapping,
-    pub t_wrapping: Wrapping,
-    pub min_filtering: Filtering,
-    pub mag_filtering: Filtering,
-    pub mipmapping: bool,
-}
-
-#[derive(Debug)]
-pub struct AssetImage {
-    pub filename: String,
+pub struct Image {
     pub data: Vec<u8>,
     pub format: ImageFormat,
-    pub size: TextureSize,
-}
-
-#[derive(Debug)]
-pub struct AssetMaterial {
-    pub name: String,
-    pub diffuse: AssetTexture,
-    pub specular: AssetTexture,
-    pub specular_strength: f32,
-    pub emissive: AssetTexture,
+    pub size: ImageSize,
 }
 
 // TODO remove debug everywhere
 #[derive(Serialize, Deserialize, Debug)]
-pub struct AssetMaterialSerialized {
-    pub diffuse: String,
-    pub specular: String,
+pub struct Material {
+    pub diffuse: Texture,
+    pub specular: Texture,
     pub specular_strength: f32,
-    pub emissive: String,
+    pub emissive: Texture,
 }

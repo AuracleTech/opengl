@@ -7,8 +7,8 @@ impl Program {
         // shader program
         let shader_program = unsafe {
             let program = gl::CreateProgram();
-            gl::AttachShader(program, vertex_shader.id);
-            gl::AttachShader(program, fragment_shader.id);
+            gl::AttachShader(program, vertex_shader.gl_id);
+            gl::AttachShader(program, fragment_shader.gl_id);
             gl::LinkProgram(program);
             program
         };
@@ -45,16 +45,18 @@ impl Program {
 
         // cleanup
         unsafe {
-            gl::DeleteShader(vertex_shader.id);
-            gl::DeleteShader(fragment_shader.id);
+            gl::DeleteShader(vertex_shader.gl_id);
+            gl::DeleteShader(fragment_shader.gl_id);
         }
 
-        Self { id: shader_program }
+        Self {
+            gl_id: shader_program,
+        }
     }
 
     pub fn use_program(&self) {
         unsafe {
-            gl::UseProgram(self.id);
+            gl::UseProgram(self.gl_id);
         }
     }
 
@@ -65,7 +67,7 @@ impl Program {
      */
     pub fn set_uniform_bool(&self, name: &str, value: bool) {
         unsafe {
-            gl::Uniform1i(get_uniform_location(self.id, name), value as i32);
+            gl::Uniform1i(get_uniform_location(self.gl_id, name), value as i32);
         }
     }
 
@@ -76,7 +78,7 @@ impl Program {
      */
     pub fn set_uniform_int(&self, name: &str, value: i32) {
         unsafe {
-            gl::Uniform1i(get_uniform_location(self.id, name), value);
+            gl::Uniform1i(get_uniform_location(self.gl_id, name), value);
         }
     }
 
@@ -87,7 +89,7 @@ impl Program {
      */
     pub fn set_uniform_float(&self, name: &str, value: f32) {
         unsafe {
-            gl::Uniform1f(get_uniform_location(self.id, name), value);
+            gl::Uniform1f(get_uniform_location(self.gl_id, name), value);
         }
     }
 
@@ -100,7 +102,7 @@ impl Program {
     pub fn set_uniform_mat4(&self, name: &str, value: &Matrix4<f32>) {
         unsafe {
             gl::UniformMatrix4fv(
-                get_uniform_location(self.id, name),
+                get_uniform_location(self.gl_id, name),
                 1,
                 gl::FALSE,
                 value as *const _ as *const f32,
@@ -117,7 +119,7 @@ impl Program {
     pub fn set_uniform_vec3(&self, name: &str, value: Vector3<f32>) {
         unsafe {
             gl::Uniform3f(
-                get_uniform_location(self.id, name),
+                get_uniform_location(self.gl_id, name),
                 value.x,
                 value.y,
                 value.z,
@@ -129,7 +131,7 @@ impl Program {
     pub fn set_uniform_point3(&self, name: &str, value: Point3<f32>) {
         unsafe {
             gl::Uniform3f(
-                get_uniform_location(self.id, name),
+                get_uniform_location(self.gl_id, name),
                 value.x,
                 value.y,
                 value.z,
@@ -138,6 +140,8 @@ impl Program {
     }
 }
 
+// TODO this should be a new file called uniform.rs
+// TODO during runtime this should be cached in a hashmap
 fn get_uniform_location(program_id: u32, name: &str) -> i32 {
     let formatted_name =
         std::ffi::CString::new(name).expect("Failed to convert uniform name to CString.");
