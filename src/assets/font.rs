@@ -39,16 +39,16 @@ impl Font {
             let glyphslot = face.glyph();
             let bitmap = glyphslot.bitmap();
 
-            for y in 0..bitmap.rows() {
-                for x in 0..bitmap.width() {
-                    let pixel = bitmap.buffer()[(y * bitmap.width() + x) as usize];
-                    sprite_sheet.put_pixel(
-                        (sprite_x + x) as u32,
-                        (sprite_y + y) as u32,
-                        Rgba([255, 255, 255, pixel]),
-                    );
-                }
-            }
+            // for y in 0..bitmap.rows() {
+            //     for x in 0..bitmap.width() {
+            //         let pixel = bitmap.buffer()[(y * bitmap.width() + x) as usize];
+            //         sprite_sheet.put_pixel(
+            //             (sprite_x + x) as u32,
+            //             (sprite_y + y) as u32,
+            //             Rgba([255, 255, 255, pixel]),
+            //         );
+            //     }
+            // }
 
             sprite_x += width as i32;
 

@@ -3,6 +3,7 @@ mod camera;
 mod font;
 mod image;
 mod program;
+mod shader;
 mod texture;
 
 impl crate::types::Assets {
@@ -15,9 +16,9 @@ impl crate::types::Assets {
             fonts: HashMap::new(),
             // TODO meshes: HashMap::new(),
             cameras: HashMap::new(),
-            point_lights: HashMap::new(),
-            dir_lights: HashMap::new(),
-            spot_lights: HashMap::new(),
+            pointlights: HashMap::new(),
+            dirlights: HashMap::new(),
+            spotlights: HashMap::new(),
         }
     }
 }

@@ -10,7 +10,7 @@ use std::{
 const VAULT_FOLDER: &str = "vault";
 
 const FOREIGN_FOLDER: &str = "foreign";
-const SHADER_FOLDER: &str = "shader";
+const SHADER_FOLDER: &str = "shaders";
 const NATIVE_FOLDER: &str = "soul";
 const NATIVE_EXT: &str = "soul";
 
@@ -38,6 +38,7 @@ fn get_path(name: &str, folder: &str, extension: &str) -> PathBuf {
         .with_extension(extension)
 }
 
+// TODO load and export with a prefix from the struct name
 pub fn save<T>(name: &str, data: T)
 where
     T: Serialize,

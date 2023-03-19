@@ -1,34 +1,560 @@
-use cgmath::{ortho, point3, vec3, vec4, InnerSpace, Matrix4, SquareMatrix, Vector3};
+use cgmath::{
+    point3, vec3, vec4, Angle, Deg, EuclideanSpace, InnerSpace, Matrix4, SquareMatrix, Vector3,
+};
 use gl::types::{GLenum, GLfloat, GLsizei, GLsizeiptr, GLvoid};
+use glfw::Context;
 use revenant::{
     types::{
-        Font, Image, Material, PointLight, Position, Program, ProjectionKind, Shader, Texture,
+        Camera, DirLight, Filtering, ImageSize, Material, PointLight, Position, Program,
+        ProjectionKind, SpotLight, Texture, TextureKind, Wrapping,
     },
-    Revenant,
+    vault, Revenant,
 };
 
 // TODO flexible window size
 const WIN_DIM_X: u32 = 1600;
 const WIN_DIM_Y: u32 = 900;
-const WIN_RATIO_X: f32 = WIN_DIM_X as f32 / WIN_DIM_Y as f32;
 
 // TODO flexible window aspect ratio
 const SCREEN_DIM_X: u32 = 1920;
 const SCREEN_DIM_Y: u32 = 1080;
 
-const POINTLIGHT_POSITION: [Position; 4] = [
-    point3(0.7, 0.2, 2.0),
-    point3(2.3, -3.3, -4.0),
-    point3(-4.0, 2.0, -12.0),
-    point3(0.0, 0.0, -3.0),
-];
+const KEY_AMOUNT: usize = glfw::ffi::KEY_LAST as usize;
+struct State {
+    mouse_pos_x: f64,
+    mouse_pos_y: f64,
+    speed_factor_default: f32,
+    speed_factor_boost: f32,
+    speed_factor: f32,
+    speed: f32,
+    yaw: f32,
+    pitch: f32,
+    aim_sensitivity: f32,
+    fov_y_min: f32,
+    fov_y_max: f32,
+    last_time: f64,
+    current_fps: u32,
+    ms_per_frame: f64,
+    frame_cycle: u32,
+    frame_number: u32,
+    last_frame: f64,
+    key_states: [bool; KEY_AMOUNT],
+}
 
 fn main() {
     optick::start_capture();
-
     let mut revenant = Revenant::new(WIN_DIM_X, WIN_DIM_Y);
-    init(&revenant);
+    init_revenant(&mut revenant);
+    if false {
+        create_assets();
+    }
     load_assets(&mut revenant);
+    init_gl(&mut revenant);
+
+    let mut states = State {
+        mouse_pos_x: 0.0,
+        mouse_pos_y: 0.0,
+        speed_factor_default: 3.0,
+        speed_factor_boost: 6.0,
+        speed_factor: 3.0,
+        speed: 0.0,
+        yaw: 200.0,
+        pitch: -20.0,
+        aim_sensitivity: 0.03,
+        fov_y_min: 30.0,
+        fov_y_max: 90.0,
+        last_time: revenant.glfw.get_time(),
+        frame_cycle: 0,
+        current_fps: 0,
+        ms_per_frame: 1000.0,
+        frame_number: 0,
+        last_frame: 0.0,
+        key_states: [false; KEY_AMOUNT],
+    };
+
+    while !revenant.window.should_close() {
+        optick::next_frame();
+        input(&mut revenant, &mut states);
+        // TODO update_multiplayer(&revenant);how to get screen dimension in rust GLFW
+        // TODO update_AI(&revenant);
+        // TODO update_physics(&revenant);
+        // TODO handle_collisions(&revenant);
+        update(&mut revenant);
+        render(&mut revenant, &mut states);
+        // TODO audio(&revenant);
+        // TODO post_process(&revenant);
+    }
+
+    cleanup(&revenant);
+}
+
+#[inline]
+fn init_gl(revenant: &mut Revenant) {
+    revenant::set_clear_color(vec4(0.082, 0.082, 0.125, 1.0));
+    unsafe {
+        gl::Enable(gl::BLEND);
+        gl::BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
+    }
+
+    for (_, texture) in revenant.assets.textures.iter_mut() {
+        texture.gl_register();
+    }
+    for (_, material) in revenant.assets.materials.iter_mut() {
+        material.diffuse.gl_register();
+        material.specular.gl_register();
+        material.emissive.gl_register();
+    }
+}
+
+#[inline]
+fn init_revenant(revenant: &mut Revenant) {
+    // Print OpenGL version
+    let version = revenant.window.get_context_version();
+    println!("OpenGL version: {}.{}", version.major, version.minor);
+
+    // Set window icon
+    let icon_asset = vault::load_foreign_image("icon", "png");
+    let mut icon_pixels: Vec<u32> = vec![];
+    for chunk in icon_asset.data.chunks_exact(4) {
+        let u32_value = u32::from_le_bytes([chunk[0], chunk[1], chunk[2], chunk[3]]);
+        icon_pixels.push(u32_value);
+    }
+    let (width, height) = match icon_asset.size {
+        ImageSize::I2D { x, y } => (x, y),
+        _ => panic!("Icon size is not 2D."),
+    };
+    let mut icons = Vec::new();
+    icons.push(glfw::PixelImage {
+        width: width as u32,
+        height: height as u32,
+        pixels: icon_pixels,
+    });
+    revenant.window.set_icon_from_pixels(icons);
+
+    // Unlock framerate
+    revenant.glfw.set_swap_interval(glfw::SwapInterval::None);
+
+    // Center window
+    revenant.window.set_pos(
+        (SCREEN_DIM_X - WIN_DIM_X) as i32 / 2,
+        (SCREEN_DIM_Y - WIN_DIM_Y) as i32 / 2,
+    );
+}
+
+#[inline]
+fn create_assets() {
+    let image_crate_diffuse = vault::load_foreign_image("crate_diffuse", "jpg");
+    let image_crate_specular = vault::load_foreign_image("crate_specular", "jpg");
+    let image_crate_emissive = vault::load_foreign_image("crate_emissive", "jpg");
+    let texture_crate_diffuse = Texture {
+        gl_id: 0,
+        image: vault::load("image_crate_diffuse"),
+        kind: TextureKind::Diffuse,
+        s_wrapping: Wrapping::Repeat,
+        t_wrapping: Wrapping::Repeat,
+        min_filtering: Filtering::Nearest,
+        mag_filtering: Filtering::Nearest,
+        mipmapping: true,
+    };
+    let texture_crate_specular = Texture {
+        gl_id: 0,
+        image: vault::load("image_crate_specular"),
+        kind: TextureKind::Specular,
+        s_wrapping: Wrapping::Repeat,
+        t_wrapping: Wrapping::Repeat,
+        min_filtering: Filtering::Nearest,
+        mag_filtering: Filtering::Nearest,
+        mipmapping: true,
+    };
+    let texture_crate_emissive = Texture {
+        gl_id: 0,
+        image: vault::load("image_crate_emissive"),
+        kind: TextureKind::Emissive,
+        s_wrapping: Wrapping::Repeat,
+        t_wrapping: Wrapping::Repeat,
+        min_filtering: Filtering::Nearest,
+        mag_filtering: Filtering::Nearest,
+        mipmapping: true,
+    };
+
+    let material_crate = Material {
+        diffuse: vault::load("texture_crate_diffuse"),
+        specular: vault::load("texture_crate_specular"),
+        specular_strength: 32.0,
+        emissive: vault::load("texture_crate_emissive"),
+    };
+
+    let camera_main = Camera {
+        pos: point3(1.84, 0.8, 3.1),
+        front: vec3(0.0, 0.0, -1.0),
+        up: vec3(0.0, 1.0, 0.0),
+        right: vec3(0.0, 0.0, 0.0),
+
+        update_projection: true,
+        projection_kind: ProjectionKind::Perspective {
+            aspect_ratio: 16.0 / 9.0, // TODO get from window size
+            fov_y: 45.0,
+            near: 0.1,
+            far: 100.0,
+        },
+        projection: Matrix4::identity(),
+    };
+    let camera_ui = Camera {
+        pos: point3(0.0, 0.0, 0.0),
+        front: vec3(0.0, 0.0, -1.0),
+        up: vec3(0.0, 1.0, 0.0),
+        right: vec3(0.0, 0.0, 0.0),
+
+        update_projection: true,
+        projection_kind: ProjectionKind::Orthographic {
+            left: -1.0,
+            right: 1.0,
+            bottom: -1.0,
+            top: 1.0,
+            near: -1.0,
+            far: 1.0,
+        },
+        projection: Matrix4::identity(),
+    };
+
+    let spotlight = SpotLight {
+        pos: point3(1.2, 1.0, 2.0),
+        dir: vec3(-1.2, -2.0, -0.3),
+        cut_off: Angle::cos(Deg(12.5)),
+        outer_cut_off: Angle::cos(Deg(60.0)),
+
+        constant: 1.0,
+        linear: 0.09,
+        quadratic: 0.032,
+
+        ambient: vec3(0.2, 0.2, 0.2),
+        diffuse: vec3(0.5, 0.5, 0.5),
+        specular: vec3(1.0, 1.0, 1.0),
+    };
+    let pointlight = PointLight {
+        pos: point3(0.7, 0.2, 2.0),
+
+        constant: 1.0,
+        linear: 0.09,
+        quadratic: 0.032,
+
+        ambient: vec3(0.2, 0.2, 0.2),
+        diffuse: vec3(0.5, 0.5, 0.5),
+        specular: vec3(1.0, 1.0, 1.0),
+    };
+    let dirlight = DirLight {
+        dir: vec3(-0.2, -1.0, -0.3),
+        ambient: vec3(0.05, 0.05, 0.05),
+        diffuse: vec3(0.4, 0.4, 0.4),
+        specular: vec3(0.5, 0.5, 0.5),
+    };
+    vault::save("image_crate_diffuse", image_crate_diffuse);
+    vault::save("image_crate_specular", image_crate_specular);
+    vault::save("image_crate_emissive", image_crate_emissive);
+    vault::save("texture_crate_diffuse", texture_crate_diffuse);
+    vault::save("texture_crate_specular", texture_crate_specular);
+    vault::save("texture_crate_emissive", texture_crate_emissive);
+    vault::save("material_crate", material_crate);
+    vault::save("camera_main", camera_main);
+    vault::save("camera_ui", camera_ui);
+    vault::save("spotlight", spotlight);
+    vault::save("pointlight", pointlight);
+    vault::save("dirlight", dirlight);
+}
+
+#[inline]
+fn load_assets(revenant: &mut Revenant) {
+    // camera
+    let camera_ui: Camera = vault::load("camera_ui");
+    let camera_main: Camera = vault::load("camera_main");
+
+    // shaders
+    let phong_vs = vault::load_foreign_shader("phong", "vs");
+    let phong_fs = vault::load_foreign_shader("phong", "fs");
+
+    let light_vs = vault::load_foreign_shader("light", "vs");
+    let light_fs = vault::load_foreign_shader("light", "fs");
+
+    let ui_vs = vault::load_foreign_shader("ui", "vs");
+    let ui_fs = vault::load_foreign_shader("ui", "fs");
+
+    // programs
+    let phong = Program::new(phong_vs, phong_fs);
+    let light = Program::new(light_vs, light_fs);
+    let ui = Program::new(ui_vs, ui_fs);
+
+    ui.use_program();
+    ui.set_uniform_mat4("projection", &camera_ui.projection);
+
+    revenant
+        .assets
+        .programs
+        .insert("phong_program".to_string(), phong);
+    revenant
+        .assets
+        .programs
+        .insert("light_program".to_string(), light);
+    revenant
+        .assets
+        .programs
+        .insert("ui_program".to_string(), ui);
+    revenant
+        .assets
+        .cameras
+        .insert("camera_main".to_string(), camera_main);
+    revenant
+        .assets
+        .cameras
+        .insert("camera_ui".to_string(), camera_ui);
+
+    // fonts
+    let comfortaa_font = vault::load_foreign_font("comfortaa", "ttf");
+    let teko_font = vault::load_foreign_font("teko", "ttf");
+    revenant
+        .assets
+        .fonts
+        .insert("comfortaa_font".to_string(), comfortaa_font);
+    revenant
+        .assets
+        .fonts
+        .insert("teko_font".to_string(), teko_font);
+
+    // material
+    let material: Material = vault::load("material_crate");
+    revenant
+        .assets
+        .materials
+        .insert("material_crate".to_string(), material);
+
+    // lights
+    let spotlight: SpotLight = vault::load("spotlight");
+    let pointlight: PointLight = vault::load("pointlight");
+    let dirlight: DirLight = vault::load("dirlight");
+
+    revenant
+        .assets
+        .spotlights
+        .insert("spotlight".to_string(), spotlight);
+    revenant
+        .assets
+        .pointlights
+        .insert("pointlight".to_string(), pointlight);
+    revenant
+        .assets
+        .dirlights
+        .insert("dirlight".to_string(), dirlight);
+
+    // GLTF
+    // // TODO 3d models & more
+    // let binding = assets_path().join("models").join("tree_cam_light.glb");
+    // let blend_path = binding.to_str().expect("Failed to convert path to string");
+    // let gltf = Gltf::open(blend_path).expect("Failed to open gltf file");
+    // let scenes = gltf.scenes();
+    // for scene in scenes {
+    //     println!("Scene #{} has {} nodes", scene.index(), scene.nodes().len());
+    //     for node in scene.nodes() {
+    //         let cameras = node.camera();
+    //         if let Some(camera) = cameras {
+    //             match camera.projection() {
+    //                 gltf::camera::Projection::Orthographic(ortho) => {
+    //                     println!("Orthographic camera");
+    //                     println!("xmag: {}", ortho.xmag());
+    //                     println!("ymag: {}", ortho.ymag());
+    //                     println!("znear: {}", ortho.znear());
+    //                     println!("zfar: {}", ortho.zfar());
+    //                     println!("extras: {:?}", ortho.extras());
+    //                 }
+    //                 gltf::camera::Projection::Perspective(persp) => {
+    //                     println!("Perspective camera");
+    //                     println!("aspect_ratio: {:?}", persp.aspect_ratio());
+    //                     println!("yfov: {}", persp.yfov());
+    //                     println!("znear: {}", persp.znear());
+    //                     println!("zfar: {:?}", persp.zfar());
+    //                     println!("extras: {:?}", persp.extras());
+    //                 }
+    //             }
+    //         }
+    //     }
+    // }
+}
+
+// TODO create struct for input handling & keep track of assigned keys
+#[inline]
+fn input(revenant: &mut Revenant, states: &mut State) {
+    optick::event!();
+    revenant.glfw.poll_events();
+
+    let mut main_camera = revenant
+        .assets
+        .cameras
+        .get_mut("camera_main") // TODO get mut might be an optimization issue -> to verify
+        .expect("Failed to get main camera");
+
+    for (_, event) in glfw::flush_messages(&revenant.events) {
+        match event {
+            glfw::WindowEvent::CursorPos(x, y) => {
+                let mouse_last_x = states.mouse_pos_x;
+                let mouse_last_y = states.mouse_pos_y;
+                states.mouse_pos_x = x;
+                states.mouse_pos_y = y;
+
+                let x_offset = states.mouse_pos_x - mouse_last_x;
+                let y_offset = mouse_last_y - states.mouse_pos_y;
+
+                states.yaw += x_offset as f32 * states.aim_sensitivity;
+                states.pitch += y_offset as f32 * states.aim_sensitivity;
+
+                states.pitch = states.pitch.clamp(-89.9, 89.9); // FIX use quaternions
+                states.yaw = states.yaw.rem_euclid(360.0);
+
+                main_camera.front = vec3(
+                    states.pitch.to_radians().cos() * states.yaw.to_radians().cos(),
+                    states.pitch.to_radians().sin(),
+                    states.pitch.to_radians().cos() * states.yaw.to_radians().sin(),
+                )
+                .normalize();
+                main_camera.right = main_camera.front.cross(main_camera.up);
+            }
+            glfw::WindowEvent::Key(key, _, action, _) => {
+                states.key_states[key as usize] = action != glfw::Action::Release;
+            }
+            glfw::WindowEvent::Scroll(_x_offset, y_offset) => {
+                let mouse_scroll_y = y_offset;
+
+                match main_camera.projection_kind {
+                    ProjectionKind::Perspective {
+                        fov_y,
+                        near,
+                        far,
+                        aspect_ratio,
+                    } => {
+                        let mut fov_y = fov_y - mouse_scroll_y as f32;
+                        fov_y = fov_y.clamp(states.fov_y_min, states.fov_y_max);
+                        main_camera.projection_kind = ProjectionKind::Perspective {
+                            fov_y,
+                            near,
+                            far,
+                            aspect_ratio,
+                        };
+                    }
+                    ProjectionKind::Orthographic {
+                        left: _,
+                        right: _,
+                        bottom: _,
+                        top: _,
+                        near: _,
+                        far: _,
+                    } => {
+                        // TODO implement
+                    }
+                };
+            }
+            glfw::WindowEvent::FramebufferSize(width, height) => unsafe {
+                gl::Viewport(0, 0, width, height);
+            },
+            _ => {}
+        }
+    }
+
+    // SECTION keyboard input
+
+    // TODO make a hotkey manager
+    // W move forward
+    if states.key_states[glfw::Key::W as usize] {
+        main_camera.pos += main_camera.front * states.speed;
+    }
+    // S move backward
+    if states.key_states[glfw::Key::S as usize] {
+        main_camera.pos -= main_camera.front * states.speed;
+    }
+    // A move left
+    if states.key_states[glfw::Key::A as usize] {
+        main_camera.pos -= main_camera.right * states.speed;
+    }
+    // D move right
+    if states.key_states[glfw::Key::D as usize] {
+        main_camera.pos += main_camera.right * states.speed;
+    }
+    // SPACE move up
+    if states.key_states[glfw::Key::Space as usize] {
+        main_camera.pos += main_camera.up * states.speed;
+    }
+    // LEFT CTRL move down
+    if states.key_states[glfw::Key::LeftControl as usize] {
+        main_camera.pos -= main_camera.up * states.speed;
+    }
+    // LEFT SHIFT increase speed
+    if states.key_states[glfw::Key::LeftShift as usize] {
+        states.speed_factor = states.speed_factor_boost;
+    } else {
+        states.speed_factor = states.speed_factor_default;
+    }
+
+    // P cycle through polygon modes
+    if states.key_states[glfw::Key::P as usize] {
+        let mut polygon_mode = [0];
+        unsafe {
+            gl::GetIntegerv(gl::POLYGON_MODE, polygon_mode.as_mut_ptr());
+        }
+        let polygon_mode = match polygon_mode[0] as GLenum {
+            gl::FILL => gl::LINE,
+            gl::LINE => gl::POINT,
+            gl::POINT => gl::FILL,
+            _ => panic!("Unknown polygon mode"),
+        };
+        unsafe {
+            gl::PolygonMode(gl::FRONT_AND_BACK, polygon_mode);
+        }
+        println!("Polygon mode: {}", polygon_mode);
+    }
+    // ESC close window
+    if states.key_states[glfw::Key::Escape as usize] {
+        revenant.window.set_should_close(true);
+    }
+}
+
+#[inline]
+fn update(revenant: &mut Revenant) {
+    // TODO optimize .update(); iteration to use a custom HashMap / a bitset for assets to be updated
+    for (_, camera) in revenant.assets.cameras.iter_mut() {
+        if camera.update_projection {
+            camera.update();
+        }
+    }
+}
+
+#[inline]
+fn render(revenant: &mut Revenant, states: &mut State) {
+    let light_program = revenant
+        .assets
+        .programs
+        .get("light_program")
+        .expect("Failed to get light_program");
+
+    let _ui_program = revenant
+        .assets
+        .programs
+        .get("ui_program")
+        .expect("Failed to get ui_program");
+
+    let _comfortaa_font = revenant
+        .assets
+        .fonts
+        .get("comfortaa_font")
+        .expect("Failed to get comfortaa");
+
+    let _teko_font = revenant
+        .assets
+        .fonts
+        .get("comfortaa_font")
+        .expect("Failed to get teko");
+
+    const POINTLIGHT_POSITION: [Position; 4] = [
+        point3(0.7, 0.2, 2.0),
+        point3(2.3, -3.3, -4.0),
+        point3(-4.0, 2.0, -12.0),
+        point3(0.0, 0.0, -3.0),
+    ];
 
     // vertex data (pos 3, normal 3, texcoord 2)
     const VERTEX_DATA: [GLfloat; 288] = [
@@ -142,20 +668,6 @@ fn main() {
         gl::BindVertexArray(0);
     }
 
-    // shaders
-    let vs = Shader::new("phong", gl::VERTEX_SHADER);
-    let fs = Shader::new("phong", gl::FRAGMENT_SHADER);
-    let phong_program = Program::new(vs, fs);
-
-    let vs = Shader::new("light", gl::VERTEX_SHADER);
-    let fs = Shader::new("light", gl::FRAGMENT_SHADER);
-    let light_program = Program::new(vs, fs);
-
-    // TODO ui
-    let vs = Shader::new("ui", gl::VERTEX_SHADER);
-    let fs = Shader::new("ui", gl::FRAGMENT_SHADER);
-    let ui_program = Program::new(vs, fs);
-
     // copy vertex data to buffer
     unsafe {
         gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
@@ -180,35 +692,6 @@ fn main() {
         gl::EnableVertexAttribArray(0);
     }
 
-    revenant::set_clear_color(vec4(0.082, 0.082, 0.125, 1.0));
-
-    unsafe {
-        gl::Enable(gl::BLEND);
-        gl::BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
-    }
-
-    // UI
-    ui_program.use_program();
-    // TODO Camera UI
-    // FIX
-    let ui_projection = ortho(0.0, WIN_DIM_X as f32, 0.0, WIN_DIM_Y as f32, -1.0, 1.0);
-    ui_program.set_uniform_mat4("projection", &ui_projection);
-
-    // font Comfortaa
-    let comfortaa_name = "comfortaa".to_owned();
-    let comfortaa_size_x = 32;
-    let comfortaa_size_y = 32;
-    let comfortaa = Font::foreign_load(comfortaa_name, "ttf", comfortaa_size_x, comfortaa_size_y);
-
-    // font Teko
-    let teko_name = "teko".to_owned();
-    let teko_size_x = 22;
-    let teko_size_y = 22;
-    let teko = Font::foreign_load(teko_name, "ttf", teko_size_x, teko_size_y);
-
-    // material
-    let material = Material::load("crate".to_owned());
-
     let cube_positions: [Vector3<f32>; 10] = [
         vec3(0.0, 0.0, 0.0),
         vec3(2.0, 5.0, -15.0),
@@ -222,268 +705,36 @@ fn main() {
         vec3(-1.3, 1.0, -1.5),
     ];
 
-    const KEY_AMOUNT: usize = glfw::ffi::KEY_LAST as usize;
-    let mut key_states = [false; KEY_AMOUNT];
+    let camera_main = revenant
+        .assets
+        .cameras
+        .get("camera_main")
+        .expect("Camera not found");
+    let spotlight = revenant
+        .assets
+        .spotlights
+        .get("spotlight")
+        .expect("Spotlight not found");
+    let dirlight = revenant
+        .assets
+        .dirlights
+        .get("dirlight")
+        .expect("Directional light not found");
 
-    let mut mouse_pos_x = 0.0;
-    let mut mouse_pos_y = 0.0;
-
-    let speed_factor_default = 3.0;
-    let speed_factor_boost = 6.0;
-    let mut speed_factor;
-    let mut speed = 0.0;
-    let mut yaw = 200.0;
-    let mut pitch = -20.0;
-    let aim_sensitivity = 0.03;
-    let fov_y_min = 30.0;
-    let fov_y_max = 90.0;
-
-    // calculate fps declarations
-    let mut last_time = revenant.glfw.get_time();
-    let mut frame_cycle: u32 = 0;
-    let mut current_fps = 0.0;
-    let mut ms_per_frame = 1000.0;
-    let mut frame_number: u128 = 0;
-
-    // SECTION ALIVE LOOP
-
-    let mut last_frame = 0.0;
-
-    while !revenant.window.should_close() {
-        optick::next_frame();
-        handle_input(&revenant);
-        // TODO update_multiplayer(&revenant);
-        // TODO update_AI(&revenant);
-        // TODO update_physics(&revenant);
-        // TODO handle_collisions(&revenant);
-        update(&revenant);
-        render(&revenant, &last_frame);
-        // TODO audio(&revenant);
-        // TODO post_process(&revenant);
-    }
-
-    // TODO automatically cleanup all resources (e.g. VAOs, VBOs, shaders, textures, etc.)
-    cleanup(vao, ui_vbo, ui_program, light_program, phong_program);
-}
-
-#[inline]
-fn init(revenant: &Revenant) {
-    // Print OpenGL version
-    let version = revenant.window.get_context_version();
-    println!("OpenGL version: {}.{}", version.major, version.minor);
-
-    // Set window icon
-    let icon_filename = "icon.png".to_owned();
-    let icon_asset = Image::load(icon_filename);
-    let mut icon_pixels: Vec<u32> = vec![];
-    for chunk in icon_asset.data.chunks_exact(4) {
-        let u32_value = u32::from_le_bytes([chunk[0], chunk[1], chunk[2], chunk[3]]);
-        icon_pixels.push(u32_value);
-    }
-
-    let (width, height) = match icon_asset.size {
-        Texture::TwoD { width, height } => (width, height),
-        _ => panic!("Icon size is not 2D."),
-    };
-
-    let mut icons = Vec::new();
-    icons.push(glfw::PixelImage {
-        width: width as u32,
-        height: height as u32,
-        pixels: icon_pixels,
-    });
-    revenant.window.set_icon_from_pixels(icons);
-
-    // Unlock framerate
-    revenant.glfw.set_swap_interval(glfw::SwapInterval::None);
-
-    // Center window
-    revenant.window.set_pos(
-        (SCREEN_DIM_X - WIN_DIM_X) as i32 / 2,
-        (SCREEN_DIM_Y - WIN_DIM_Y) as i32 / 2,
-    );
-}
-
-#[inline]
-fn load_assets(revenant: &mut Revenant) {
-    // GLTF
-    // // TODO 3d models & more
-    // let binding = assets_path().join("models").join("tree_cam_light.glb");
-    // let blend_path = binding.to_str().expect("Failed to convert path to string");
-    // let gltf = Gltf::open(blend_path).expect("Failed to open gltf file");
-    // let scenes = gltf.scenes();
-    // for scene in scenes {
-    //     println!("Scene #{} has {} nodes", scene.index(), scene.nodes().len());
-    //     for node in scene.nodes() {
-    //         let cameras = node.camera();
-    //         if let Some(camera) = cameras {
-    //             match camera.projection() {
-    //                 gltf::camera::Projection::Orthographic(ortho) => {
-    //                     println!("Orthographic camera");
-    //                     println!("xmag: {}", ortho.xmag());
-    //                     println!("ymag: {}", ortho.ymag());
-    //                     println!("znear: {}", ortho.znear());
-    //                     println!("zfar: {}", ortho.zfar());
-    //                     println!("extras: {:?}", ortho.extras());
-    //                 }
-    //                 gltf::camera::Projection::Perspective(persp) => {
-    //                     println!("Perspective camera");
-    //                     println!("aspect_ratio: {:?}", persp.aspect_ratio());
-    //                     println!("yfov: {}", persp.yfov());
-    //                     println!("znear: {}", persp.znear());
-    //                     println!("zfar: {:?}", persp.zfar());
-    //                     println!("extras: {:?}", persp.extras());
-    //                 }
-    //             }
-    //         }
-    //     }
-    // }
-}
-
-// TODO create struct for input handling & keep track of assigned keys
-#[inline]
-fn handle_input(revenant: &Revenant) {
-    optick::event!();
-    revenant.glfw.poll_events();
-
-    for (_, event) in glfw::flush_messages(&revenant.events) {
-        match event {
-            glfw::WindowEvent::CursorPos(x, y) => {
-                let mouse_last_x = mouse_pos_x;
-                let mouse_last_y = mouse_pos_y;
-                mouse_pos_x = x;
-                mouse_pos_y = y;
-
-                let x_offset = mouse_pos_x - mouse_last_x;
-                let y_offset = mouse_last_y - mouse_pos_y;
-
-                yaw += x_offset as f32 * aim_sensitivity;
-                pitch += y_offset as f32 * aim_sensitivity;
-
-                pitch = pitch.clamp(-89.9, 89.9); // FIX use quaternions
-                yaw = yaw.rem_euclid(360.0);
-
-                main_camera.front = vec3(
-                    pitch.to_radians().cos() * yaw.to_radians().cos(),
-                    pitch.to_radians().sin(),
-                    pitch.to_radians().cos() * yaw.to_radians().sin(),
-                )
-                .normalize();
-                main_camera.right = main_camera.front.cross(main_camera.up);
-            }
-            glfw::WindowEvent::Key(key, _, action, _) => {
-                key_states[key as usize] = action != glfw::Action::Release;
-            }
-            glfw::WindowEvent::Scroll(_x_offset, y_offset) => {
-                let mouse_scroll_y = y_offset;
-
-                match main_camera.projection_kind {
-                    ProjectionKind::Perspective {
-                        fov_y,
-                        near,
-                        far,
-                        aspect_ratio,
-                    } => {
-                        let mut fov_y = fov_y - mouse_scroll_y as f32;
-                        fov_y = fov_y.clamp(fov_y_min, fov_y_max);
-                        main_camera.projection_kind = ProjectionKind::Perspective {
-                            fov_y,
-                            near,
-                            far,
-                            aspect_ratio,
-                        };
-                    }
-                    ProjectionKind::Orthographic {
-                        left: _,
-                        right: _,
-                        bottom: _,
-                        top: _,
-                        near: _,
-                        far: _,
-                    } => {
-                        // TODO implement
-                    }
-                };
-            }
-            glfw::WindowEvent::FramebufferSize(width, height) => unsafe {
-                gl::Viewport(0, 0, width, height);
-            },
-            _ => {}
-        }
-    }
-
-    // SECTION keyboard input
-
-    // W move forward
-    if key_states[glfw::Key::W as usize] {
-        main_camera.pos += main_camera.front * speed;
-    }
-    // S move backward
-    if key_states[glfw::Key::S as usize] {
-        main_camera.pos -= main_camera.front * speed;
-    }
-    // A move left
-    if key_states[glfw::Key::A as usize] {
-        main_camera.pos -= main_camera.right * speed;
-    }
-    // D move right
-    if key_states[glfw::Key::D as usize] {
-        main_camera.pos += main_camera.right * speed;
-    }
-    // SPACE move up
-    if key_states[glfw::Key::Space as usize] {
-        main_camera.pos += main_camera.up * speed;
-    }
-    // LEFT CTRL move down
-    if key_states[glfw::Key::LeftControl as usize] {
-        main_camera.pos -= main_camera.up * speed;
-    }
-    // LEFT SHIFT increase speed
-    if key_states[glfw::Key::LeftShift as usize] {
-        speed_factor = speed_factor_boost;
-    } else {
-        speed_factor = speed_factor_default;
-    }
-
-    // P cycle through polygon modes
-    if key_states[glfw::Key::P as usize] {
-        let mut polygon_mode = [0];
-        unsafe {
-            gl::GetIntegerv(gl::POLYGON_MODE, polygon_mode.as_mut_ptr());
-        }
-        let polygon_mode = match polygon_mode[0] as GLenum {
-            gl::FILL => gl::LINE,
-            gl::LINE => gl::POINT,
-            gl::POINT => gl::FILL,
-            _ => panic!("Unknown polygon mode"),
-        };
-        unsafe {
-            gl::PolygonMode(gl::FRONT_AND_BACK, polygon_mode);
-        }
-        println!("Polygon mode: {}", polygon_mode);
-    }
-    // ESC close window
-    if key_states[glfw::Key::Escape as usize] {
-        revenant.window.set_should_close(true);
-    }
-}
-
-#[inline]
-fn update(revenant: &Revenant) {
-    // TODO in update fn : iterate over all assets and .update();
-    // TODO in update fn : optimize .update(); iteration to use a custom HashMap / a bitset for assets to be updated
-}
-
-#[inline]
-fn render(revenant: &Revenant, last_frame: &f64) {
     let frame_start_time = revenant.glfw.get_time();
-    let delta_time = frame_start_time - last_frame;
-    last_frame = &frame_start_time;
+    let delta_time = frame_start_time - states.last_frame;
+    states.last_frame = frame_start_time;
 
     // SECTION retrieve frame assets
 
-    let material = revenant.get("material").expect("Material not found");
+    let material = revenant
+        .assets
+        .materials
+        .get("material_crate")
+        .expect("Material not found");
     let phong_program = revenant
+        .assets
+        .programs
         .get("phong_program")
         .expect("Phong program not found");
 
@@ -494,7 +745,7 @@ fn render(revenant: &Revenant, last_frame: &f64) {
         gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
     }
 
-    speed = speed_factor * delta_time;
+    states.speed = states.speed_factor * delta_time as f32;
 
     phong_program.use_program();
 
@@ -505,16 +756,16 @@ fn render(revenant: &Revenant, last_frame: &f64) {
     // TODO Translate - Rotate - Scale matrix manipulations queue to respect order
     // FIX rework
     let view = Matrix4::look_at_rh(
-        main_camera.pos,
-        main_camera.pos + main_camera.front,
-        main_camera.up,
+        camera_main.pos,
+        camera_main.pos + camera_main.front,
+        camera_main.up,
     );
 
     // update local uniform values
     phong_program.set_uniform_mat4("view", &view);
-    phong_program.set_uniform_mat4("projection", &main_camera.projection);
+    phong_program.set_uniform_mat4("projection", &camera_main.projection);
 
-    phong_program.set_uniform_point3("camera_pos", main_camera.pos);
+    phong_program.set_uniform_point3("camera_pos", camera_main.pos);
 
     phong_program.set_uniform_int("material.diffuse", 0);
     phong_program.set_uniform_int("material.specular", 1);
@@ -575,7 +826,7 @@ fn render(revenant: &Revenant, last_frame: &f64) {
 
     for i in 0..10 {
         let mut model = Matrix4::identity();
-        let angle = 40.0 * frame_start_time + i as f32 * 10.0;
+        let angle = 40.0 * frame_start_time as f32;
         model = model * Matrix4::from_translation(cube_positions[i]);
         model =
             model * Matrix4::from_axis_angle(vec3(1.0, 0.3, 0.5).normalize(), cgmath::Deg(angle));
@@ -592,10 +843,10 @@ fn render(revenant: &Revenant, last_frame: &f64) {
     light_program.use_program();
 
     light_program.set_uniform_mat4("view", &view);
-    light_program.set_uniform_mat4("projection", &main_camera.projection);
+    light_program.set_uniform_mat4("projection", &camera_main.projection);
     for i in 0..4 {
         let mut model = Matrix4::identity();
-        let angle = 40.0 * frame_start_time + i as f32 * 10.0;
+        let angle = 40.0 * frame_start_time as f32;
         model = model * Matrix4::from_translation(POINTLIGHT_POSITION[i].to_vec());
         model =
             model * Matrix4::from_axis_angle(vec3(1.0, 0.3, 0.5).normalize(), cgmath::Deg(angle));
@@ -613,59 +864,62 @@ fn render(revenant: &Revenant, last_frame: &f64) {
         gl::Disable(gl::DEPTH_TEST);
     }
 
-    let color = vec3(0.8, 0.8, 0.67);
-    let scale = 1.0;
+    let _color = vec3(0.8, 0.8, 0.67);
+    let _scale = 1.0;
 
-    render_text(
-        format!("{} FPS", current_fps),
-        40.0,
-        600.0,
-        scale,
-        &color,
-        &ui_program,
-        &comfortaa,
-        &ui_vao,
-        &ui_vbo,
-    );
+    // render_text(
+    //     format!("{} FPS", states.current_fps),
+    //     40.0,
+    //     600.0,
+    //     scale,
+    //     &color,
+    //     &ui_program,
+    //     &comfortaa_font,
+    //     &ui_vao,
+    //     &ui_vbo,
+    // );
 
-    render_text(
-        format!("{:0.4} MS/FRAME", ms_per_frame),
-        40.0,
-        570.0,
-        scale,
-        &color,
-        &ui_program,
-        &teko,
-        &ui_vao,
-        &ui_vbo,
-    );
+    // render_text(
+    //     format!("{:0.4} MS/FRAME", states.ms_per_frame),
+    //     40.0,
+    //     570.0,
+    //     scale,
+    //     &color,
+    //     &ui_program,
+    //     &teko_font,
+    //     &ui_vao,
+    //     &ui_vbo,
+    // );
 
-    render_text(
-        format!(
-            "Camera.pos x{:0.2} y{:0.2} z{:0.2}",
-            main_camera.pos.x, main_camera.pos.y, main_camera.pos.z
-        ),
-        20.0,
-        20.0,
-        scale,
-        &color,
-        &ui_program,
-        &teko,
-        &ui_vao,
-        &ui_vbo,
-    );
+    // render_text(
+    //     format!(
+    //         "Camera.pos x{:0.2} y{:0.2} z{:0.2}",
+    //         camera_main.pos.x, camera_main.pos.y, camera_main.pos.z
+    //     ),
+    //     20.0,
+    //     20.0,
+    //     scale,
+    //     &color,
+    //     &ui_program,
+    //     &teko_font,
+    //     &ui_vao,
+    //     &ui_vbo,
+    // );
 
-    render_text(
-        format!("Camera.yaw {:0.2} Camera.pitch {:0.2}", yaw, pitch),
-        20.0,
-        50.0,
-        scale,
-        &color,
-        &ui_program,
-        &teko,
-        &ui_vao,
-        &ui_vbo,
-    );
+    // render_text(
+    //     format!(
+    //         "Camera.yaw {:0.2} Camera.pitch {:0.2}",
+    //         states.yaw, states.pitch
+    //     ),
+    //     20.0,
+    //     50.0,
+    //     scale,
+    //     &color,
+    //     &ui_program,
+    //     &teko_font,
+    //     &ui_vao,
+    //     &ui_vbo,
+    // );
 
     // SECTION swap buffers
 
@@ -673,126 +927,124 @@ fn render(revenant: &Revenant, last_frame: &f64) {
 
     // SECTION frame end
 
-    frame_number += 1;
-    frame_cycle += 1;
+    states.frame_number += 1;
+    states.frame_cycle += 1;
     let current_time = revenant.glfw.get_time();
-    if current_time - last_time >= 1.0 {
-        current_fps = frame_cycle as f32;
-        ms_per_frame = 1000.0 / frame_cycle as f64;
-        println!("{} fps {:0.4} ms/draw", current_fps, ms_per_frame);
-        frame_cycle = 0;
-        last_time = current_time;
+    if current_time - states.last_time >= 1.0 {
+        states.current_fps = states.frame_cycle;
+        states.ms_per_frame = 1000.0 / states.frame_cycle as f64;
+        println!(
+            "{} fps {:0.4} ms/draw",
+            states.current_fps, states.ms_per_frame
+        );
+        states.frame_cycle = 0;
+        states.last_time = current_time;
     }
 
     optick::event!("frame_end");
-    optick::tag!("frame", frame_number);
+    optick::tag!("frame", states.frame_number);
 }
 
 #[inline]
 // TODO remove arguments except revenant instance as argument
-fn cleanup(
-    vao: u32,
-    ui_vbo: u32,
-    ui_program: Program,
-    light_program: Program,
-    phong_program: Program,
-) {
+fn cleanup(_revenant: &Revenant) {
     optick::event!();
-    unsafe {
-        // TODO delete all current buffers
-        gl::DeleteVertexArrays(1, &vao);
-        gl::DeleteBuffers(1, &ui_vbo);
+    // TODO automatically cleanup all resources (e.g. VAOs, VBOs, shaders, etc.)
+    // unsafe {
+    // TODO delete all current buffers
+    // gl::DeleteVertexArrays(1, &vao);
+    // gl::DeleteBuffers(1, &ui_vbo);
 
-        // TODO delete all current programs
-        gl::DeleteProgram(ui_program.gl_id);
-        gl::DeleteProgram(light_program.gl_id);
-        gl::DeleteProgram(phong_program.gl_id);
-    }
+    // TODO delete all current programs
+    // gl::DeleteProgram(ui_program.gl_id);
+    // gl::DeleteProgram(light_program.gl_id);
+    // gl::DeleteProgram(phong_program.gl_id);
+    // }
     optick::stop_capture("target/revenant");
 }
 
 // TODO performance improvements : Loss of 500 frames per second
 // To fix this, we need to use a VAO for each character, and then render all the characters in one draw call.
 // This is called "text batching", and can be a real performance improvement.
-fn render_text(
-    text: String,
-    x: f32,
-    y: f32,
-    scale: f32,
-    color: &Vector3<f32>,
-    program: &Program,
-    font: &Font,
-    vao: &u32,
-    vbo: &u32,
-) {
-    // TODO anchor pos
-    // TODO render scale
-    let mut x = x;
+// fn render_text(
+//     text: String,
+//     x: f32,
+//     y: f32,
+//     scale: f32,
+//     color: &Vector3<f32>,
+//     program: &Program,
+//     font: &Font,
+//     vao: &u32,
+//     vbo: &u32,
+// ) {
+//     // TODO anchor pos
+//     // TODO render scale
+//     let mut x = x;
 
-    program.use_program();
-    program.set_uniform_vec3("color", *color);
-    unsafe {
-        gl::ActiveTexture(gl::TEXTURE0);
-        gl::BindVertexArray(*vao);
-    }
+//     program.use_program();
+//     program.set_uniform_vec3("color", *color);
+//     unsafe {
+//         gl::ActiveTexture(gl::TEXTURE0);
+//         gl::BindVertexArray(*vao);
+//     }
 
-    // iterate through all characters
-    for (_, c) in text.chars().enumerate() {
-        let character = font
-            .character_map
-            .get(&(c as usize))
-            .expect(format!("Character {} not found", c).as_str());
+//     // iterate through all characters
+//     for (_, c) in text.chars().enumerate() {
+//         let character = font
+//             .character_map
+//             .get(&(c as usize))
+//             .expect(format!("Character {} not found", c).as_str());
 
-        let xpos = x + character.bearing.x as f32 * scale;
-        let ypos = y - (character.size.y - character.bearing.y) as f32 * scale;
+//         let xpos = x + character.bearing.x as f32 * scale;
+//         let ypos = y - (character.size.y - character.bearing.y) as f32 * scale;
 
-        let w = character.size.x as f32 * scale;
-        let h = character.size.y as f32 * scale;
-        // update VBO for each character
-        let vertices = [
-            xpos,
-            ypos + h,
-            0.0,
-            0.0, // bottom left
-            xpos,
-            ypos,
-            0.0,
-            1.0, // top left
-            xpos + w,
-            ypos,
-            1.0,
-            1.0, // top right
-            xpos,
-            ypos + h,
-            0.0,
-            0.0, // bottom left
-            xpos + w,
-            ypos,
-            1.0,
-            1.0, // top right
-            xpos + w,
-            ypos + h,
-            1.0,
-            0.0, // bottom right
-        ];
+//         let w = character.size.x as f32 * scale;
+//         let h = character.size.y as f32 * scale;
+//         // update VBO for each character
+//         let vertices = [
+//             xpos,
+//             ypos + h,
+//             0.0,
+//             0.0, // bottom left
+//             xpos,
+//             ypos,
+//             0.0,
+//             1.0, // top left
+//             xpos + w,
+//             ypos,
+//             1.0,
+//             1.0, // top right
+//             xpos,
+//             ypos + h,
+//             0.0,
+//             0.0, // bottom left
+//             xpos + w,
+//             ypos,
+//             1.0,
+//             1.0, // top right
+//             xpos + w,
+//             ypos + h,
+//             1.0,
+//             0.0, // bottom right
+//         ];
 
-        // render glyph texture over quad
-        unsafe {
-            gl::BindTexture(gl::TEXTURE_2D, character.texture.gl_id);
-            // update content of VBO memory
-            gl::BindBuffer(gl::ARRAY_BUFFER, *vbo);
-            gl::BufferSubData(
-                gl::ARRAY_BUFFER,
-                0,
-                (vertices.len() * std::mem::size_of::<f32>()) as isize,
-                vertices.as_ptr() as *const GLvoid,
-            );
-            gl::BindBuffer(gl::ARRAY_BUFFER, 0);
-            // render quad
-            gl::DrawArrays(gl::TRIANGLES, 0, 6);
-        }
+//         // render glyph texture over quad
+//         unsafe {
+//             gl::BindTexture(gl::TEXTURE_2D, character.texture.gl_id);
+//             // update content of VBO memory
+//             gl::BindBuffer(gl::ARRAY_BUFFER, *vbo);
+//             gl::BufferSubData(
+//                 gl::ARRAY_BUFFER,
+//                 0,
+//                 (vertices.len() * std::mem::size_of::<f32>()) as isize,
+//                 vertices.as_ptr() as *const GLvoid,
+//             );
+//             gl::BindBuffer(gl::ARRAY_BUFFER, 0);
+//             // render quad
+//             gl::DrawArrays(gl::TRIANGLES, 0, 6);
+//         }
 
-        // now advance cursors for next glyph (note that advance is number of 1/64 pixels)
-        x += (character.advance >> 6) as f32 * scale; // bitshift by 6 to get value in pixels (2^6 = 64)
-    }
-}
+//         // now advance cursors for next glyph (note that advance is number of 1/64 pixels)
+//         x += (character.advance >> 6) as f32 * scale; // bitshift by 6 to get value in pixels (2^6 = 64)
+//     }
+// }

@@ -30,9 +30,9 @@ pub struct Assets {
     pub fonts: HashMap<String, Font>,
     // TODO meshes: HashMap::new(),
     pub cameras: HashMap<String, Camera>,
-    pub point_lights: HashMap<String, PointLight>,
-    pub dir_lights: HashMap<String, DirLight>,
-    pub spot_lights: HashMap<String, SpotLight>,
+    pub pointlights: HashMap<String, PointLight>,
+    pub dirlights: HashMap<String, DirLight>,
+    pub spotlights: HashMap<String, SpotLight>,
 }
 
 pub struct GLConfig {

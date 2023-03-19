@@ -1,6 +1,5 @@
 mod assets;
 mod mesh;
-mod shader;
 #[allow(dead_code)]
 pub mod types;
 pub mod vault; // TODO SET PRIVATE
