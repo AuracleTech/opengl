@@ -65,13 +65,7 @@ where
 pub fn load_foreign_font(name: &str, extension: &str) -> Font {
     let path = get_path(FOREIGN_FOLDER, &name, extension);
     let font = Font::from_foreign(path, extension);
-
-    let (x, y) = match font.sprite.image.size {
-        ImageSize::I2D { x, y } => (x, y),
-        _ => panic!("Only 2D images are supported."),
-    };
-    save_image_to_png(font.sprite.image.data.clone(), x as u32, y as u32, name)
-        .expect("Failed to save image to png");
+    save_image_to_png(&font.sprite.image, name).expect("Failed to save image to png");
 
     font
 }
@@ -84,12 +78,12 @@ pub fn load_foreign_shader(name: &str, extension: &str) -> Shader {
     Shader::from_foreign(path, extension)
 }
 
-pub fn save_image_to_png(
-    data: Vec<u8>,
-    width: u32,
-    height: u32,
-    name: &str,
-) -> Result<(), Box<dyn std::error::Error>> {
+pub fn save_image_to_png(image: &Image, name: &str) -> Result<(), Box<dyn std::error::Error>> {
+    let data = image.data.clone();
+    let (width, height) = match image.size {
+        ImageSize::I2D { x, y } => (x as u32, y as u32),
+        _ => panic!("Only 2D images are supported."),
+    };
     let path = get_path(FOREIGN_FOLDER, &name, "png");
     let image_buffer = ImageBuffer::from_raw(width, height, data).ok_or("Invalid image data")?;
     let dynamic_image = DynamicImage::ImageRgba8(image_buffer);
