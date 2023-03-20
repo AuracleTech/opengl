@@ -40,8 +40,8 @@ impl Font {
                 sprite_y: 0,
                 bearing_x: glyphslot.bitmap_left(),
                 bearing_y: glyphslot.bitmap_top(),
-                advance_x: glyphslot.advance().x,
-                advance_y: glyphslot.advance().y,
+                advance_x: glyphslot.advance().x as i64,
+                advance_y: glyphslot.advance().y as i64,
             };
 
             omega_glyph_width += glyph.width as u32;

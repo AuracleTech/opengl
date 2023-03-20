@@ -188,8 +188,8 @@ pub struct Glyph {
     pub sprite_y: u32,
     pub bearing_x: i32,
     pub bearing_y: i32,
-    pub advance_x: i32,
-    pub advance_y: i32,
+    pub advance_x: i64,
+    pub advance_y: i64,
 }
 
 // TODO remove debug everywhere
