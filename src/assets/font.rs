@@ -13,21 +13,15 @@ impl Font {
         };
 
         let face = library.new_face(path, 0).expect("Could not create face.");
-        let width: u32 = 30;
-        let height: u32 = 30;
-        let line_height = height / 2;
-
+        let font_width: u32 = 30;
+        let font_height: u32 = 30;
+        let line_height = font_height / 2;
         let total_glyphs = face.num_glyphs() as u32;
-        face.set_pixel_sizes(width, height)
+        face.set_pixel_sizes(font_width, font_height)
             .expect("Could not set pixel sizes.");
 
-        let mut sprite_sheet =
-            ImageBuffer::from_pixel(width * total_glyphs, height, Rgba([0, 0, 0, 0]));
-
-        let mut sprite_x = 0;
-        // TODO might be optimizable using Y as well
-        let sprite_y = 0;
-
+        let mut omega_glyph_width = 0;
+        let mut highest_glyph_height = 0;
         let mut glyphs: HashMap<char, Glyph> = HashMap::new();
         for glyph_index in 0..total_glyphs {
             face.load_glyph(glyph_index, freetype::face::LoadFlag::RENDER)
@@ -39,29 +33,19 @@ impl Font {
             let glyphslot = face.glyph();
             let bitmap = glyphslot.bitmap();
 
-            // for y in 0..bitmap.rows() {
-            //     for x in 0..bitmap.width() {
-            //         let pixel = bitmap.buffer()[(y * bitmap.width() + x) as usize];
-            //         sprite_sheet.put_pixel(
-            //             (sprite_x + x) as u32,
-            //             (sprite_y + y) as u32,
-            //             Rgba([255, 255, 255, pixel]),
-            //         );
-            //     }
-            // }
-
-            sprite_x += width as i32;
-
             let glyph = Glyph {
                 width: bitmap.width(),
                 height: bitmap.rows(),
-                sprite_x,
-                sprite_y,
+                sprite_x: 0,
+                sprite_y: 0,
                 bearing_x: glyphslot.bitmap_left(),
                 bearing_y: glyphslot.bitmap_top(),
                 advance_x: glyphslot.advance().x,
                 advance_y: glyphslot.advance().y,
             };
+
+            omega_glyph_width += glyph.width as u32;
+            highest_glyph_height = highest_glyph_height.max(glyph.height as u32);
 
             if glyphs.get(&character).is_none() {
                 glyphs.insert(character, glyph);
@@ -70,12 +54,52 @@ impl Font {
             }
         }
 
+        let mut sprite_x = 0;
+        // TODO might be optimizable using Y as well
+        let sprite_y = 0;
+        let mut sprite_sheet = ImageBuffer::from_pixel(
+            omega_glyph_width,
+            highest_glyph_height,
+            Rgba([255, 255, 255, 0]),
+        );
+        let sprite_sheet_width = sprite_sheet.width();
+        let sprite_sheet_height = sprite_sheet.height();
+
+        for glyph_index in 0..total_glyphs {
+            face.load_glyph(glyph_index, freetype::face::LoadFlag::RENDER)
+                .expect("Could not load glyph.");
+
+            let character = std::char::from_u32(glyph_index)
+                .expect("Could not convert glyph index to character.");
+
+            let glyphslot = face.glyph();
+            let bitmap = glyphslot.bitmap();
+            let bitmap_width = bitmap.width() as u32;
+            let bitmap_height = bitmap.rows() as u32;
+
+            let glyph = glyphs.get_mut(&character).unwrap();
+            glyph.sprite_x = sprite_x;
+            glyph.sprite_y = sprite_y;
+
+            for x in 0..bitmap_width {
+                for y in 0..bitmap_height {
+                    let pixel = bitmap.buffer()[(y * bitmap_width + x) as usize];
+                    sprite_sheet.put_pixel(
+                        sprite_x + x,
+                        sprite_y + y,
+                        Rgba([255, 255, 255, pixel]),
+                    );
+                }
+            }
+            sprite_x += bitmap_width;
+        }
+
         let image = Image {
             data: sprite_sheet.into_raw(),
             format: ImageFormat::RGBA,
             size: ImageSize::I2D {
-                x: width as i32,
-                y: height as i32,
+                x: sprite_sheet_width as i32,
+                y: sprite_sheet_height as i32,
             },
         };
 
@@ -101,8 +125,8 @@ impl Font {
         Font {
             sprite,
             glyphs,
-            width,
-            height,
+            width: font_width,
+            height: font_height,
             line_height,
         }
     }

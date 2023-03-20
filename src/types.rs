@@ -181,19 +181,11 @@ pub struct Program {
     pub gl_id: GLuint,
 }
 
-pub struct Font {
-    pub sprite: Texture,
-    pub glyphs: HashMap<char, Glyph>,
-    pub width: u32,
-    pub height: u32,
-    pub line_height: u32,
-}
-
 pub struct Glyph {
     pub width: i32,
     pub height: i32,
-    pub sprite_x: i32,
-    pub sprite_y: i32,
+    pub sprite_x: u32,
+    pub sprite_y: u32,
     pub bearing_x: i32,
     pub bearing_y: i32,
     pub advance_x: i32,
@@ -211,6 +203,14 @@ pub struct Texture {
     pub min_filtering: Filtering,
     pub mag_filtering: Filtering,
     pub mipmapping: bool,
+}
+
+pub struct Font {
+    pub sprite: Texture,
+    pub glyphs: HashMap<char, Glyph>,
+    pub width: u32,
+    pub height: u32,
+    pub line_height: u32,
 }
 
 // TODO remove debug everywhere

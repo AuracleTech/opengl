@@ -11,8 +11,6 @@ impl Shader {
             _ => panic!("Unknown shader extension: '{}'.", extension),
         };
 
-        dbg!(&path);
-
         let mut source = String::new();
         let mut file = File::open(path).expect("Failed to open shader file.");
         file.read_to_string(&mut source)

@@ -5,7 +5,7 @@ use gl::types::{GLenum, GLfloat, GLsizei, GLsizeiptr, GLvoid};
 use glfw::Context;
 use revenant::{
     types::{
-        Camera, DirLight, Filtering, ImageSize, Material, PointLight, Position, Program,
+        Camera, DirLight, Filtering, Font, ImageSize, Material, PointLight, Position, Program,
         ProjectionKind, SpotLight, Texture, TextureKind, Wrapping,
     },
     vault, Revenant,
@@ -531,19 +531,19 @@ fn render(revenant: &mut Revenant, states: &mut State) {
         .get("light_program")
         .expect("Failed to get light_program");
 
-    let _ui_program = revenant
+    let ui_program = revenant
         .assets
         .programs
         .get("ui_program")
         .expect("Failed to get ui_program");
 
-    let _comfortaa_font = revenant
+    let comfortaa_font = revenant
         .assets
         .fonts
         .get("comfortaa_font")
         .expect("Failed to get comfortaa");
 
-    let _teko_font = revenant
+    let teko_font = revenant
         .assets
         .fonts
         .get("comfortaa_font")
@@ -864,62 +864,62 @@ fn render(revenant: &mut Revenant, states: &mut State) {
         gl::Disable(gl::DEPTH_TEST);
     }
 
-    let _color = vec3(0.8, 0.8, 0.67);
-    let _scale = 1.0;
+    let color = vec3(0.8, 0.8, 0.67);
+    let scale = 1.0;
 
-    // render_text(
-    //     format!("{} FPS", states.current_fps),
-    //     40.0,
-    //     600.0,
-    //     scale,
-    //     &color,
-    //     &ui_program,
-    //     &comfortaa_font,
-    //     &ui_vao,
-    //     &ui_vbo,
-    // );
+    render_text(
+        format!("{} FPS", states.current_fps),
+        40.0,
+        600.0,
+        scale,
+        &color,
+        &ui_program,
+        &comfortaa_font,
+        &ui_vao,
+        &ui_vbo,
+    );
 
-    // render_text(
-    //     format!("{:0.4} MS/FRAME", states.ms_per_frame),
-    //     40.0,
-    //     570.0,
-    //     scale,
-    //     &color,
-    //     &ui_program,
-    //     &teko_font,
-    //     &ui_vao,
-    //     &ui_vbo,
-    // );
+    render_text(
+        format!("{:0.4} MS/FRAME", states.ms_per_frame),
+        40.0,
+        570.0,
+        scale,
+        &color,
+        &ui_program,
+        &teko_font,
+        &ui_vao,
+        &ui_vbo,
+    );
 
-    // render_text(
-    //     format!(
-    //         "Camera.pos x{:0.2} y{:0.2} z{:0.2}",
-    //         camera_main.pos.x, camera_main.pos.y, camera_main.pos.z
-    //     ),
-    //     20.0,
-    //     20.0,
-    //     scale,
-    //     &color,
-    //     &ui_program,
-    //     &teko_font,
-    //     &ui_vao,
-    //     &ui_vbo,
-    // );
+    render_text(
+        format!(
+            "Camera.pos x{:0.2} y{:0.2} z{:0.2}",
+            camera_main.pos.x, camera_main.pos.y, camera_main.pos.z
+        ),
+        20.0,
+        20.0,
+        scale,
+        &color,
+        &ui_program,
+        &teko_font,
+        &ui_vao,
+        &ui_vbo,
+    );
 
-    // render_text(
-    //     format!(
-    //         "Camera.yaw {:0.2} Camera.pitch {:0.2}",
-    //         states.yaw, states.pitch
-    //     ),
-    //     20.0,
-    //     50.0,
-    //     scale,
-    //     &color,
-    //     &ui_program,
-    //     &teko_font,
-    //     &ui_vao,
-    //     &ui_vbo,
-    // );
+    render_text(
+        format!(
+            "Camera.yaw {:0.2} Camera.pitch {:0.2}",
+            states.yaw, states.pitch
+        ),
+        20.0,
+        50.0,
+        scale,
+        &color,
+        &ui_program,
+        &teko_font,
+        &ui_vao,
+        &ui_vbo,
+    );
 
     // SECTION swap buffers
 
@@ -963,88 +963,84 @@ fn cleanup(_revenant: &Revenant) {
     optick::stop_capture("target/revenant");
 }
 
-// TODO performance improvements : Loss of 500 frames per second
-// To fix this, we need to use a VAO for each character, and then render all the characters in one draw call.
-// This is called "text batching", and can be a real performance improvement.
-// fn render_text(
-//     text: String,
-//     x: f32,
-//     y: f32,
-//     scale: f32,
-//     color: &Vector3<f32>,
-//     program: &Program,
-//     font: &Font,
-//     vao: &u32,
-//     vbo: &u32,
-// ) {
-//     // TODO anchor pos
-//     // TODO render scale
-//     let mut x = x;
+fn render_text(
+    text: String,
+    x: f32,
+    y: f32,
+    scale: f32,
+    color: &Vector3<f32>,
+    program: &Program,
+    font: &Font,
+    vao: &u32,
+    vbo: &u32,
+) {
+    // Activate the program and bind the texture
+    program.use_program();
+    program.set_uniform_vec3("color", *color);
+    unsafe {
+        gl::ActiveTexture(gl::TEXTURE0);
+        gl::BindVertexArray(*vao);
+    }
 
-//     program.use_program();
-//     program.set_uniform_vec3("color", *color);
-//     unsafe {
-//         gl::ActiveTexture(gl::TEXTURE0);
-//         gl::BindVertexArray(*vao);
-//     }
+    let mut x_pos = x;
+    let y_pos = y - font.line_height as f32 * scale;
+    for c in text.chars() {
+        // Retrieve the glyph for the current character
+        let glyph = match font.glyphs.get(&c) {
+            Some(glyph) => glyph,
+            None => continue,
+        };
 
-//     // iterate through all characters
-//     for (_, c) in text.chars().enumerate() {
-//         let character = font
-//             .character_map
-//             .get(&(c as usize))
-//             .expect(format!("Character {} not found", c).as_str());
+        let w = glyph.width as f32 * scale;
+        let h = glyph.height as f32 * scale;
 
-//         let xpos = x + character.bearing.x as f32 * scale;
-//         let ypos = y - (character.size.y - character.bearing.y) as f32 * scale;
+        // Calculate the glyph's texture coordinates
+        let x_tex = glyph.sprite_x as f32 / font.width as f32;
+        let y_tex = glyph.sprite_y as f32 / font.height as f32;
+        let w_tex = glyph.width as f32 / font.width as f32;
+        let h_tex = glyph.height as f32 / font.height as f32;
 
-//         let w = character.size.x as f32 * scale;
-//         let h = character.size.y as f32 * scale;
-//         // update VBO for each character
-//         let vertices = [
-//             xpos,
-//             ypos + h,
-//             0.0,
-//             0.0, // bottom left
-//             xpos,
-//             ypos,
-//             0.0,
-//             1.0, // top left
-//             xpos + w,
-//             ypos,
-//             1.0,
-//             1.0, // top right
-//             xpos,
-//             ypos + h,
-//             0.0,
-//             0.0, // bottom left
-//             xpos + w,
-//             ypos,
-//             1.0,
-//             1.0, // top right
-//             xpos + w,
-//             ypos + h,
-//             1.0,
-//             0.0, // bottom right
-//         ];
-
-//         // render glyph texture over quad
-//         unsafe {
-//             gl::BindTexture(gl::TEXTURE_2D, character.texture.gl_id);
-//             // update content of VBO memory
-//             gl::BindBuffer(gl::ARRAY_BUFFER, *vbo);
-//             gl::BufferSubData(
-//                 gl::ARRAY_BUFFER,
-//                 0,
-//                 (vertices.len() * std::mem::size_of::<f32>()) as isize,
-//                 vertices.as_ptr() as *const GLvoid,
-//             );
-//             gl::BindBuffer(gl::ARRAY_BUFFER, 0);
-//             // render quad
-//             gl::DrawArrays(gl::TRIANGLES, 0, 6);
-//         }
-
-//         // now advance cursors for next glyph (note that advance is number of 1/64 pixels)
-//         x += (character.advance >> 6) as f32 * scale; // bitshift by 6 to get value in pixels (2^6 = 64)
-//     }
-// }
+        // Update the vertex buffer with the glyph's quad
+        let vertices: [GLfloat; 24] = [
+            x_pos,
+            y_pos + h,
+            x_tex,
+            y_tex + h_tex,
+            x_pos,
+            y_pos,
+            x_tex,
+            y_tex,
+            x_pos + w,
+            y_pos,
+            x_tex + w_tex,
+            y_tex,
+            x_pos,
+            y_pos + h,
+            x_tex,
+            y_tex + h_tex,
+            x_pos + w,
+            y_pos,
+            x_tex + w_tex,
+            y_tex,
+            x_pos + w,
+            y_pos + h,
+            x_tex + w_tex,
+            y_tex + h_tex,
+        ];
+        unsafe {
+            // update content of VBO memory
+            gl::BindBuffer(gl::ARRAY_BUFFER, *vbo);
+            gl::BufferSubData(
+                gl::ARRAY_BUFFER,
+                0,
+                (vertices.len() * std::mem::size_of::<GLfloat>()) as isize,
+                vertices.as_ptr() as *const GLvoid,
+            );
+            gl::BindBuffer(gl::ARRAY_BUFFER, 0);
+            // render quad
+            gl::DrawArrays(gl::TRIANGLES, 0, 6);
+        }
+        // Advance the x position to the next glyph
+        x_pos += glyph.advance_x as f32 * scale;
+    }
+}
