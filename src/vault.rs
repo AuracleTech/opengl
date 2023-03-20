@@ -90,7 +90,7 @@ pub fn save_image_to_png(
     height: u32,
     name: &str,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let path = get_path(FOREIGN_FOLDER, &name, ".png");
+    let path = get_path(FOREIGN_FOLDER, &name, "png");
     let image_buffer = ImageBuffer::from_raw(width, height, data).ok_or("Invalid image data")?;
     let dynamic_image = DynamicImage::ImageRgba8(image_buffer);
     dynamic_image.save_with_format(path, image::ImageFormat::Png)?;
