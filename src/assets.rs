@@ -39,7 +39,7 @@ const SHADER_FOLDER: &str = "shaders";
 const NATIVE_FOLDER: &str = "soul";
 const NATIVE_EXT: &str = "soul";
 
-// TODO OPTIMIZE there's certainly a better way, compiler should be able to optimize this
+// OPTIMIZE there's certainly a better way, compiler should be able to optimize this
 #[cfg(not(debug_assertions))]
 fn assets_path() -> PathBuf {
     let exe_path = env::current_exe().expect("Failed to get current executable path.");

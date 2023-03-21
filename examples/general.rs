@@ -6,7 +6,7 @@ use glfw::Context;
 use revenant::{
     assets,
     types::{
-        Camera, DirLight, Filtering, Font, ImageSize, Material, PointLight, Position, Program,
+        Camera, DirLight, Filtering, ImageSize, Material, PointLight, Position, Program,
         ProjectionKind, SpotLight, Texture, TextureKind, Wrapping,
     },
     Revenant,
@@ -43,10 +43,11 @@ struct State {
 }
 
 fn main() {
-    optick::start_capture();
+    // OPTIMIZE profiling : optick::start_capture();
     let mut revenant = Revenant::new(WIN_DIM_X, WIN_DIM_Y);
     init_revenant(&mut revenant);
     if false {
+        // TEMP
         create_assets();
     }
     load_assets(&mut revenant);
@@ -74,7 +75,7 @@ fn main() {
     };
 
     while !revenant.window.should_close() {
-        optick::next_frame();
+        // OPTIMIZE profiling : optick::next_frame();
         input(&mut revenant, &mut states);
         // TODO update_multiplayer(&revenant);how to get screen dimension in rust GLFW
         // TODO update_AI(&revenant);
@@ -309,16 +310,16 @@ fn load_assets(revenant: &mut Revenant) {
         .insert("camera_ui".to_string(), camera_ui);
 
     // fonts
-    let comfortaa_font = assets::load_foreign_font("comfortaa", "ttf");
-    let teko_font = assets::load_foreign_font("teko", "ttf");
-    revenant
-        .assets
-        .fonts
-        .insert("comfortaa_font".to_string(), comfortaa_font);
-    revenant
-        .assets
-        .fonts
-        .insert("teko_font".to_string(), teko_font);
+    // let comfortaa_font = assets::load_foreign_font("comfortaa", "ttf");
+    // let teko_font = assets::load_foreign_font("teko", "ttf");
+    // revenant
+    //     .assets
+    //     .fonts
+    //     .insert("comfortaa_font".to_string(), comfortaa_font);
+    // revenant
+    //     .assets
+    //     .fonts
+    //     .insert("teko_font".to_string(), teko_font);
 
     // material
     let material: Material = assets::load("material_crate");
@@ -382,13 +383,13 @@ fn load_assets(revenant: &mut Revenant) {
 // TODO create struct for input handling & keep track of assigned keys
 #[inline]
 fn input(revenant: &mut Revenant, states: &mut State) {
-    optick::event!();
+    // OPTIMIZE profiling : optick::event!();
     revenant.glfw.poll_events();
 
     let mut main_camera = revenant
         .assets
         .cameras
-        .get_mut("camera_main") // TODO get mut might be an optimization issue -> to verify
+        .get_mut("camera_main") // OPTIMIZE use clone? or something else?
         .expect("Failed to get main camera");
 
     for (_, event) in glfw::flush_messages(&revenant.events) {
@@ -516,7 +517,7 @@ fn input(revenant: &mut Revenant, states: &mut State) {
 
 #[inline]
 fn update(revenant: &mut Revenant) {
-    // TODO optimize .update(); iteration to use a custom HashMap / a bitset for assets to be updated
+    // OPTIMIZE .update(); iteration to use a custom HashMap / a bitset for assets to be updated
     for (_, camera) in revenant.assets.cameras.iter_mut() {
         if camera.update_projection {
             camera.update();
@@ -531,24 +532,6 @@ fn render(revenant: &mut Revenant, states: &mut State) {
         .programs
         .get("light_program")
         .expect("Failed to get light_program");
-
-    let ui_program = revenant
-        .assets
-        .programs
-        .get("ui_program")
-        .expect("Failed to get ui_program");
-
-    let comfortaa_font = revenant
-        .assets
-        .fonts
-        .get("comfortaa_font")
-        .expect("Failed to get comfortaa");
-
-    let teko_font = revenant
-        .assets
-        .fonts
-        .get("comfortaa_font")
-        .expect("Failed to get teko");
 
     const POINTLIGHT_POSITION: [Position; 4] = [
         point3(0.7, 0.2, 2.0),
@@ -859,66 +842,84 @@ fn render(revenant: &mut Revenant, states: &mut State) {
 
     // SECTION text render
 
-    unsafe {
-        gl::Disable(gl::DEPTH_TEST);
-    }
+    // let ui_program = revenant
+    //     .assets
+    //     .programs
+    //     .get("ui_program")
+    //     .expect("Failed to get ui_program");
 
-    let color = vec3(0.8, 0.8, 0.67);
-    let scale = 1.0;
+    // let comfortaa_font = revenant
+    //     .assets
+    //     .fonts
+    //     .get("comfortaa_font")
+    //     .expect("Failed to get comfortaa");
 
-    render_text(
-        format!("{} FPS", states.current_fps),
-        40.0,
-        600.0,
-        scale,
-        &color,
-        &ui_program,
-        &comfortaa_font,
-        &ui_vao,
-        &ui_vbo,
-    );
+    // let teko_font = revenant
+    //     .assets
+    //     .fonts
+    //     .get("comfortaa_font")
+    //     .expect("Failed to get teko");
 
-    render_text(
-        format!("{:0.4} MS/FRAME", states.ms_per_frame),
-        40.0,
-        570.0,
-        scale,
-        &color,
-        &ui_program,
-        &teko_font,
-        &ui_vao,
-        &ui_vbo,
-    );
+    // unsafe {
+    //     gl::Disable(gl::DEPTH_TEST);
+    // }
 
-    render_text(
-        format!(
-            "Camera.pos x{:0.2} y{:0.2} z{:0.2}",
-            camera_main.pos.x, camera_main.pos.y, camera_main.pos.z
-        ),
-        20.0,
-        20.0,
-        scale,
-        &color,
-        &ui_program,
-        &teko_font,
-        &ui_vao,
-        &ui_vbo,
-    );
+    // let color = vec3(0.8, 0.8, 0.67);
+    // let scale = 1.0;
 
-    render_text(
-        format!(
-            "Camera.yaw {:0.2} Camera.pitch {:0.2}",
-            states.yaw, states.pitch
-        ),
-        20.0,
-        50.0,
-        scale,
-        &color,
-        &ui_program,
-        &teko_font,
-        &ui_vao,
-        &ui_vbo,
-    );
+    // render_text(
+    //     format!("{} FPS", states.current_fps),
+    //     40.0,
+    //     600.0,
+    //     scale,
+    //     &color,
+    //     &ui_program,
+    //     &comfortaa_font,
+    //     &ui_vao,
+    //     &ui_vbo,
+    // );
+
+    // render_text(
+    //     format!("{:0.4} MS/FRAME", states.ms_per_frame),
+    //     40.0,
+    //     570.0,
+    //     scale,
+    //     &color,
+    //     &ui_program,
+    //     &teko_font,
+    //     &ui_vao,
+    //     &ui_vbo,
+    // );
+
+    // render_text(
+    //     format!(
+    //         "Camera.pos x{:0.2} y{:0.2} z{:0.2}",
+    //         camera_main.pos.x, camera_main.pos.y, camera_main.pos.z
+    //     ),
+    //     20.0,
+    //     20.0,
+    //     scale,
+    //     &color,
+    //     &ui_program,
+    //     &teko_font,
+    //     &ui_vao,
+    //     &ui_vbo,
+    // );
+
+    // render_text(
+    //     format!(
+    //         "Camera.yaw {:0.2} Camera.pitch {:0.2}",
+    //         states.yaw, states.pitch
+    //     ),
+    //     20.0,
+    //     50.0,
+    //     scale,
+    //     &color,
+    //     &ui_program,
+    //     &teko_font,
+    //     &ui_vao,
+    //     &ui_vbo,
+    // );
 
     // SECTION swap buffers
 
@@ -940,14 +941,14 @@ fn render(revenant: &mut Revenant, states: &mut State) {
         states.last_time = current_time;
     }
 
-    optick::event!("frame_end");
-    optick::tag!("frame", states.frame_number);
+    // OPTIMIZE profiling : optick::event!("frame_end");
+    // OPTIMIZE profiling : optick::tag!("frame", states.frame_number);
 }
 
 #[inline]
 // TODO remove arguments except revenant instance as argument
 fn cleanup(_revenant: &Revenant) {
-    optick::event!();
+    // OPTIMIZE profiling : optick::event!();
     // TODO automatically cleanup all resources (e.g. VAOs, VBOs, shaders, etc.)
     // unsafe {
     // TODO delete all current buffers
@@ -959,86 +960,86 @@ fn cleanup(_revenant: &Revenant) {
     // gl::DeleteProgram(light_program.gl_id);
     // gl::DeleteProgram(phong_program.gl_id);
     // }
-    optick::stop_capture("target/revenant");
+    // OPTIMIZE profiling : optick::stop_capture("target/revenant");
 }
 
 // TODO performance improvements : massive performance hit when rendering text
 // To fix this, we need to use a VAO for each character, and then render all the characters in one draw call.
 // This is called "text batching", and can be a real performance improvement.
-fn render_text(
-    text: String,
-    x: f32,
-    y: f32,
-    scale: f32,
-    color: &Vector3<f32>,
-    program: &Program,
-    font: &Font,
-    vao: &u32,
-    vbo: &u32,
-) {
-    // TODO anchor pos
-    // TODO render scale
-    let mut x = x;
+// fn render_text(
+//     text: String,
+//     x: f32,
+//     y: f32,
+//     scale: f32,
+//     color: &Vector3<f32>,
+//     program: &Program,
+//     font: &Font,
+//     vao: &u32,
+//     vbo: &u32,
+// ) {
+//     // TODO anchor pos
+//     // TODO render scale
+//     let mut x = x;
 
-    program.use_program();
-    program.set_uniform_vec3("color", *color);
-    unsafe {
-        gl::ActiveTexture(gl::TEXTURE0);
-        gl::BindVertexArray(*vao);
-    }
+//     program.use_program();
+//     program.set_uniform_vec3("color", *color);
+//     unsafe {
+//         gl::ActiveTexture(gl::TEXTURE0);
+//         gl::BindVertexArray(*vao);
+//     }
 
-    for (_, c) in text.chars().enumerate() {
-        let glyph = font.glyphs.get(&c).expect("Glyph not found");
+//     for (_, c) in text.chars().enumerate() {
+//         let glyph = font.glyphs.get(&c).expect("Glyph not found");
 
-        let xpos = x + glyph.bearing_x as f32 * scale;
-        let ypos = y - glyph.bearing_y as f32 * scale;
+//         let xpos = x + glyph.bearing_x as f32 * scale;
+//         let ypos = y - glyph.bearing_y as f32 * scale;
 
-        let w = glyph.width as f32 * scale;
-        let h = glyph.height as f32 * scale;
-        // update VBO for each character
-        let vertices = [
-            xpos,
-            ypos + h,
-            0.0,
-            0.0, // bottom left
-            xpos,
-            ypos,
-            0.0,
-            1.0, // top left
-            xpos + w,
-            ypos,
-            1.0,
-            1.0, // top right
-            xpos,
-            ypos + h,
-            0.0,
-            0.0, // bottom left
-            xpos + w,
-            ypos,
-            1.0,
-            1.0, // top right
-            xpos + w,
-            ypos + h,
-            1.0,
-            0.0, // bottom right
-        ];
+//         let w = glyph.width as f32 * scale;
+//         let h = glyph.height as f32 * scale;
+//         // update VBO for each character
+//         let vertices = [
+//             xpos,
+//             ypos + h,
+//             0.0,
+//             0.0, // bottom left
+//             xpos,
+//             ypos,
+//             0.0,
+//             1.0, // top left
+//             xpos + w,
+//             ypos,
+//             1.0,
+//             1.0, // top right
+//             xpos,
+//             ypos + h,
+//             0.0,
+//             0.0, // bottom left
+//             xpos + w,
+//             ypos,
+//             1.0,
+//             1.0, // top right
+//             xpos + w,
+//             ypos + h,
+//             1.0,
+//             0.0, // bottom right
+//         ];
 
-        // render glyph texture over quad
-        unsafe {
-            gl::BindTexture(gl::TEXTURE_2D, font.sprite.gl_id);
-            // update content of VBO memory
-            gl::BindBuffer(gl::ARRAY_BUFFER, *vbo);
-            gl::BufferSubData(
-                gl::ARRAY_BUFFER,
-                0,
-                (vertices.len() * std::mem::size_of::<f32>()) as isize,
-                vertices.as_ptr() as *const GLvoid,
-            );
-            gl::BindBuffer(gl::ARRAY_BUFFER, 0);
-            // render quad
-            gl::DrawArrays(gl::TRIANGLES, 0, 6);
-        }
+//         // render glyph texture over quad
+//         unsafe {
+//             gl::BindTexture(gl::TEXTURE_2D, font.sprite.gl_id);
+//             // update content of VBO memory
+//             gl::BindBuffer(gl::ARRAY_BUFFER, *vbo);
+//             gl::BufferSubData(
+//                 gl::ARRAY_BUFFER,
+//                 0,
+//                 (vertices.len() * std::mem::size_of::<f32>()) as isize,
+//                 vertices.as_ptr() as *const GLvoid,
+//             );
+//             gl::BindBuffer(gl::ARRAY_BUFFER, 0);
+//             // render quad
+//             gl::DrawArrays(gl::TRIANGLES, 0, 6);
+//         }
 
-        x += (glyph.advance_x >> 6) as f32 * scale;
-    }
-}
+//         x += (glyph.advance_x >> 6) as f32 * scale;
+//     }
+// }

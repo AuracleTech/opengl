@@ -122,7 +122,7 @@ pub enum ProjectionKind {
         aspect_ratio: f32,
         near: f32,
         far: f32,
-        fov_y: f32, // TODO OPTIMIZATION use Degree
+        fov_y: f32, // OPTIMIZE use Degree instead of f32 ?
     },
     Orthographic {
         left: f32,

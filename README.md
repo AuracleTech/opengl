@@ -26,8 +26,7 @@
 - [x] Serialization & Deserialization
 - [x] Emissive Textures
 - [x] Bikeshedding
-- [ ] Outlining
-- [ ] Profiling
+- [x] Outlining
 - [ ] Loading Mesh
 - [ ] Loading Model
 - [ ] Setup world environment playground
@@ -40,9 +39,11 @@
 - [ ] Hotkey Register
 - [ ] Framebuffers
 - [ ] Audio
+- [ ] Profiling
 - [ ] Cubemaps
 - [ ] Advanced Data
 - [ ] Advanced GLSL
+- [ ] Text Rendering
 - [ ] Geometry Shader
 - [ ] Instancing
 - [ ] Anti Aliasing
