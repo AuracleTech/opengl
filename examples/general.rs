@@ -4,11 +4,12 @@ use cgmath::{
 use gl::types::{GLenum, GLfloat, GLsizei, GLsizeiptr, GLvoid};
 use glfw::Context;
 use revenant::{
+    assets,
     types::{
         Camera, DirLight, Filtering, Font, ImageSize, Material, PointLight, Position, Program,
         ProjectionKind, SpotLight, Texture, TextureKind, Wrapping,
     },
-    vault, Revenant,
+    Revenant,
 };
 
 // TODO flexible window size
@@ -113,7 +114,7 @@ fn init_revenant(revenant: &mut Revenant) {
     println!("OpenGL version: {}.{}", version.major, version.minor);
 
     // Set window icon
-    let icon_asset = vault::load_foreign_image("icon", "png");
+    let icon_asset = assets::load_foreign_image("icon", "png");
     let mut icon_pixels: Vec<u32> = vec![];
     for chunk in icon_asset.data.chunks_exact(4) {
         let u32_value = u32::from_le_bytes([chunk[0], chunk[1], chunk[2], chunk[3]]);
@@ -143,12 +144,12 @@ fn init_revenant(revenant: &mut Revenant) {
 
 #[inline]
 fn create_assets() {
-    let image_crate_diffuse = vault::load_foreign_image("crate_diffuse", "jpg");
-    let image_crate_specular = vault::load_foreign_image("crate_specular", "jpg");
-    let image_crate_emissive = vault::load_foreign_image("crate_emissive", "jpg");
+    let image_crate_diffuse = assets::load_foreign_image("crate_diffuse", "jpg");
+    let image_crate_specular = assets::load_foreign_image("crate_specular", "jpg");
+    let image_crate_emissive = assets::load_foreign_image("crate_emissive", "jpg");
     let texture_crate_diffuse = Texture {
         gl_id: 0,
-        image: vault::load("image_crate_diffuse"),
+        image: assets::load("image_crate_diffuse"),
         kind: TextureKind::Diffuse,
         s_wrapping: Wrapping::Repeat,
         t_wrapping: Wrapping::Repeat,
@@ -158,7 +159,7 @@ fn create_assets() {
     };
     let texture_crate_specular = Texture {
         gl_id: 0,
-        image: vault::load("image_crate_specular"),
+        image: assets::load("image_crate_specular"),
         kind: TextureKind::Specular,
         s_wrapping: Wrapping::Repeat,
         t_wrapping: Wrapping::Repeat,
@@ -168,7 +169,7 @@ fn create_assets() {
     };
     let texture_crate_emissive = Texture {
         gl_id: 0,
-        image: vault::load("image_crate_emissive"),
+        image: assets::load("image_crate_emissive"),
         kind: TextureKind::Emissive,
         s_wrapping: Wrapping::Repeat,
         t_wrapping: Wrapping::Repeat,
@@ -178,10 +179,10 @@ fn create_assets() {
     };
 
     let material_crate = Material {
-        diffuse: vault::load("texture_crate_diffuse"),
-        specular: vault::load("texture_crate_specular"),
+        diffuse: assets::load("texture_crate_diffuse"),
+        specular: assets::load("texture_crate_specular"),
         specular_strength: 32.0,
-        emissive: vault::load("texture_crate_emissive"),
+        emissive: assets::load("texture_crate_emissive"),
     };
 
     let camera_main = Camera {
@@ -248,35 +249,35 @@ fn create_assets() {
         diffuse: vec3(0.4, 0.4, 0.4),
         specular: vec3(0.5, 0.5, 0.5),
     };
-    vault::save("image_crate_diffuse", image_crate_diffuse);
-    vault::save("image_crate_specular", image_crate_specular);
-    vault::save("image_crate_emissive", image_crate_emissive);
-    vault::save("texture_crate_diffuse", texture_crate_diffuse);
-    vault::save("texture_crate_specular", texture_crate_specular);
-    vault::save("texture_crate_emissive", texture_crate_emissive);
-    vault::save("material_crate", material_crate);
-    vault::save("camera_main", camera_main);
-    vault::save("camera_ui", camera_ui);
-    vault::save("spotlight", spotlight);
-    vault::save("pointlight", pointlight);
-    vault::save("dirlight", dirlight);
+    assets::save("image_crate_diffuse", image_crate_diffuse);
+    assets::save("image_crate_specular", image_crate_specular);
+    assets::save("image_crate_emissive", image_crate_emissive);
+    assets::save("texture_crate_diffuse", texture_crate_diffuse);
+    assets::save("texture_crate_specular", texture_crate_specular);
+    assets::save("texture_crate_emissive", texture_crate_emissive);
+    assets::save("material_crate", material_crate);
+    assets::save("camera_main", camera_main);
+    assets::save("camera_ui", camera_ui);
+    assets::save("spotlight", spotlight);
+    assets::save("pointlight", pointlight);
+    assets::save("dirlight", dirlight);
 }
 
 #[inline]
 fn load_assets(revenant: &mut Revenant) {
     // camera
-    let camera_ui: Camera = vault::load("camera_ui");
-    let camera_main: Camera = vault::load("camera_main");
+    let camera_ui: Camera = assets::load("camera_ui");
+    let camera_main: Camera = assets::load("camera_main");
 
     // shaders
-    let phong_vs = vault::load_foreign_shader("phong", "vs");
-    let phong_fs = vault::load_foreign_shader("phong", "fs");
+    let phong_vs = assets::load_foreign_shader("phong", "vs");
+    let phong_fs = assets::load_foreign_shader("phong", "fs");
 
-    let light_vs = vault::load_foreign_shader("light", "vs");
-    let light_fs = vault::load_foreign_shader("light", "fs");
+    let light_vs = assets::load_foreign_shader("light", "vs");
+    let light_fs = assets::load_foreign_shader("light", "fs");
 
-    let ui_vs = vault::load_foreign_shader("ui", "vs");
-    let ui_fs = vault::load_foreign_shader("ui", "fs");
+    let ui_vs = assets::load_foreign_shader("ui", "vs");
+    let ui_fs = assets::load_foreign_shader("ui", "fs");
 
     // programs
     let phong = Program::new(phong_vs, phong_fs);
@@ -308,8 +309,8 @@ fn load_assets(revenant: &mut Revenant) {
         .insert("camera_ui".to_string(), camera_ui);
 
     // fonts
-    let comfortaa_font = vault::load_foreign_font("comfortaa", "ttf");
-    let teko_font = vault::load_foreign_font("teko", "ttf");
+    let comfortaa_font = assets::load_foreign_font("comfortaa", "ttf");
+    let teko_font = assets::load_foreign_font("teko", "ttf");
     revenant
         .assets
         .fonts
@@ -320,16 +321,16 @@ fn load_assets(revenant: &mut Revenant) {
         .insert("teko_font".to_string(), teko_font);
 
     // material
-    let material: Material = vault::load("material_crate");
+    let material: Material = assets::load("material_crate");
     revenant
         .assets
         .materials
         .insert("material_crate".to_string(), material);
 
     // lights
-    let spotlight: SpotLight = vault::load("spotlight");
-    let pointlight: PointLight = vault::load("pointlight");
-    let dirlight: DirLight = vault::load("dirlight");
+    let spotlight: SpotLight = assets::load("spotlight");
+    let pointlight: PointLight = assets::load("pointlight");
+    let dirlight: DirLight = assets::load("dirlight");
 
     revenant
         .assets
@@ -985,7 +986,6 @@ fn render_text(
     let mut x_pos = x;
     let y_pos = y - font.line_height as f32 * scale;
     for c in text.chars() {
-        // Retrieve the glyph for the current character
         let glyph = match font.glyphs.get(&c) {
             Some(glyph) => glyph,
             None => continue,

@@ -1,8 +1,7 @@
-mod assets;
+pub mod assets;
 mod mesh;
 #[allow(dead_code)]
-pub mod types;
-pub mod vault; // TODO SET PRIVATE
+pub mod types; // TODO SET PRIVATE
 use crate::types::RGBA;
 use glfw::Context;
 use std::env;
