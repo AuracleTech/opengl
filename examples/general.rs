@@ -829,8 +829,7 @@ fn render(revenant: &mut Revenant, states: &mut State) {
         let mut model = Matrix4::identity();
         let angle = 40.0 * frame_start_time as f32;
         model = model * Matrix4::from_translation(cube_positions[i]);
-        model =
-            model * Matrix4::from_axis_angle(vec3(1.0, 0.3, 0.5).normalize(), cgmath::Deg(angle));
+        model = model * Matrix4::from_axis_angle(vec3(1.0, 0.3, 0.5).normalize(), Deg(angle));
         phong_program.set_uniform_mat4("model", &model);
 
         unsafe {
@@ -849,8 +848,7 @@ fn render(revenant: &mut Revenant, states: &mut State) {
         let mut model = Matrix4::identity();
         let angle = 40.0 * frame_start_time as f32;
         model = model * Matrix4::from_translation(POINTLIGHT_POSITION[i].to_vec());
-        model =
-            model * Matrix4::from_axis_angle(vec3(1.0, 0.3, 0.5).normalize(), cgmath::Deg(angle));
+        model = model * Matrix4::from_axis_angle(vec3(1.0, 0.3, 0.5).normalize(), Deg(angle));
         model = model * Matrix4::from_scale(0.1);
         light_program.set_uniform_mat4("model", &model);
         unsafe {
@@ -964,6 +962,9 @@ fn cleanup(_revenant: &Revenant) {
     optick::stop_capture("target/revenant");
 }
 
+// TODO performance improvements : massive performance hit when rendering text
+// To fix this, we need to use a VAO for each character, and then render all the characters in one draw call.
+// This is called "text batching", and can be a real performance improvement.
 fn render_text(
     text: String,
     x: f32,
@@ -975,7 +976,10 @@ fn render_text(
     vao: &u32,
     vbo: &u32,
 ) {
-    // Activate the program and bind the texture
+    // TODO anchor pos
+    // TODO render scale
+    let mut x = x;
+
     program.use_program();
     program.set_uniform_vec3("color", *color);
     unsafe {
@@ -983,64 +987,58 @@ fn render_text(
         gl::BindVertexArray(*vao);
     }
 
-    let mut x_pos = x;
-    let y_pos = y - font.line_height as f32 * scale;
-    for c in text.chars() {
-        let glyph = match font.glyphs.get(&c) {
-            Some(glyph) => glyph,
-            None => continue,
-        };
+    for (_, c) in text.chars().enumerate() {
+        let glyph = font.glyphs.get(&c).expect("Glyph not found");
+
+        let xpos = x + glyph.bearing_x as f32 * scale;
+        let ypos = y - glyph.bearing_y as f32 * scale;
 
         let w = glyph.width as f32 * scale;
         let h = glyph.height as f32 * scale;
-
-        // Calculate the glyph's texture coordinates
-        let x_tex = glyph.sprite_x as f32 / font.width as f32;
-        let y_tex = glyph.sprite_y as f32 / font.height as f32;
-        let w_tex = glyph.width as f32 / font.width as f32;
-        let h_tex = glyph.height as f32 / font.height as f32;
-
-        // Update the vertex buffer with the glyph's quad
-        let vertices: [GLfloat; 24] = [
-            x_pos,
-            y_pos + h,
-            x_tex,
-            y_tex + h_tex,
-            x_pos,
-            y_pos,
-            x_tex,
-            y_tex,
-            x_pos + w,
-            y_pos,
-            x_tex + w_tex,
-            y_tex,
-            x_pos,
-            y_pos + h,
-            x_tex,
-            y_tex + h_tex,
-            x_pos + w,
-            y_pos,
-            x_tex + w_tex,
-            y_tex,
-            x_pos + w,
-            y_pos + h,
-            x_tex + w_tex,
-            y_tex + h_tex,
+        // update VBO for each character
+        let vertices = [
+            xpos,
+            ypos + h,
+            0.0,
+            0.0, // bottom left
+            xpos,
+            ypos,
+            0.0,
+            1.0, // top left
+            xpos + w,
+            ypos,
+            1.0,
+            1.0, // top right
+            xpos,
+            ypos + h,
+            0.0,
+            0.0, // bottom left
+            xpos + w,
+            ypos,
+            1.0,
+            1.0, // top right
+            xpos + w,
+            ypos + h,
+            1.0,
+            0.0, // bottom right
         ];
+
+        // render glyph texture over quad
         unsafe {
+            gl::BindTexture(gl::TEXTURE_2D, font.sprite.gl_id);
             // update content of VBO memory
             gl::BindBuffer(gl::ARRAY_BUFFER, *vbo);
             gl::BufferSubData(
                 gl::ARRAY_BUFFER,
                 0,
-                (vertices.len() * std::mem::size_of::<GLfloat>()) as isize,
+                (vertices.len() * std::mem::size_of::<f32>()) as isize,
                 vertices.as_ptr() as *const GLvoid,
             );
             gl::BindBuffer(gl::ARRAY_BUFFER, 0);
             // render quad
             gl::DrawArrays(gl::TRIANGLES, 0, 6);
         }
-        // Advance the x position to the next glyph
-        x_pos += glyph.advance_x as f32 * scale;
+
+        x += (glyph.advance_x >> 6) as f32 * scale;
     }
 }
