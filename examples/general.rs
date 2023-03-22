@@ -1,13 +1,11 @@
-use cgmath::{
-    point3, vec3, vec4, Angle, Deg, EuclideanSpace, InnerSpace, Matrix4, SquareMatrix, Vector3,
-};
-use gl::types::{GLenum, GLfloat, GLsizei, GLsizeiptr, GLvoid};
+use cgmath::{point3, vec2, vec3, vec4, Angle, Deg, InnerSpace, Matrix4, SquareMatrix};
+use gl::types::{GLenum, GLfloat, GLsizei, GLsizeiptr};
 use glfw::Context;
 use revenant::{
     assets,
     types::{
-        Camera, DirLight, Filtering, ImageSize, Material, PointLight, Position, Program,
-        ProjectionKind, SpotLight, Texture, TextureKind, Wrapping,
+        Camera, DirLight, Filtering, ImageSize, Indice, Material, Mesh, Model, PointLight,
+        Position, Program, ProjectionKind, SpotLight, Texture, TextureKind, Vertex, Wrapping,
     },
     Revenant,
 };
@@ -44,12 +42,15 @@ struct State {
 
 fn main() {
     // OPTIMIZE profiling : optick::start_capture();
+    // OPTIMIZE https://crates.io/crates/optick
     let mut revenant = Revenant::new(WIN_DIM_X, WIN_DIM_Y);
     init_revenant(&mut revenant);
     if false {
         // TEMP
         create_assets();
     }
+    // OPTIMIZE might wanna put the loading and init functions in a block to
+    // OPTIMIZE make sure the memory taken is dropped before the main loop starts
     load_assets(&mut revenant);
     init_gl(&mut revenant);
 
@@ -266,6 +267,67 @@ fn create_assets() {
 
 #[inline]
 fn load_assets(revenant: &mut Revenant) {
+    // mesh
+    // vertex data (position, normal, texcoord)
+    const VERTEX_DATA: [GLfloat; 192] = [
+        -0.5, -0.5, -0.5, 0.0, 0.0, -1.0, 0.0, 0.0, //
+        0.5, -0.5, -0.5, 0.0, 0.0, -1.0, 1.0, 0.0, //
+        0.5, 0.5, -0.5, 0.0, 0.0, -1.0, 1.0, 1.0, //
+        -0.5, 0.5, -0.5, 0.0, 0.0, -1.0, 0.0, 1.0, //
+        -0.5, -0.5, 0.5, 0.0, 0.0, 1.0, 0.0, 0.0, //
+        0.5, -0.5, 0.5, 0.0, 0.0, 1.0, 1.0, 0.0, //
+        0.5, 0.5, 0.5, 0.0, 0.0, 1.0, 1.0, 1.0, //
+        -0.5, 0.5, 0.5, 0.0, 0.0, 1.0, 0.0, 1.0, //
+        -0.5, 0.5, 0.5, -1.0, 0.0, 0.0, 1.0, 0.0, //
+        -0.5, 0.5, -0.5, -1.0, 0.0, 0.0, 1.0, 1.0, //
+        -0.5, -0.5, -0.5, -1.0, 0.0, 0.0, 0.0, 1.0, //
+        -0.5, -0.5, 0.5, -1.0, 0.0, 0.0, 0.0, 0.0, //
+        0.5, 0.5, 0.5, 1.0, 0.0, 0.0, 1.0, 0.0, //
+        0.5, 0.5, -0.5, 1.0, 0.0, 0.0, 1.0, 1.0, //
+        0.5, -0.5, -0.5, 1.0, 0.0, 0.0, 0.0, 1.0, //
+        0.5, -0.5, 0.5, 1.0, 0.0, 0.0, 0.0, 0.0, //
+        -0.5, -0.5, -0.5, 0.0, -1.0, 0.0, 0.0, 1.0, //
+        0.5, -0.5, -0.5, 0.0, -1.0, 0.0, 1.0, 1.0, //
+        0.5, -0.5, 0.5, 0.0, -1.0, 0.0, 1.0, 0.0, //
+        -0.5, -0.5, 0.5, 0.0, -1.0, 0.0, 0.0, 0.0, //
+        -0.5, 0.5, -0.5, 0.0, 1.0, 0.0, 0.0, 1.0, //
+        0.5, 0.5, -0.5, 0.0, 1.0, 0.0, 1.0, 1.0, //
+        0.5, 0.5, 0.5, 0.0, 1.0, 0.0, 1.0, 0.0, //
+        -0.5, 0.5, 0.5, 0.0, 1.0, 0.0, 0.0, 0.0, //
+    ];
+    let mut vertices: Vec<Vertex> = vec![];
+    for i in 0..(VERTEX_DATA.len() / 8) {
+        vertices.push(Vertex {
+            position: point3(
+                VERTEX_DATA[i * 8],
+                VERTEX_DATA[i * 8 + 1],
+                VERTEX_DATA[i * 8 + 2],
+            ),
+            normal: vec3(
+                VERTEX_DATA[i * 8 + 3],
+                VERTEX_DATA[i * 8 + 4],
+                VERTEX_DATA[i * 8 + 5],
+            ),
+            tex_coord: vec2(VERTEX_DATA[i * 8 + 6], VERTEX_DATA[i * 8 + 7]),
+        });
+    }
+
+    let indices: Vec<Indice> = vec![
+        0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23,
+    ];
+    let mesh_cube = Mesh::new(vertices, indices, vec![]);
+    revenant
+        .assets
+        .meshes
+        .insert("mesh_cube".to_owned(), mesh_cube);
+
+    // model
+    let model_tree_cam_light: Model = assets::load_foreign_model("tree_cam_light", "glb");
+    revenant
+        .assets
+        .models
+        .insert("tree_cam_light".to_owned(), model_tree_cam_light);
+
     // camera
     let camera_ui: Camera = assets::load("camera_ui");
     let camera_main: Camera = assets::load("camera_main");
@@ -347,37 +409,8 @@ fn load_assets(revenant: &mut Revenant) {
         .insert("dirlight".to_string(), dirlight);
 
     // GLTF
-    // // TODO 3d models & more
-    // let binding = assets_path().join("models").join("tree_cam_light.glb");
-    // let blend_path = binding.to_str().expect("Failed to convert path to string");
-    // let gltf = Gltf::open(blend_path).expect("Failed to open gltf file");
-    // let scenes = gltf.scenes();
-    // for scene in scenes {
-    //     println!("Scene #{} has {} nodes", scene.index(), scene.nodes().len());
-    //     for node in scene.nodes() {
-    //         let cameras = node.camera();
-    //         if let Some(camera) = cameras {
-    //             match camera.projection() {
-    //                 gltf::camera::Projection::Orthographic(ortho) => {
-    //                     println!("Orthographic camera");
-    //                     println!("xmag: {}", ortho.xmag());
-    //                     println!("ymag: {}", ortho.ymag());
-    //                     println!("znear: {}", ortho.znear());
-    //                     println!("zfar: {}", ortho.zfar());
-    //                     println!("extras: {:?}", ortho.extras());
-    //                 }
-    //                 gltf::camera::Projection::Perspective(persp) => {
-    //                     println!("Perspective camera");
-    //                     println!("aspect_ratio: {:?}", persp.aspect_ratio());
-    //                     println!("yfov: {}", persp.yfov());
-    //                     println!("znear: {}", persp.znear());
-    //                     println!("zfar: {:?}", persp.zfar());
-    //                     println!("extras: {:?}", persp.extras());
-    //                 }
-    //             }
-    //         }
-    //     }
-    // }
+    // let mesh: Mesh = assets::load_foreign_model("tree", extension);
+    // revenant.assets.meshes.insert("mesh_tree".to_string(), mesh);
 }
 
 // TODO create struct for input handling & keep track of assigned keys
@@ -540,90 +573,62 @@ fn render(revenant: &mut Revenant, states: &mut State) {
         point3(0.0, 0.0, -3.0),
     ];
 
-    // vertex data (pos 3, normal 3, texcoord 2)
-    const VERTEX_DATA: [GLfloat; 288] = [
-        -0.5, -0.5, -0.5, 0.0, 0.0, -1.0, 0.0, 0.0, //
-        0.5, -0.5, -0.5, 0.0, 0.0, -1.0, 1.0, 0.0, //
-        0.5, 0.5, -0.5, 0.0, 0.0, -1.0, 1.0, 1.0, //
-        0.5, 0.5, -0.5, 0.0, 0.0, -1.0, 1.0, 1.0, //
-        -0.5, 0.5, -0.5, 0.0, 0.0, -1.0, 0.0, 1.0, //
-        -0.5, -0.5, -0.5, 0.0, 0.0, -1.0, 0.0, 0.0, //
-        -0.5, -0.5, 0.5, 0.0, 0.0, 1.0, 0.0, 0.0, //
-        0.5, -0.5, 0.5, 0.0, 0.0, 1.0, 1.0, 0.0, //
-        0.5, 0.5, 0.5, 0.0, 0.0, 1.0, 1.0, 1.0, //
-        0.5, 0.5, 0.5, 0.0, 0.0, 1.0, 1.0, 1.0, //
-        -0.5, 0.5, 0.5, 0.0, 0.0, 1.0, 0.0, 1.0, //
-        -0.5, -0.5, 0.5, 0.0, 0.0, 1.0, 0.0, 0.0, //
-        -0.5, 0.5, 0.5, -1.0, 0.0, 0.0, 1.0, 0.0, //
-        -0.5, 0.5, -0.5, -1.0, 0.0, 0.0, 1.0, 1.0, //
-        -0.5, -0.5, -0.5, -1.0, 0.0, 0.0, 0.0, 1.0, //
-        -0.5, -0.5, -0.5, -1.0, 0.0, 0.0, 0.0, 1.0, //
-        -0.5, -0.5, 0.5, -1.0, 0.0, 0.0, 0.0, 0.0, //
-        -0.5, 0.5, 0.5, -1.0, 0.0, 0.0, 1.0, 0.0, //
-        0.5, 0.5, 0.5, 1.0, 0.0, 0.0, 1.0, 0.0, //
-        0.5, 0.5, -0.5, 1.0, 0.0, 0.0, 1.0, 1.0, //
-        0.5, -0.5, -0.5, 1.0, 0.0, 0.0, 0.0, 1.0, //
-        0.5, -0.5, -0.5, 1.0, 0.0, 0.0, 0.0, 1.0, //
-        0.5, -0.5, 0.5, 1.0, 0.0, 0.0, 0.0, 0.0, //
-        0.5, 0.5, 0.5, 1.0, 0.0, 0.0, 1.0, 0.0, //
-        -0.5, -0.5, -0.5, 0.0, -1.0, 0.0, 0.0, 1.0, //
-        0.5, -0.5, -0.5, 0.0, -1.0, 0.0, 1.0, 1.0, //
-        0.5, -0.5, 0.5, 0.0, -1.0, 0.0, 1.0, 0.0, //
-        0.5, -0.5, 0.5, 0.0, -1.0, 0.0, 1.0, 0.0, //
-        -0.5, -0.5, 0.5, 0.0, -1.0, 0.0, 0.0, 0.0, //
-        -0.5, -0.5, -0.5, 0.0, -1.0, 0.0, 0.0, 1.0, //
-        -0.5, 0.5, -0.5, 0.0, 1.0, 0.0, 0.0, 1.0, //
-        0.5, 0.5, -0.5, 0.0, 1.0, 0.0, 1.0, 1.0, //
-        0.5, 0.5, 0.5, 0.0, 1.0, 0.0, 1.0, 0.0, //
-        0.5, 0.5, 0.5, 0.0, 1.0, 0.0, 1.0, 0.0, //
-        -0.5, 0.5, 0.5, 0.0, 1.0, 0.0, 0.0, 0.0, //
-        -0.5, 0.5, -0.5, 0.0, 1.0, 0.0, 0.0, 1.0, //
-    ];
-
     // vertex buffer object (VBO)
-    let mut vbo = 0;
-    unsafe {
-        gl::GenBuffers(1, &mut vbo);
-        gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
-        gl::BufferData(
-            gl::ARRAY_BUFFER,
-            (VERTEX_DATA.len() * std::mem::size_of::<GLfloat>()) as GLsizeiptr,
-            VERTEX_DATA.as_ptr() as *const GLvoid,
-            gl::STATIC_DRAW,
-        );
-    }
+    // let mut vbo = 0;
+    // unsafe {
+    //     gl::GenBuffers(1, &mut vbo);
+    //     gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
+    //     gl::BufferData(
+    //         gl::ARRAY_BUFFER,
+    //         (VERTEX_DATA.len() * std::mem::size_of::<GLfloat>()) as GLsizeiptr,
+    //         VERTEX_DATA.as_ptr() as *const GLvoid,
+    //         gl::STATIC_DRAW,
+    //     );
+    // }
 
     // vertex array object (VAO) uses VBO
-    let mut vao = 0;
-    let main_stride = (8 * std::mem::size_of::<GLfloat>()) as GLsizei;
-    unsafe {
-        gl::GenVertexArrays(1, &mut vao);
-        gl::BindVertexArray(vao);
-        // position attribute
-        gl::VertexAttribPointer(0, 3, gl::FLOAT, gl::FALSE, main_stride, std::ptr::null());
-        gl::EnableVertexAttribArray(0);
-        // normal attribute
-        gl::VertexAttribPointer(
-            1,
-            3,
-            gl::FLOAT,
-            gl::FALSE,
-            main_stride,
-            (3 * std::mem::size_of::<GLfloat>()) as *const GLvoid,
-        );
-        gl::EnableVertexAttribArray(1);
-        // texcoord attribute
-        gl::VertexAttribPointer(
-            2,
-            2,
-            gl::FLOAT,
-            gl::FALSE,
-            main_stride,
-            (6 * std::mem::size_of::<GLfloat>()) as *const GLvoid,
-        );
-        gl::EnableVertexAttribArray(2);
-    }
+    // let mut vao = 0;
+    // let main_stride = (8 * std::mem::size_of::<GLfloat>()) as GLsizei;
+    // unsafe {
+    //     gl::GenVertexArrays(1, &mut vao);
+    //     gl::BindVertexArray(vao);
+    //     // position attribute
+    //     gl::VertexAttribPointer(0, 3, gl::FLOAT, gl::FALSE, main_stride, std::ptr::null());
+    //     gl::EnableVertexAttribArray(0);
+    //     // normal attribute
+    //     gl::VertexAttribPointer(
+    //         1,
+    //         3,
+    //         gl::FLOAT,
+    //         gl::FALSE,
+    //         main_stride,
+    //         (3 * std::mem::size_of::<GLfloat>()) as *const GLvoid,
+    //     );
+    //     gl::EnableVertexAttribArray(1);
+    //     // texcoord attribute
+    //     gl::VertexAttribPointer(
+    //         2,
+    //         2,
+    //         gl::FLOAT,
+    //         gl::FALSE,
+    //         main_stride,
+    //         (6 * std::mem::size_of::<GLfloat>()) as *const GLvoid,
+    //     );
+    //     gl::EnableVertexAttribArray(2);
+    // }
 
+    // copy vertex data to buffer
+    // unsafe {
+    //     gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
+    //     gl::BufferData(
+    //         gl::ARRAY_BUFFER,
+    //         (VERTEX_DATA.len() * std::mem::size_of::<GLfloat>()) as GLsizeiptr,
+    //         VERTEX_DATA.as_ptr() as *const GLvoid,
+    //         gl::STATIC_DRAW,
+    //     );
+    // }
+
+    // ui vbo and vao
     let mut ui_vbo = 0;
     let mut ui_vao = 0;
 
@@ -652,17 +657,6 @@ fn render(revenant: &mut Revenant, states: &mut State) {
         gl::BindVertexArray(0);
     }
 
-    // copy vertex data to buffer
-    unsafe {
-        gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
-        gl::BufferData(
-            gl::ARRAY_BUFFER,
-            (VERTEX_DATA.len() * std::mem::size_of::<GLfloat>()) as GLsizeiptr,
-            VERTEX_DATA.as_ptr() as *const GLvoid,
-            gl::STATIC_DRAW,
-        );
-    }
-
     // light VAO
     let mut light_vao = 0;
     let light_stride = (8 * std::mem::size_of::<GLfloat>()) as GLsizei;
@@ -670,24 +664,24 @@ fn render(revenant: &mut Revenant, states: &mut State) {
         gl::GenVertexArrays(1, &mut light_vao);
         gl::BindVertexArray(light_vao);
         // we only need to bind to the VBO, the container's VBO's data already contains the data
-        gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
+        gl::BindBuffer(gl::ARRAY_BUFFER, ui_vbo);
         // set the vertex attributes (only position data for our lamp)
         gl::VertexAttribPointer(0, 3, gl::FLOAT, gl::FALSE, light_stride, std::ptr::null());
         gl::EnableVertexAttribArray(0);
     }
 
-    let cube_positions: [Vector3<f32>; 10] = [
-        vec3(0.0, 0.0, 0.0),
-        vec3(2.0, 5.0, -15.0),
-        vec3(-1.5, -2.2, -2.5),
-        vec3(-3.8, -2.0, -12.3),
-        vec3(2.4, -0.4, -3.5),
-        vec3(-1.7, 3.0, -7.5),
-        vec3(1.3, -2.0, -2.5),
-        vec3(1.5, 2.0, -2.5),
-        vec3(1.5, 0.2, -1.5),
-        vec3(-1.3, 1.0, -1.5),
-    ];
+    // let cube_positions: [Vector3<f32>; 10] = [
+    //     vec3(0.0, 0.0, 0.0),
+    //     vec3(2.0, 5.0, -15.0),
+    //     vec3(-1.5, -2.2, -2.5),
+    //     vec3(-3.8, -2.0, -12.3),
+    //     vec3(2.4, -0.4, -3.5),
+    //     vec3(-1.7, 3.0, -7.5),
+    //     vec3(1.3, -2.0, -2.5),
+    //     vec3(1.5, 2.0, -2.5),
+    //     vec3(1.5, 0.2, -1.5),
+    //     vec3(-1.3, 1.0, -1.5),
+    // ];
 
     let camera_main = revenant
         .assets
@@ -733,12 +727,8 @@ fn render(revenant: &mut Revenant, states: &mut State) {
 
     phong_program.use_program();
 
-    material.diffuse.bind(0);
-    material.specular.bind(1);
-    material.emissive.bind(2);
-
     // TODO Translate - Rotate - Scale matrix manipulations queue to respect order
-    // FIX rework
+    // FIX rework? to enforce order "I will have order!" - Dolores Umbridge
     let view = Matrix4::look_at_rh(
         camera_main.pos,
         camera_main.pos + camera_main.front,
@@ -751,10 +741,8 @@ fn render(revenant: &mut Revenant, states: &mut State) {
 
     phong_program.set_uniform_point3("camera_pos", camera_main.pos);
 
-    phong_program.set_uniform_int("material.diffuse", 0);
-    phong_program.set_uniform_int("material.specular", 1);
     phong_program.set_uniform_float("material.specular_strength", material.specular_strength);
-    phong_program.set_uniform_int("material.emissive", 2);
+    // CHANGE there's supposed to be the textures of materials here
 
     // Spot light
     phong_program.set_uniform_point3("spotlight.pos", spotlight.pos);
@@ -808,37 +796,55 @@ fn render(revenant: &mut Revenant, states: &mut State) {
             .set_uniform_vec3(&format!("pointlights[{}].specular", i), pointlight.specular);
     }
 
-    for i in 0..10 {
-        let mut model = Matrix4::identity();
-        let angle = 40.0 * frame_start_time as f32;
-        model = model * Matrix4::from_translation(cube_positions[i]);
-        model = model * Matrix4::from_axis_angle(vec3(1.0, 0.3, 0.5).normalize(), Deg(angle));
-        phong_program.set_uniform_mat4("model", &model);
+    // for i in 0..10 {
+    //     let mut model = Matrix4::identity();
+    //     let angle = 40.0 * frame_start_time as f32;
+    //     model = model * Matrix4::from_translation(cube_positions[i]);
+    //     model = model * Matrix4::from_axis_angle(vec3(1.0, 0.3, 0.5).normalize(), Deg(angle));
+    //     phong_program.set_uniform_mat4("model", &model);
 
-        unsafe {
-            gl::BindVertexArray(vao);
-            gl::DrawArrays(gl::TRIANGLES, 0, 36);
-        }
-    }
+    //     unsafe {
+    //         gl::BindVertexArray(vao);
+    //         gl::DrawArrays(gl::TRIANGLES, 0, 36);
+    //     }
+    // }
 
-    // SECTION light source render
+    // SECTION light source render (object to view the light source position)
 
     light_program.use_program();
 
     light_program.set_uniform_mat4("view", &view);
     light_program.set_uniform_mat4("projection", &camera_main.projection);
-    for i in 0..4 {
-        let mut model = Matrix4::identity();
-        let angle = 40.0 * frame_start_time as f32;
-        model = model * Matrix4::from_translation(POINTLIGHT_POSITION[i].to_vec());
-        model = model * Matrix4::from_axis_angle(vec3(1.0, 0.3, 0.5).normalize(), Deg(angle));
-        model = model * Matrix4::from_scale(0.1);
-        light_program.set_uniform_mat4("model", &model);
-        unsafe {
-            gl::BindVertexArray(vao);
-            gl::DrawArrays(gl::TRIANGLES, 0, 36);
-        }
-    }
+    let model = Matrix4::identity();
+    light_program.set_uniform_mat4("model", &model);
+
+    // model
+    let model_tree_cam_light = revenant
+        .assets
+        .models
+        .get("tree_cam_light")
+        .expect("Model not found");
+    model_tree_cam_light.draw(light_program);
+
+    let mesh_cube = revenant
+        .assets
+        .meshes
+        .get("mesh_cube")
+        .expect("Mesh not found");
+    mesh_cube.draw(light_program);
+
+    // for i in 0..4 {
+    // let mut model = Matrix4::identity();
+    //     let angle = 40.0 * frame_start_time as f32;
+    //     model = model * Matrix4::from_translation(POINTLIGHT_POSITION[i].to_vec());
+    //     model = model * Matrix4::from_axis_angle(vec3(1.0, 0.3, 0.5).normalize(), Deg(angle));
+    //     model = model * Matrix4::from_scale(0.1);
+    //     light_program.set_uniform_mat4("model", &model);
+    //     unsafe {
+    //         gl::BindVertexArray(vao);
+    //         gl::DrawArrays(gl::TRIANGLES, 0, 36);
+    //     }
+    // }
 
     // SECTION text render
 

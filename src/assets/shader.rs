@@ -4,11 +4,10 @@ use std::{ffi::CString, fs::File, io::Read, path::PathBuf};
 
 impl Shader {
     pub fn from_foreign(path: PathBuf, extension: &str) -> Self {
-        let shader_type = match extension {
+        let shader_type = match extension.to_lowercase().as_str() {
             "vs" => gl::VERTEX_SHADER,
             "fs" => gl::FRAGMENT_SHADER,
-            "gs" => gl::GEOMETRY_SHADER,
-            _ => panic!("Unknown shader extension: '{}'.", extension),
+            _ => panic!("Unsupported shader extension: {}", extension),
         };
 
         let mut source = String::new();

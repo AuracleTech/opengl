@@ -1,5 +1,4 @@
 pub mod assets;
-mod mesh;
 #[allow(dead_code)]
 pub mod types; // TODO SET PRIVATE
 use crate::types::RGBA;

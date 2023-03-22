@@ -6,12 +6,8 @@ use image::{ImageBuffer, Rgba};
 use std::{collections::HashMap, path::PathBuf};
 
 impl Font {
-    pub fn from_foreign(path: PathBuf, extension: &str) -> Font {
-        let library = match extension {
-            "ttf" => Library::init().expect("Could not init freetype library"),
-            _ => panic!("Unsupported font format."),
-        };
-
+    pub fn from_ttf(path: PathBuf) -> Font {
+        let library = Library::init().expect("Could not init freetype library");
         let face = library.new_face(path, 0).expect("Could not create face.");
         let font_width: u32 = 30;
         let font_height: u32 = 30;

@@ -1,4 +1,4 @@
-use cgmath::{Matrix4, Point3, Vector3, Vector4};
+use cgmath::{Matrix4, Point3, Vector2, Vector3, Vector4};
 use gl::types::{GLsizei, GLuint};
 use glfw::{Glfw, Window, WindowEvent};
 use serde::{Deserialize, Serialize};
@@ -7,12 +7,12 @@ use std::{collections::HashMap, sync::mpsc::Receiver};
 pub type Uniaxial = f32;
 pub type Position = Point3<Uniaxial>;
 pub type Direction = Vector3<Uniaxial>;
-pub type Normal = f32;
-pub type TexCoord = f32;
-pub type Indice = u32;
-pub type RGB = Vector3<f32>;
-pub type RGBA = Vector4<f32>;
-pub type Rect = Vector4<f32>;
+pub type Normal = Vector3<Uniaxial>;
+pub type TexCoord = Vector2<Uniaxial>;
+pub type ColorChannel = f32;
+pub type RGB = Vector3<ColorChannel>;
+pub type RGBA = Vector4<ColorChannel>;
+pub type Indice = u32; // OPTIMIZE use u16 if possible
 
 pub struct Revenant {
     pub glfw: Glfw,
@@ -28,11 +28,12 @@ pub struct Assets {
     pub textures: HashMap<String, Texture>,
     pub materials: HashMap<String, Material>,
     pub fonts: HashMap<String, Font>,
-    // TODO meshes: HashMap::new(),
     pub cameras: HashMap<String, Camera>,
     pub pointlights: HashMap<String, PointLight>,
     pub dirlights: HashMap<String, DirLight>,
     pub spotlights: HashMap<String, SpotLight>,
+    pub meshes: HashMap<String, Mesh>,
+    pub models: HashMap<String, Model>,
 }
 
 pub struct GLConfig {
@@ -47,6 +48,7 @@ pub enum TextureKind {
     Normal,
     Height,
     Emissive,
+    Ambient,
 }
 
 // TODO remove debug everywhere
@@ -86,20 +88,28 @@ pub enum Filtering {
     // TODO add anisotropic filtering
 }
 
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Vertex {
-    pub positions: Vec<Position>,
-    pub normals: Vec<Normal>,
-    pub tex_coords: Vec<TexCoord>,
+    pub position: Position,
+    pub normal: Normal,
+    pub tex_coord: TexCoord,
 }
 
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Mesh {
     pub vertices: Vec<Vertex>,
     pub indices: Vec<Indice>,
     pub textures: Vec<Texture>,
 
-    pub vao: GLuint,
-    pub vbo: GLuint,
-    pub ebo: GLuint,
+    pub vao: GLuint, // FIX SHOULD BE PRIVATE pub(crate) maybe ?
+    pub vbo: GLuint, // FIX SHOULD BE PRIVATE pub(crate) maybe ?
+    pub ebo: GLuint, // FIX SHOULD BE PRIVATE pub(crate) maybe ?
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct Model {
+    pub meshes: Vec<Mesh>,
+    pub textures: Vec<Texture>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]

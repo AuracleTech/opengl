@@ -1,4 +1,4 @@
-use crate::types::{Assets, Font, Image, ImageSize, Shader};
+use crate::types::{Assets, Font, Image, ImageSize, Model, Shader};
 use ::image::{DynamicImage, ImageBuffer, ImageFormat};
 use bincode::{deserialize, serialize};
 use serde::{de::DeserializeOwned, Serialize};
@@ -11,6 +11,8 @@ use std::{
 mod camera;
 mod font;
 mod image;
+mod mesh;
+mod model;
 mod program;
 mod shader;
 mod texture;
@@ -18,16 +20,18 @@ mod texture;
 impl Assets {
     pub fn new() -> Self {
         Self {
+            // OPTIMIZE use hashmap of ID u64 instead of string
             programs: HashMap::new(),
             images: HashMap::new(),
             textures: HashMap::new(),
             materials: HashMap::new(),
             fonts: HashMap::new(),
-            // TODO meshes: HashMap::new(),
+            meshes: HashMap::new(),
             cameras: HashMap::new(),
             pointlights: HashMap::new(),
             dirlights: HashMap::new(),
             spotlights: HashMap::new(),
+            models: HashMap::new(),
         }
     }
 }
@@ -57,13 +61,18 @@ fn assets_path() -> PathBuf {
 }
 
 fn get_path(folder: &str, name: &str, extension: &str) -> PathBuf {
-    assets_path()
+    let path = assets_path()
         .join(folder)
         .join(name)
-        .with_extension(extension)
+        .with_extension(extension);
+    if !path.exists() {
+        panic!("File does not exist '{:?}'", path);
+    }
+    path
 }
 
 // TODO load and export with a prefix from the struct name
+// NOTE either this or you make a shit tons of folders, what will it be cupcake?
 pub fn save<T>(name: &str, data: T)
 where
     T: Serialize,
@@ -88,18 +97,33 @@ where
 
 pub fn load_foreign_font(name: &str, extension: &str) -> Font {
     let path = get_path(FOREIGN_FOLDER, &name, extension);
-    let font = Font::from_foreign(path, extension);
-    save_image_to_png(&font.sprite.image, name).expect("Failed to save image to png");
-
-    font
+    // TODO save_image_to_png(&font.sprite.image, name).expect("Failed to save image to png");
+    match extension.to_lowercase().as_str() {
+        "ttf" => Font::from_ttf(path),
+        _ => panic!("Unsupported font extension: {}", extension),
+    }
 }
 pub fn load_foreign_image(name: &str, extension: &str) -> Image {
     let path = get_path(FOREIGN_FOLDER, &name, extension);
-    Image::from_foreign(path, extension)
+    match extension.to_lowercase().as_str() {
+        "jpg" | "png" => Image::from_file(path, extension),
+        _ => panic!("Unsupported image extension: {}", extension),
+    }
 }
 pub fn load_foreign_shader(name: &str, extension: &str) -> Shader {
     let path = get_path(SHADER_FOLDER, &name, extension);
-    Shader::from_foreign(path, extension)
+    match extension.to_lowercase().as_str() {
+        "vs" => Shader::from_foreign(path, extension),
+        "fs" => Shader::from_foreign(path, extension),
+        _ => panic!("Unknown shader extension: '{}'.", extension),
+    }
+}
+pub fn load_foreign_model(name: &str, extension: &str) -> Model {
+    let path = get_path(FOREIGN_FOLDER, &name, extension);
+    match extension.to_lowercase().as_str() {
+        "glb" | "gltf" => Model::from_gltf(path),
+        _ => panic!("Unsupported file extension"),
+    }
 }
 
 pub fn save_image_to_png(image: &Image, name: &str) -> Result<(), Box<dyn std::error::Error>> {

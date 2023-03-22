@@ -1,4 +1,4 @@
-use crate::types::{Filtering, ImageFormat, ImageSize, Texture, Wrapping};
+use crate::types::{Filtering, Image, ImageFormat, ImageSize, Texture, TextureKind, Wrapping};
 use gl::types::{GLenum, GLint, GLvoid};
 
 impl Texture {
@@ -72,15 +72,35 @@ impl Texture {
         self.gl_id = id;
     }
 
+    pub fn from_image(image: Image) -> Self {
+        // TODO set configurable default values
+        Texture {
+            gl_id: 0,
+            image,
+            kind: TextureKind::Diffuse,
+            s_wrapping: Wrapping::Repeat,
+            t_wrapping: Wrapping::Repeat,
+            min_filtering: Filtering::LinearMipmapLinear,
+            mag_filtering: Filtering::Linear,
+            mipmapping: true,
+        }
+    }
+
     // TODO deal with max amount of texture units
-    pub fn bind(&self, texture_unit: u32) {
+    pub fn gl_bind(&self, texture_unit: u32) {
         unsafe {
             gl::ActiveTexture(gl::TEXTURE0 + texture_unit);
             gl::BindTexture(gl::TEXTURE_2D, self.gl_id);
         }
     }
 
-    pub fn set_param_i(&self, param: u32, value: i32) {
+    pub fn gl_unbind() {
+        unsafe {
+            gl::BindTexture(gl::TEXTURE_2D, 0);
+        }
+    }
+
+    pub fn gl_set_param_i(&self, param: u32, value: i32) {
         unsafe {
             // TODO add texture type (2D, 3D ... ) in Texture struct
             gl::TexParameteri(gl::TEXTURE_2D, param, value);
