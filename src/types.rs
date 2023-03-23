@@ -1,14 +1,15 @@
 use cgmath::{Matrix4, Point3, Vector2, Vector3, Vector4};
-use gl::types::{GLsizei, GLuint};
+use gl::types::{GLenum, GLsizei, GLuint};
 use glfw::{Glfw, Window, WindowEvent};
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, sync::mpsc::Receiver};
 
+// TODO replace all Point3 and Vec3 by [f32; 3]
 pub type Uniaxial = f32;
 pub type Position = Point3<Uniaxial>;
 pub type Direction = Vector3<Uniaxial>;
 pub type Normal = Vector3<Uniaxial>;
-pub type TexCoord = Vector2<Uniaxial>;
+pub type TexCoords = Vector2<Uniaxial>; // OPTIMIZE use u16 if possible or even u8
 pub type ColorChannel = f32;
 pub type RGB = Vector3<ColorChannel>;
 pub type RGBA = Vector4<ColorChannel>;
@@ -92,11 +93,13 @@ pub enum Filtering {
 pub struct Vertex {
     pub position: Position,
     pub normal: Normal,
-    pub tex_coord: TexCoord,
+    pub tex_coords: TexCoords,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Mesh {
+    pub gl_mode: GLenum,
+
     pub vertices: Vec<Vertex>,
     pub indices: Vec<Indice>,
     pub textures: Vec<Texture>,
@@ -109,7 +112,6 @@ pub struct Mesh {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Model {
     pub meshes: Vec<Mesh>,
-    pub textures: Vec<Texture>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]

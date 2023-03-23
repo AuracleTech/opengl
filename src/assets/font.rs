@@ -73,7 +73,7 @@ impl Font {
             let bitmap_width = bitmap.width() as u32;
             let bitmap_height = bitmap.rows() as u32;
 
-            let glyph = glyphs.get_mut(&character).unwrap();
+            let glyph = glyphs.get_mut(&character).expect("Could not get glyph.");
             glyph.sprite_x = sprite_x;
             glyph.sprite_y = sprite_y;
 

@@ -1,11 +1,13 @@
-use cgmath::{point3, vec2, vec3, vec4, Angle, Deg, InnerSpace, Matrix4, SquareMatrix};
-use gl::types::{GLenum, GLfloat, GLsizei, GLsizeiptr};
+use std::ffi::c_void;
+
+use cgmath::{point3, vec3, vec4, Angle, Deg, InnerSpace, Matrix4, SquareMatrix};
+use gl::types::{GLenum, GLfloat, GLsizei, GLsizeiptr, GLuint, GLvoid};
 use glfw::Context;
 use revenant::{
     assets,
     types::{
-        Camera, DirLight, Filtering, ImageSize, Indice, Material, Mesh, Model, PointLight,
-        Position, Program, ProjectionKind, SpotLight, Texture, TextureKind, Vertex, Wrapping,
+        Camera, DirLight, ImageSize, Material, Model, PointLight, Program, ProjectionKind,
+        SpotLight,
     },
     Revenant,
 };
@@ -88,12 +90,13 @@ fn main() {
         // TODO post_process(&revenant);
     }
 
-    cleanup(&revenant);
+    cleanup(revenant);
 }
 
 #[inline]
 fn init_gl(revenant: &mut Revenant) {
-    revenant::set_clear_color(vec4(0.082, 0.082, 0.125, 1.0));
+    // revenant::set_clear_color(vec4(0.082, 0.082, 0.125, 1.0));
+    revenant::set_clear_color(vec4(0.0, 0.0, 0.0, 1.0));
     unsafe {
         gl::Enable(gl::BLEND);
         gl::BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
@@ -146,46 +149,46 @@ fn init_revenant(revenant: &mut Revenant) {
 
 #[inline]
 fn create_assets() {
-    let image_crate_diffuse = assets::load_foreign_image("crate_diffuse", "jpg");
-    let image_crate_specular = assets::load_foreign_image("crate_specular", "jpg");
-    let image_crate_emissive = assets::load_foreign_image("crate_emissive", "jpg");
-    let texture_crate_diffuse = Texture {
-        gl_id: 0,
-        image: assets::load("image_crate_diffuse"),
-        kind: TextureKind::Diffuse,
-        s_wrapping: Wrapping::Repeat,
-        t_wrapping: Wrapping::Repeat,
-        min_filtering: Filtering::Nearest,
-        mag_filtering: Filtering::Nearest,
-        mipmapping: true,
-    };
-    let texture_crate_specular = Texture {
-        gl_id: 0,
-        image: assets::load("image_crate_specular"),
-        kind: TextureKind::Specular,
-        s_wrapping: Wrapping::Repeat,
-        t_wrapping: Wrapping::Repeat,
-        min_filtering: Filtering::Nearest,
-        mag_filtering: Filtering::Nearest,
-        mipmapping: true,
-    };
-    let texture_crate_emissive = Texture {
-        gl_id: 0,
-        image: assets::load("image_crate_emissive"),
-        kind: TextureKind::Emissive,
-        s_wrapping: Wrapping::Repeat,
-        t_wrapping: Wrapping::Repeat,
-        min_filtering: Filtering::Nearest,
-        mag_filtering: Filtering::Nearest,
-        mipmapping: true,
-    };
+    // let image_crate_diffuse = assets::load_foreign_image("crate_diffuse", "jpg");
+    // let image_crate_specular = assets::load_foreign_image("crate_specular", "jpg");
+    // let image_crate_emissive = assets::load_foreign_image("crate_emissive", "jpg");
+    // let texture_crate_diffuse = Texture {
+    //     gl_id: 0,
+    //     image: assets::load("image_crate_diffuse"),
+    //     kind: TextureKind::Diffuse,
+    //     s_wrapping: Wrapping::Repeat,
+    //     t_wrapping: Wrapping::Repeat,
+    //     min_filtering: Filtering::Nearest,
+    //     mag_filtering: Filtering::Nearest,
+    //     mipmapping: true,
+    // };
+    // let texture_crate_specular = Texture {
+    //     gl_id: 0,
+    //     image: assets::load("image_crate_specular"),
+    //     kind: TextureKind::Specular,
+    //     s_wrapping: Wrapping::Repeat,
+    //     t_wrapping: Wrapping::Repeat,
+    //     min_filtering: Filtering::Nearest,
+    //     mag_filtering: Filtering::Nearest,
+    //     mipmapping: true,
+    // };
+    // let texture_crate_emissive = Texture {
+    //     gl_id: 0,
+    //     image: assets::load("image_crate_emissive"),
+    //     kind: TextureKind::Emissive,
+    //     s_wrapping: Wrapping::Repeat,
+    //     t_wrapping: Wrapping::Repeat,
+    //     min_filtering: Filtering::Nearest,
+    //     mag_filtering: Filtering::Nearest,
+    //     mipmapping: true,
+    // };
 
-    let material_crate = Material {
-        diffuse: assets::load("texture_crate_diffuse"),
-        specular: assets::load("texture_crate_specular"),
-        specular_strength: 32.0,
-        emissive: assets::load("texture_crate_emissive"),
-    };
+    // let material_crate = Material {
+    //     diffuse: assets::load("texture_crate_diffuse"),
+    //     specular: assets::load("texture_crate_specular"),
+    //     specular_strength: 32.0,
+    //     emissive: assets::load("texture_crate_emissive"),
+    // };
 
     let camera_main = Camera {
         pos: point3(1.84, 0.8, 3.1),
@@ -251,13 +254,13 @@ fn create_assets() {
         diffuse: vec3(0.4, 0.4, 0.4),
         specular: vec3(0.5, 0.5, 0.5),
     };
-    assets::save("image_crate_diffuse", image_crate_diffuse);
-    assets::save("image_crate_specular", image_crate_specular);
-    assets::save("image_crate_emissive", image_crate_emissive);
-    assets::save("texture_crate_diffuse", texture_crate_diffuse);
-    assets::save("texture_crate_specular", texture_crate_specular);
-    assets::save("texture_crate_emissive", texture_crate_emissive);
-    assets::save("material_crate", material_crate);
+    // assets::save("image_crate_diffuse", image_crate_diffuse);
+    // assets::save("image_crate_specular", image_crate_specular);
+    // assets::save("image_crate_emissive", image_crate_emissive);
+    // assets::save("texture_crate_diffuse", texture_crate_diffuse);
+    // assets::save("texture_crate_specular", texture_crate_specular);
+    // assets::save("texture_crate_emissive", texture_crate_emissive);
+    // assets::save("material_crate", material_crate);
     assets::save("camera_main", camera_main);
     assets::save("camera_ui", camera_ui);
     assets::save("spotlight", spotlight);
@@ -267,66 +270,23 @@ fn create_assets() {
 
 #[inline]
 fn load_assets(revenant: &mut Revenant) {
-    // mesh
-    // vertex data (position, normal, texcoord)
-    const VERTEX_DATA: [GLfloat; 192] = [
-        -0.5, -0.5, -0.5, 0.0, 0.0, -1.0, 0.0, 0.0, //
-        0.5, -0.5, -0.5, 0.0, 0.0, -1.0, 1.0, 0.0, //
-        0.5, 0.5, -0.5, 0.0, 0.0, -1.0, 1.0, 1.0, //
-        -0.5, 0.5, -0.5, 0.0, 0.0, -1.0, 0.0, 1.0, //
-        -0.5, -0.5, 0.5, 0.0, 0.0, 1.0, 0.0, 0.0, //
-        0.5, -0.5, 0.5, 0.0, 0.0, 1.0, 1.0, 0.0, //
-        0.5, 0.5, 0.5, 0.0, 0.0, 1.0, 1.0, 1.0, //
-        -0.5, 0.5, 0.5, 0.0, 0.0, 1.0, 0.0, 1.0, //
-        -0.5, 0.5, 0.5, -1.0, 0.0, 0.0, 1.0, 0.0, //
-        -0.5, 0.5, -0.5, -1.0, 0.0, 0.0, 1.0, 1.0, //
-        -0.5, -0.5, -0.5, -1.0, 0.0, 0.0, 0.0, 1.0, //
-        -0.5, -0.5, 0.5, -1.0, 0.0, 0.0, 0.0, 0.0, //
-        0.5, 0.5, 0.5, 1.0, 0.0, 0.0, 1.0, 0.0, //
-        0.5, 0.5, -0.5, 1.0, 0.0, 0.0, 1.0, 1.0, //
-        0.5, -0.5, -0.5, 1.0, 0.0, 0.0, 0.0, 1.0, //
-        0.5, -0.5, 0.5, 1.0, 0.0, 0.0, 0.0, 0.0, //
-        -0.5, -0.5, -0.5, 0.0, -1.0, 0.0, 0.0, 1.0, //
-        0.5, -0.5, -0.5, 0.0, -1.0, 0.0, 1.0, 1.0, //
-        0.5, -0.5, 0.5, 0.0, -1.0, 0.0, 1.0, 0.0, //
-        -0.5, -0.5, 0.5, 0.0, -1.0, 0.0, 0.0, 0.0, //
-        -0.5, 0.5, -0.5, 0.0, 1.0, 0.0, 0.0, 1.0, //
-        0.5, 0.5, -0.5, 0.0, 1.0, 0.0, 1.0, 1.0, //
-        0.5, 0.5, 0.5, 0.0, 1.0, 0.0, 1.0, 0.0, //
-        -0.5, 0.5, 0.5, 0.0, 1.0, 0.0, 0.0, 0.0, //
-    ];
-    let mut vertices: Vec<Vertex> = vec![];
-    for i in 0..(VERTEX_DATA.len() / 8) {
-        vertices.push(Vertex {
-            position: point3(
-                VERTEX_DATA[i * 8],
-                VERTEX_DATA[i * 8 + 1],
-                VERTEX_DATA[i * 8 + 2],
-            ),
-            normal: vec3(
-                VERTEX_DATA[i * 8 + 3],
-                VERTEX_DATA[i * 8 + 4],
-                VERTEX_DATA[i * 8 + 5],
-            ),
-            tex_coord: vec2(VERTEX_DATA[i * 8 + 6], VERTEX_DATA[i * 8 + 7]),
-        });
-    }
-
-    let indices: Vec<Indice> = vec![
-        0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23,
-    ];
-    let mesh_cube = Mesh::new(vertices, indices, vec![]);
-    revenant
-        .assets
-        .meshes
-        .insert("mesh_cube".to_owned(), mesh_cube);
-
     // model
-    let model_tree_cam_light: Model = assets::load_foreign_model("tree_cam_light", "glb");
-    revenant
-        .assets
-        .models
-        .insert("tree_cam_light".to_owned(), model_tree_cam_light);
+    // let model_tree_cam_light: Model = assets::load_foreign_model("tree_cam_light", "glb");
+    // revenant
+    //     .assets
+    //     .models
+    //     .insert("tree_cam_light".to_owned(), model_tree_cam_light);
+    // let model_cube_cam_light: Model = assets::load_foreign_model("cube_cam_light", "glb");
+    // revenant
+    //     .assets
+    //     .models
+    //     .insert("cube_cam_light".to_owned(), model_cube_cam_light);
+    let model_cube_triangulate_cam_light: Model =
+        assets::load_foreign_model("cube_triangulate_cam_light", "glb");
+    revenant.assets.models.insert(
+        "cube_triangulate_cam_light".to_owned(),
+        model_cube_triangulate_cam_light,
+    );
 
     // camera
     let camera_ui: Camera = assets::load("camera_ui");
@@ -407,10 +367,6 @@ fn load_assets(revenant: &mut Revenant) {
         .assets
         .dirlights
         .insert("dirlight".to_string(), dirlight);
-
-    // GLTF
-    // let mesh: Mesh = assets::load_foreign_model("tree", extension);
-    // revenant.assets.meshes.insert("mesh_tree".to_string(), mesh);
 }
 
 // TODO create struct for input handling & keep track of assigned keys
@@ -471,6 +427,7 @@ fn input(revenant: &mut Revenant, states: &mut State) {
                             far,
                             aspect_ratio,
                         };
+                        main_camera.update_projection = true;
                     }
                     ProjectionKind::Orthographic {
                         left: _,
@@ -480,7 +437,7 @@ fn input(revenant: &mut Revenant, states: &mut State) {
                         near: _,
                         far: _,
                     } => {
-                        // TODO implement
+                        // TODO implement? is it even possible?
                     }
                 };
             }
@@ -566,109 +523,12 @@ fn render(revenant: &mut Revenant, states: &mut State) {
         .get("light_program")
         .expect("Failed to get light_program");
 
-    const POINTLIGHT_POSITION: [Position; 4] = [
-        point3(0.7, 0.2, 2.0),
-        point3(2.3, -3.3, -4.0),
-        point3(-4.0, 2.0, -12.0),
-        point3(0.0, 0.0, -3.0),
-    ];
-
-    // vertex buffer object (VBO)
-    // let mut vbo = 0;
-    // unsafe {
-    //     gl::GenBuffers(1, &mut vbo);
-    //     gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
-    //     gl::BufferData(
-    //         gl::ARRAY_BUFFER,
-    //         (VERTEX_DATA.len() * std::mem::size_of::<GLfloat>()) as GLsizeiptr,
-    //         VERTEX_DATA.as_ptr() as *const GLvoid,
-    //         gl::STATIC_DRAW,
-    //     );
-    // }
-
-    // vertex array object (VAO) uses VBO
-    // let mut vao = 0;
-    // let main_stride = (8 * std::mem::size_of::<GLfloat>()) as GLsizei;
-    // unsafe {
-    //     gl::GenVertexArrays(1, &mut vao);
-    //     gl::BindVertexArray(vao);
-    //     // position attribute
-    //     gl::VertexAttribPointer(0, 3, gl::FLOAT, gl::FALSE, main_stride, std::ptr::null());
-    //     gl::EnableVertexAttribArray(0);
-    //     // normal attribute
-    //     gl::VertexAttribPointer(
-    //         1,
-    //         3,
-    //         gl::FLOAT,
-    //         gl::FALSE,
-    //         main_stride,
-    //         (3 * std::mem::size_of::<GLfloat>()) as *const GLvoid,
-    //     );
-    //     gl::EnableVertexAttribArray(1);
-    //     // texcoord attribute
-    //     gl::VertexAttribPointer(
-    //         2,
-    //         2,
-    //         gl::FLOAT,
-    //         gl::FALSE,
-    //         main_stride,
-    //         (6 * std::mem::size_of::<GLfloat>()) as *const GLvoid,
-    //     );
-    //     gl::EnableVertexAttribArray(2);
-    // }
-
-    // copy vertex data to buffer
-    // unsafe {
-    //     gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
-    //     gl::BufferData(
-    //         gl::ARRAY_BUFFER,
-    //         (VERTEX_DATA.len() * std::mem::size_of::<GLfloat>()) as GLsizeiptr,
-    //         VERTEX_DATA.as_ptr() as *const GLvoid,
-    //         gl::STATIC_DRAW,
-    //     );
-    // }
-
-    // ui vbo and vao
-    let mut ui_vbo = 0;
-    let mut ui_vao = 0;
-
-    unsafe {
-        gl::GenVertexArrays(1, &mut ui_vao);
-        gl::GenBuffers(1, &mut ui_vbo);
-        gl::BindVertexArray(ui_vao);
-        gl::BindBuffer(gl::ARRAY_BUFFER, ui_vbo);
-        gl::BufferData(
-            gl::ARRAY_BUFFER,
-            6 * 4 * std::mem::size_of::<GLfloat>() as GLsizeiptr,
-            std::ptr::null(),
-            gl::DYNAMIC_DRAW,
-        );
-
-        gl::EnableVertexAttribArray(0);
-        gl::VertexAttribPointer(
-            0,
-            4,
-            gl::FLOAT,
-            gl::FALSE,
-            4 * std::mem::size_of::<GLfloat>() as GLsizei,
-            std::ptr::null(),
-        );
-        gl::BindBuffer(gl::ARRAY_BUFFER, 0);
-        gl::BindVertexArray(0);
-    }
-
-    // light VAO
-    let mut light_vao = 0;
-    let light_stride = (8 * std::mem::size_of::<GLfloat>()) as GLsizei;
-    unsafe {
-        gl::GenVertexArrays(1, &mut light_vao);
-        gl::BindVertexArray(light_vao);
-        // we only need to bind to the VBO, the container's VBO's data already contains the data
-        gl::BindBuffer(gl::ARRAY_BUFFER, ui_vbo);
-        // set the vertex attributes (only position data for our lamp)
-        gl::VertexAttribPointer(0, 3, gl::FLOAT, gl::FALSE, light_stride, std::ptr::null());
-        gl::EnableVertexAttribArray(0);
-    }
+    // const POINTLIGHT_POSITION: [Position; 4] = [
+    //     point3(0.7, 0.2, 2.0),
+    //     point3(2.3, -3.3, -4.0),
+    //     point3(-4.0, 2.0, -12.0),
+    //     point3(0.0, 0.0, -3.0),
+    // ];
 
     // let cube_positions: [Vector3<f32>; 10] = [
     //     vec3(0.0, 0.0, 0.0),
@@ -688,16 +548,16 @@ fn render(revenant: &mut Revenant, states: &mut State) {
         .cameras
         .get("camera_main")
         .expect("Camera not found");
-    let spotlight = revenant
-        .assets
-        .spotlights
-        .get("spotlight")
-        .expect("Spotlight not found");
-    let dirlight = revenant
-        .assets
-        .dirlights
-        .get("dirlight")
-        .expect("Directional light not found");
+    // let spotlight = revenant
+    //     .assets
+    //     .spotlights
+    //     .get("spotlight")
+    //     .expect("Spotlight not found");
+    // let dirlight = revenant
+    //     .assets
+    //     .dirlights
+    //     .get("dirlight")
+    //     .expect("Directional light not found");
 
     let frame_start_time = revenant.glfw.get_time();
     let delta_time = frame_start_time - states.last_frame;
@@ -705,16 +565,16 @@ fn render(revenant: &mut Revenant, states: &mut State) {
 
     // SECTION retrieve frame assets
 
-    let material = revenant
-        .assets
-        .materials
-        .get("material_crate")
-        .expect("Material not found");
-    let phong_program = revenant
-        .assets
-        .programs
-        .get("phong_program")
-        .expect("Phong program not found");
+    // let material = revenant
+    //     .assets
+    //     .materials
+    //     .get("material_crate")
+    //     .expect("Material not found");
+    // let phong_program = revenant
+    //     .assets
+    //     .programs
+    //     .get("phong_program")
+    //     .expect("Phong program not found");
 
     // SECTION phong render
 
@@ -725,7 +585,7 @@ fn render(revenant: &mut Revenant, states: &mut State) {
 
     states.speed = states.speed_factor * delta_time as f32;
 
-    phong_program.use_program();
+    // phong_program.use_program();
 
     // TODO Translate - Rotate - Scale matrix manipulations queue to respect order
     // FIX rework? to enforce order "I will have order!" - Dolores Umbridge
@@ -736,65 +596,66 @@ fn render(revenant: &mut Revenant, states: &mut State) {
     );
 
     // update local uniform values
-    phong_program.set_uniform_mat4("view", &view);
-    phong_program.set_uniform_mat4("projection", &camera_main.projection);
+    // phong_program.set_uniform_mat4("model", &Matrix4::identity());
+    // phong_program.set_uniform_mat4("view", &view);
+    // phong_program.set_uniform_mat4("projection", &camera_main.projection);
 
-    phong_program.set_uniform_point3("camera_pos", camera_main.pos);
+    // phong_program.set_uniform_point3("camera_pos", camera_main.pos);
 
-    phong_program.set_uniform_float("material.specular_strength", material.specular_strength);
-    // CHANGE there's supposed to be the textures of materials here
+    // phong_program.set_uniform_float("material.specular_strength", material.specular_strength);
+    // CHANGE supposed to be the textures of materials here
 
     // Spot light
-    phong_program.set_uniform_point3("spotlight.pos", spotlight.pos);
-    phong_program.set_uniform_vec3("spotlight.dir", spotlight.dir);
+    // phong_program.set_uniform_point3("spotlight.pos", spotlight.pos);
+    // phong_program.set_uniform_vec3("spotlight.dir", spotlight.dir);
 
-    phong_program.set_uniform_float("spotlight.cut_off", spotlight.cut_off);
-    phong_program.set_uniform_float("spotlight.outer_cut_off", spotlight.outer_cut_off);
+    // phong_program.set_uniform_float("spotlight.cut_off", spotlight.cut_off);
+    // phong_program.set_uniform_float("spotlight.outer_cut_off", spotlight.outer_cut_off);
 
-    phong_program.set_uniform_float("spotlight.constant", spotlight.constant);
-    phong_program.set_uniform_float("spotlight.linear", spotlight.linear);
-    phong_program.set_uniform_float("spotlight.quadratic", spotlight.quadratic);
+    // phong_program.set_uniform_float("spotlight.constant", spotlight.constant);
+    // phong_program.set_uniform_float("spotlight.linear", spotlight.linear);
+    // phong_program.set_uniform_float("spotlight.quadratic", spotlight.quadratic);
 
-    phong_program.set_uniform_vec3("spotlight.ambient", spotlight.ambient);
-    phong_program.set_uniform_vec3("spotlight.diffuse", spotlight.diffuse);
-    phong_program.set_uniform_vec3("spotlight.specular", spotlight.specular);
+    // phong_program.set_uniform_vec3("spotlight.ambient", spotlight.ambient);
+    // phong_program.set_uniform_vec3("spotlight.diffuse", spotlight.diffuse);
+    // phong_program.set_uniform_vec3("spotlight.specular", spotlight.specular);
 
     // Directional light
-    phong_program.set_uniform_vec3("dirlight.dir", dirlight.dir);
+    // phong_program.set_uniform_vec3("dirlight.dir", dirlight.dir);
 
-    phong_program.set_uniform_vec3("dirlight.ambient", dirlight.ambient);
-    phong_program.set_uniform_vec3("dirlight.diffuse", dirlight.diffuse);
-    phong_program.set_uniform_vec3("dirlight.specular", dirlight.specular);
+    // phong_program.set_uniform_vec3("dirlight.ambient", dirlight.ambient);
+    // phong_program.set_uniform_vec3("dirlight.diffuse", dirlight.diffuse);
+    // phong_program.set_uniform_vec3("dirlight.specular", dirlight.specular);
 
     // Point lights
-    for i in 0..4 {
-        let pointlight = PointLight {
-            pos: POINTLIGHT_POSITION[i],
+    // for i in 0..4 {
+    //     let pointlight = PointLight {
+    //         pos: POINTLIGHT_POSITION[i],
 
-            constant: 1.0,
-            linear: 0.09,
-            quadratic: 0.032,
+    //         constant: 1.0,
+    //         linear: 0.09,
+    //         quadratic: 0.032,
 
-            ambient: vec3(0.2, 0.2, 0.2),
-            diffuse: vec3(0.5, 0.5, 0.5),
-            specular: vec3(1.0, 1.0, 1.0),
-        };
+    //         ambient: vec3(0.2, 0.2, 0.2),
+    //         diffuse: vec3(0.5, 0.5, 0.5),
+    //         specular: vec3(1.0, 1.0, 1.0),
+    //     };
 
-        phong_program.set_uniform_point3(&format!("pointlights[{}].pos", i), pointlight.pos);
+    //     phong_program.set_uniform_point3(&format!("pointlights[{}].pos", i), pointlight.pos);
 
-        phong_program
-            .set_uniform_float(&format!("pointlights[{}].constant", i), pointlight.constant);
-        phong_program.set_uniform_float(&format!("pointlights[{}].linear", i), pointlight.linear);
-        phong_program.set_uniform_float(
-            &format!("pointlights[{}].quadratic", i),
-            pointlight.quadratic,
-        );
+    //     phong_program
+    //         .set_uniform_float(&format!("pointlights[{}].constant", i), pointlight.constant);
+    //     phong_program.set_uniform_float(&format!("pointlights[{}].linear", i), pointlight.linear);
+    //     phong_program.set_uniform_float(
+    //         &format!("pointlights[{}].quadratic", i),
+    //         pointlight.quadratic,
+    //     );
 
-        phong_program.set_uniform_vec3(&format!("pointlights[{}].ambient", i), pointlight.ambient);
-        phong_program.set_uniform_vec3(&format!("pointlights[{}].diffuse", i), pointlight.diffuse);
-        phong_program
-            .set_uniform_vec3(&format!("pointlights[{}].specular", i), pointlight.specular);
-    }
+    //     phong_program.set_uniform_vec3(&format!("pointlights[{}].ambient", i), pointlight.ambient);
+    //     phong_program.set_uniform_vec3(&format!("pointlights[{}].diffuse", i), pointlight.diffuse);
+    //     phong_program
+    //         .set_uniform_vec3(&format!("pointlights[{}].specular", i), pointlight.specular);
+    // }
 
     // for i in 0..10 {
     //     let mut model = Matrix4::identity();
@@ -815,23 +676,28 @@ fn render(revenant: &mut Revenant, states: &mut State) {
 
     light_program.set_uniform_mat4("view", &view);
     light_program.set_uniform_mat4("projection", &camera_main.projection);
-    let model = Matrix4::identity();
+
+    let mut model = Matrix4::identity();
+    model = model * Matrix4::from_translation(vec3(0.3, 0.0, 1.0));
     light_program.set_uniform_mat4("model", &model);
-
     // model
-    let model_tree_cam_light = revenant
-        .assets
-        .models
-        .get("tree_cam_light")
-        .expect("Model not found");
-    model_tree_cam_light.draw(light_program);
+    // let model_tree_cam_light = revenant
+    //     .assets
+    //     .models
+    //     .get("tree_cam_light")
+    //     .expect("Model not found");
+    // model_tree_cam_light.draw(light_program);
 
-    let mesh_cube = revenant
-        .assets
-        .meshes
-        .get("mesh_cube")
-        .expect("Mesh not found");
-    mesh_cube.draw(light_program);
+    // light_program.set_uniform_vec4("color", vec4(0.0, 1.0, 0.0, 1.0));
+
+    // light_program.set_uniform_vec4("color", vec4(0.0, 0.0, 1.0, 1.0));
+
+    // let model_cube_cam_light = revenant
+    //     .assets
+    //     .models
+    //     .get("cube_cam_light")
+    //     .expect("Model not found");
+    // model_cube_cam_light.draw(light_program);
 
     // for i in 0..4 {
     // let mut model = Matrix4::identity();
@@ -845,6 +711,110 @@ fn render(revenant: &mut Revenant, states: &mut State) {
     //         gl::DrawArrays(gl::TRIANGLES, 0, 36);
     //     }
     // }
+
+    unsafe {
+        gl::DrawElements(gl::TRIANGLES, 0, gl::UNSIGNED_INT, std::ptr::null());
+    }
+
+    let mut model = Matrix4::identity();
+    model = model * Matrix4::from_translation(vec3(0.3, 0.0, 1.0));
+    light_program.set_uniform_mat4("model", &model);
+
+    light_program.set_uniform_vec4("color", vec4(0.3, 0.05, 1.0, 0.8));
+
+    let model_cube_triangulate_cam_light = revenant
+        .assets
+        .models
+        .get_mut("cube_triangulate_cam_light")
+        .expect("Model not found");
+    model_cube_triangulate_cam_light.draw(light_program);
+
+    let mut model = Matrix4::identity();
+    model = model * Matrix4::from_translation(vec3(-2.0, 0.0, 2.0));
+    light_program.set_uniform_mat4("model", &model);
+
+    light_program.set_uniform_vec4("color", vec4(0.8, 0.0, 0.4, 0.1));
+
+    // SECTION GARBAGE
+
+    const VERTEX_DATA: [GLfloat; 192] = [
+        1.0, 1.0, -1.0, 0.0, 0.0, -1.0, 0.625, 0.5, //
+        1.0, 1.0, -1.0, 0.0, 1.0, -0.0, 0.0, 0.0, //
+        1.0, 1.0, -1.0, 1.0, 0.0, -0.0, 0.0, 0.0, //
+        1.0, -1.0, -1.0, 0.0, -1.0, -0.0, 0.0, 0.0, //
+        1.0, -1.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, //
+        1.0, -1.0, -1.0, 1.0, 0.0, -0.0, 0.0, 0.0, //
+        1.0, 1.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, //
+        1.0, 1.0, 1.0, 0.0, 1.0, -0.0, 0.0, 0.0, //
+        1.0, 1.0, 1.0, 1.0, 0.0, -0.0, 0.0, 0.0, //
+        1.0, -1.0, 1.0, 0.0, -1.0, -0.0, 0.0, 0.0, //
+        1.0, -1.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, //
+        1.0, -1.0, 1.0, 1.0, 0.0, -0.0, 0.0, 0.0, //
+        -1.0, 1.0, -1.0, -1.0, 0.0, -0.0, 0.0, 0.0, //
+        -1.0, 1.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, //
+        -1.0, 1.0, -1.0, 0.0, 1.0, -0.0, 0.0, 0.0, //
+        -1.0, -1.0, -1.0, 0.0, -1.0, -0.0, 0.0, 0.0, //
+        -1.0, -1.0, -1.0, -1.0, 0.0, -0.0, 0.0, 0.0, //
+        -1.0, -1.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, //
+        -1.0, 1.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, //
+        -1.0, 1.0, 1.0, -1.0, 0.0, -0.0, 0.0, 0.0, //
+        -1.0, 1.0, 1.0, 0.0, 1.0, -0.0, 0.0, 0.0, //
+        -1.0, -1.0, 1.0, 0.0, -1.0, -0.0, 0.0, 0.0, //
+        -1.0, -1.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, //
+        -1.0, -1.0, 1.0, -1.0, 0.0, -0.0, 0.0, 0.0, //
+    ];
+    const INDICES: [GLuint; 36] = [
+        1, 14, 20, 1, 20, 7, 10, 6, 18, 10, 18, 22, 23, 19, 12, 23, 12, 16, 15, 3, 9, 15, 9, 21, 5,
+        2, 8, 5, 8, 11, 17, 13, 0, 17, 0, 4,
+    ];
+
+    let mut vbo = 0;
+    let mut vao = 0;
+    let mut ebo = 0;
+    let size = (VERTEX_DATA.len() * std::mem::size_of::<GLfloat>()) as GLsizeiptr;
+    let data = VERTEX_DATA.as_ptr() as *const c_void;
+    let main_stride = (8 * std::mem::size_of::<GLfloat>()) as GLsizei;
+    let normals_offset = (3 * std::mem::size_of::<GLfloat>()) as *const c_void;
+    let tex_coords_offset = (6 * std::mem::size_of::<GLfloat>()) as *const c_void;
+    let ebo_size = (INDICES.len() * std::mem::size_of::<GLuint>()) as GLsizeiptr;
+    unsafe {
+        gl::GenBuffers(1, &mut vbo);
+        gl::GenVertexArrays(1, &mut vao);
+        gl::GenBuffers(1, &mut ebo);
+
+        // VBO
+        gl::BindVertexArray(vao);
+        gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
+
+        // VAO
+        gl::BufferData(gl::ARRAY_BUFFER, size, data, gl::STATIC_DRAW);
+
+        // EBO
+        gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, ebo);
+        gl::BufferData(
+            gl::ELEMENT_ARRAY_BUFFER,
+            ebo_size,
+            INDICES.as_ptr() as *const GLvoid,
+            gl::STATIC_DRAW,
+        );
+
+        // vertex positions
+        gl::EnableVertexAttribArray(0);
+        gl::VertexAttribPointer(0, 3, gl::FLOAT, gl::FALSE, main_stride, std::ptr::null());
+        // vertex normals
+        gl::EnableVertexAttribArray(1);
+        gl::VertexAttribPointer(1, 3, gl::FLOAT, gl::FALSE, main_stride, normals_offset);
+        // vertex texture coords
+        gl::EnableVertexAttribArray(2);
+        gl::VertexAttribPointer(2, 2, gl::FLOAT, gl::FALSE, main_stride, tex_coords_offset);
+    }
+
+    unsafe {
+        gl::BindVertexArray(vao);
+        gl::DrawElements(gl::TRIANGLES, 36, gl::UNSIGNED_INT, std::ptr::null());
+    }
+
+    // SECTION GARBAGE
 
     // SECTION text render
 
@@ -953,20 +923,36 @@ fn render(revenant: &mut Revenant, states: &mut State) {
 
 #[inline]
 // TODO remove arguments except revenant instance as argument
-fn cleanup(_revenant: &Revenant) {
+fn cleanup(revenant: Revenant) {
     // OPTIMIZE profiling : optick::event!();
-    // TODO automatically cleanup all resources (e.g. VAOs, VBOs, shaders, etc.)
-    // unsafe {
-    // TODO delete all current buffers
-    // gl::DeleteVertexArrays(1, &vao);
-    // gl::DeleteBuffers(1, &ui_vbo);
-
-    // TODO delete all current programs
-    // gl::DeleteProgram(ui_program.gl_id);
-    // gl::DeleteProgram(light_program.gl_id);
-    // gl::DeleteProgram(phong_program.gl_id);
-    // }
     // OPTIMIZE profiling : optick::stop_capture("target/revenant");
+
+    revenant
+        .assets
+        .meshes
+        .into_iter()
+        .for_each(|(_, mesh)| unsafe {
+            gl::DeleteVertexArrays(1, &mesh.vao);
+            gl::DeleteBuffers(1, &mesh.vbo);
+            gl::DeleteBuffers(1, &mesh.ebo);
+        });
+
+    revenant
+        .assets
+        .programs
+        .into_iter()
+        .for_each(|(_, program)| unsafe {
+            gl::DeleteProgram(program.gl_id);
+        });
+
+    // TODO shader assets AND also delete shaders cleanup
+    // revenant
+    //     .assets
+    //     .shader
+    //     .into_iter()
+    //     .for_each(|(_, shader)| unsafe {
+    //         gl::DeleteShader(shader.gl_id);
+    //     });
 }
 
 // TODO performance improvements : massive performance hit when rendering text

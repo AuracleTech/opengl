@@ -1,5 +1,5 @@
 use crate::types::{Program, Shader};
-use cgmath::{Matrix4, Point3, Vector3};
+use cgmath::{Matrix4, Point3, Vector3, Vector4};
 use gl::types::GLchar;
 
 impl Program {
@@ -123,6 +123,18 @@ impl Program {
                 value.x,
                 value.y,
                 value.z,
+            );
+        }
+    }
+
+    pub fn set_uniform_vec4(&self, name: &str, value: Vector4<f32>) {
+        unsafe {
+            gl::Uniform4f(
+                get_uniform_location(self.gl_id, name),
+                value.x,
+                value.y,
+                value.z,
+                value.w,
             );
         }
     }

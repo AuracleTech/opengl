@@ -1,10 +1,17 @@
-use crate::types::{Indice, Mesh, Program, Texture, TextureKind, Vertex};
-use gl::types::{GLsizeiptr, GLvoid};
+use crate::types::{Indice, Mesh, Normal, Position, Program, Texture, Vertex};
+use gl::types::{GLenum, GLsizei, GLsizeiptr, GLvoid};
+use std::ffi::c_void;
 
-// FIX TODO default texture similar to garry's mod (white & black checkerboard)
+// TODO default texture similar to garry's mod (white & black checkerboard)
 impl Mesh {
-    pub fn new(vertices: Vec<Vertex>, indices: Vec<Indice>, textures: Vec<Texture>) -> Self {
+    pub fn new(
+        gl_mode: GLenum,
+        vertices: Vec<Vertex>,
+        indices: Vec<Indice>,
+        textures: Vec<Texture>,
+    ) -> Self {
         let mut mesh = Self {
+            gl_mode,
             vertices,
             indices,
             textures,
@@ -17,118 +24,85 @@ impl Mesh {
     }
 
     pub fn setup_mesh(&mut self) {
+        let size = (self.vertices.len() * std::mem::size_of::<Vertex>()) as GLsizeiptr;
+        let data = self.vertices.as_ptr() as *const c_void; // FIX
+        let stride = std::mem::size_of::<Vertex>() as GLsizei;
+        let offset_normals = std::mem::size_of::<Position>() as *const c_void;
+        let offset_tex_coords =
+            (std::mem::size_of::<Position>() + std::mem::size_of::<Normal>()) as *const c_void;
+        let ebo_size = (self.indices.len() * std::mem::size_of::<Indice>()) as GLsizeiptr;
         unsafe {
-            // VBO (Vertex Buffer Object)
             gl::GenBuffers(1, &mut self.vbo);
-            gl::BindBuffer(gl::ARRAY_BUFFER, self.vbo);
-            gl::BufferData(
-                gl::ARRAY_BUFFER,
-                (self.vertices.len() * std::mem::size_of::<Vertex>()) as GLsizeiptr,
-                self.vertices.as_ptr() as *const GLvoid,
-                gl::STATIC_DRAW,
-            );
-
-            // VAO (Vertex Array Object)
             gl::GenVertexArrays(1, &mut self.vao);
-            gl::BindVertexArray(self.vao);
-            // vertex positions
-            gl::VertexAttribPointer(
-                0,
-                3,
-                gl::FLOAT,
-                gl::FALSE,
-                std::mem::size_of::<Vertex>() as i32,
-                std::ptr::null(),
-            );
-            gl::EnableVertexAttribArray(0);
-            // vertex normals
-            gl::VertexAttribPointer(
-                1,
-                3,
-                gl::FLOAT,
-                gl::FALSE,
-                std::mem::size_of::<Vertex>() as i32,
-                (3 * std::mem::size_of::<f32>()) as *const GLvoid,
-            );
-            gl::EnableVertexAttribArray(1);
-            // vertex texture coords
-            gl::VertexAttribPointer(
-                2,
-                2,
-                gl::FLOAT,
-                gl::FALSE,
-                std::mem::size_of::<Vertex>() as i32,
-                (6 * std::mem::size_of::<f32>()) as *const GLvoid,
-            );
-            gl::EnableVertexAttribArray(2);
-
-            // EBO (Element Buffer Object)
             gl::GenBuffers(1, &mut self.ebo);
+
+            // VAO
+            gl::BindVertexArray(self.vao);
+            gl::BindBuffer(gl::ARRAY_BUFFER, self.vbo);
+
+            // VBO
+            gl::BufferData(gl::ARRAY_BUFFER, size, data, gl::STATIC_DRAW);
+
+            // EBO
             gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, self.ebo);
             gl::BufferData(
                 gl::ELEMENT_ARRAY_BUFFER,
-                (self.indices.len() * std::mem::size_of::<Indice>()) as GLsizeiptr,
+                ebo_size,
                 self.indices.as_ptr() as *const GLvoid,
                 gl::STATIC_DRAW,
             );
 
-            gl::BindVertexArray(0); // OPTIMIZE TODO is this necessary?
+            // vertex positions
+            gl::EnableVertexAttribArray(0);
+            gl::VertexAttribPointer(0, 3, gl::FLOAT, gl::FALSE, stride, std::ptr::null());
+            // vertex normals
+            gl::EnableVertexAttribArray(1);
+            gl::VertexAttribPointer(1, 3, gl::FLOAT, gl::FALSE, stride, offset_normals);
+            // vertex texture coords
+            gl::EnableVertexAttribArray(2);
+            gl::VertexAttribPointer(2, 2, gl::FLOAT, gl::FALSE, stride, offset_tex_coords);
         }
     }
 
-    pub fn draw(&self, program: &Program) {
-        let mut diffuse_number = 0;
-        let mut specular_number = 0;
-        let mut emissive_number = 0;
-        for (i, texture) in self.textures.iter().enumerate() {
-            let number;
-            let name = match texture.kind {
-                TextureKind::Diffuse => {
-                    diffuse_number += 1;
-                    number = diffuse_number;
-                    "diffuse"
-                }
-                TextureKind::Specular => {
-                    specular_number += 1;
-                    number = specular_number;
-                    "specular"
-                }
-                TextureKind::Emissive => {
-                    emissive_number += 1;
-                    number = emissive_number;
-                    "emissive"
-                }
-                _ => panic!("Unsupported texture kind yet!"),
-            };
-            texture.gl_bind(i as u32);
-            program.set_uniform_int(&format!("material.{}{}", name, number), i as i32);
-        }
-        self.gl_bind();
+    pub fn draw(&self, _program: &Program) {
+        self.gl_bind_vao();
         self.draw_elements();
-        Mesh::gl_unbind();
-        Texture::gl_unbind();
+        match self.gl_mode {
+            gl::TRIANGLES => (),
+            gl::LINES => (),
+            gl::QUADS => panic!("QUADS are not supported!"), // OPTIMIZE should be deprecated in favor of gl::TRIANGLES
+            _ => panic!("Unsupported gl_mode yet!"),
+        }
+        // self.gl_unbind();
+        // Texture::gl_unbind();
     }
 
-    fn gl_bind(&self) {
+    fn gl_bind_vao(&self) {
         unsafe {
             gl::BindVertexArray(self.vao);
         }
     }
 
-    fn gl_unbind() {
+    fn gl_unbind(&self) {
         unsafe {
             gl::BindVertexArray(0);
         }
     }
 
     fn draw_elements(&self) {
+        // TEMP serialize the mesh to a JSON file for debugging
+        // let serialized = serde_json::to_string(&self).expect("Failed to serialize meshes");
+        // std::fs::write("veiled/cube mesh serialized.json", serialized)
+        //     .expect("Failed to write meshes.json");
+        // std::process::exit(0);
+
+        let count = self.indices.len() as GLsizei;
         unsafe {
-            gl::DrawElements(
-                gl::TRIANGLES,
-                self.indices.len() as i32,
-                gl::UNSIGNED_INT,
-                std::ptr::null(),
-            );
+            gl::DrawElements(self.gl_mode, count, gl::UNSIGNED_INT, std::ptr::null());
+            let error = gl::GetError();
+            if error != gl::NO_ERROR {
+                println!("GL ERROR: {}", error);
+            }
         }
     }
 }

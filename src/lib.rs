@@ -22,6 +22,13 @@ impl Revenant {
             )
             .expect("Failed to create GLFW window.");
 
+        // requiest core profile 4.6
+        glfw.window_hint(glfw::WindowHint::ContextVersionMajor(4));
+        glfw.window_hint(glfw::WindowHint::ContextVersionMajor(6));
+        glfw.window_hint(glfw::WindowHint::OpenGlProfile(
+            glfw::OpenGlProfileHint::Core,
+        ));
+
         gl::load_with(|symbol| window.get_proc_address(symbol) as *const _);
 
         window.set_framebuffer_size_polling(true);
