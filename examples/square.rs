@@ -26,7 +26,7 @@ fn main() {
         -0.5, 0.5, 0.0, //
     ];
     const INDICES: [u32; 6] = [0, 1, 3, 1, 2, 3];
-    let square_mesh = Mesh::temporary(gl::TRIANGLES, &VERTICES, &INDICES);
+    let square_mesh = Mesh::new_raw(gl::TRIANGLES, &VERTICES, &INDICES);
 
     let camera_main = Camera {
         pos: point3(1.84, 0.8, 3.1),
