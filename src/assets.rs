@@ -1,4 +1,7 @@
-use crate::types::{Assets, Font, Image, ImageSize, Model, Shader};
+use crate::types::{
+    Assets, Camera, DirLight, Font, Image, ImageSize, Material, Mesh, Model, PointLight, Program,
+    Shader, SpotLight, Texture,
+};
 use ::image::{DynamicImage, ImageBuffer, ImageFormat};
 use bincode::{deserialize, serialize};
 use serde::{de::DeserializeOwned, Serialize};
@@ -26,13 +29,182 @@ impl Assets {
             textures: HashMap::new(),
             materials: HashMap::new(),
             fonts: HashMap::new(),
-            meshes: HashMap::new(),
             cameras: HashMap::new(),
             pointlights: HashMap::new(),
             dirlights: HashMap::new(),
             spotlights: HashMap::new(),
+            meshes: HashMap::new(),
             models: HashMap::new(),
         }
+    }
+
+    pub fn add_program(&mut self, name: &str, program: Program) {
+        self.programs.insert(name.to_owned(), program);
+    }
+    pub fn add_image(&mut self, name: &str, image: Image) {
+        self.images.insert(name.to_owned(), image);
+    }
+    pub fn add_texture(&mut self, name: &str, texture: Texture) {
+        self.textures.insert(name.to_owned(), texture);
+    }
+    pub fn add_material(&mut self, name: &str, material: Material) {
+        self.materials.insert(name.to_owned(), material);
+    }
+    pub fn add_font(&mut self, name: &str, font: Font) {
+        self.fonts.insert(name.to_owned(), font);
+    }
+    pub fn add_camera(&mut self, name: &str, camera: Camera) {
+        self.cameras.insert(name.to_owned(), camera);
+    }
+    pub fn add_pointlight(&mut self, name: &str, pointlight: PointLight) {
+        self.pointlights.insert(name.to_owned(), pointlight);
+    }
+    pub fn add_dirlight(&mut self, name: &str, dirlight: DirLight) {
+        self.dirlights.insert(name.to_owned(), dirlight);
+    }
+    pub fn add_spotlight(&mut self, name: &str, spotlight: SpotLight) {
+        self.spotlights.insert(name.to_owned(), spotlight);
+    }
+    pub fn add_mesh(&mut self, name: &str, mesh: Mesh) {
+        self.meshes.insert(name.to_owned(), mesh);
+    }
+    pub fn add_model(&mut self, name: &str, model: Model) {
+        self.models.insert(name.to_owned(), model);
+    }
+
+    pub fn get_program(&self, name: &str) -> &Program {
+        self.programs
+            .get(name)
+            .expect(&format!("Program '{}' not found.", name))
+    }
+    pub fn get_image(&self, name: &str) -> &Image {
+        self.images
+            .get(name)
+            .expect(&format!("Image '{}' not found.", name))
+    }
+    pub fn get_texture(&self, name: &str) -> &Texture {
+        self.textures
+            .get(name)
+            .expect(&format!("Texture '{}' not found.", name))
+    }
+    pub fn get_material(&self, name: &str) -> &Material {
+        self.materials
+            .get(name)
+            .expect(&format!("Material '{}' not found.", name))
+    }
+    pub fn get_font(&self, name: &str) -> &Font {
+        self.fonts
+            .get(name)
+            .expect(&format!("Font '{}' not found.", name))
+    }
+    pub fn get_camera(&self, name: &str) -> &Camera {
+        self.cameras
+            .get(name)
+            .expect(&format!("Camera '{}' not found.", name))
+    }
+    pub fn get_pointlight(&self, name: &str) -> &PointLight {
+        self.pointlights
+            .get(name)
+            .expect(&format!("PointLight '{}' not found.", name))
+    }
+    pub fn get_dirlight(&self, name: &str) -> &DirLight {
+        self.dirlights
+            .get(name)
+            .expect(&format!("DirLight '{}' not found.", name))
+    }
+    pub fn get_spotlight(&self, name: &str) -> &SpotLight {
+        self.spotlights
+            .get(name)
+            .expect(&format!("SpotLight '{}' not found.", name))
+    }
+    pub fn get_mesh(&self, name: &str) -> &Mesh {
+        self.meshes
+            .get(name)
+            .expect(&format!("Mesh '{}' not found.", name))
+    }
+    pub fn get_model(&self, name: &str) -> &Model {
+        self.models
+            .get(name)
+            .expect(&format!("Model '{}' not found.", name))
+    }
+
+    pub fn get_mut_program(&mut self, name: &str) -> &mut Program {
+        self.programs
+            .get_mut(name)
+            .expect(&format!("Program '{}' not found.", name))
+    }
+    pub fn get_mut_image(&mut self, name: &str) -> &mut Image {
+        self.images
+            .get_mut(name)
+            .expect(&format!("Image '{}' not found.", name))
+    }
+    pub fn get_mut_texture(&mut self, name: &str) -> &mut Texture {
+        self.textures
+            .get_mut(name)
+            .expect(&format!("Texture '{}' not found.", name))
+    }
+    pub fn get_mut_material(&mut self, name: &str) -> &mut Material {
+        self.materials
+            .get_mut(name)
+            .expect(&format!("Material '{}' not found.", name))
+    }
+    pub fn get_mut_font(&mut self, name: &str) -> &mut Font {
+        self.fonts
+            .get_mut(name)
+            .expect(&format!("Font '{}' not found.", name))
+    }
+    pub fn get_mut_camera(&mut self, name: &str) -> &mut Camera {
+        self.cameras
+            .get_mut(name)
+            .expect(&format!("Camera '{}' not found.", name))
+    }
+    pub fn get_mut_pointlight(&mut self, name: &str) -> &mut PointLight {
+        self.pointlights
+            .get_mut(name)
+            .expect(&format!("PointLight '{}' not found.", name))
+    }
+    pub fn get_mut_dirlight(&mut self, name: &str) -> &mut DirLight {
+        self.dirlights
+            .get_mut(name)
+            .expect(&format!("DirLight '{}' not found.", name))
+    }
+    pub fn get_mut_spotlight(&mut self, name: &str) -> &mut SpotLight {
+        self.spotlights
+            .get_mut(name)
+            .expect(&format!("SpotLight '{}' not found.", name))
+    }
+    pub fn get_mut_mesh(&mut self, name: &str) -> &mut Mesh {
+        self.meshes
+            .get_mut(name)
+            .expect(&format!("Mesh '{}' not found.", name))
+    }
+    pub fn get_mut_model(&mut self, name: &str) -> &mut Model {
+        self.models
+            .get_mut(name)
+            .expect(&format!("Model '{}' not found.", name))
+    }
+
+    // FIX use for textures, materials, etc
+    // FIX make a hashmap of assets to be updated
+    fn gl_register_assets(&mut self) {
+        for (_, texture) in self.textures.iter_mut() {
+            texture.gl_register();
+        }
+        for (_, material) in self.materials.iter_mut() {
+            material.diffuse.gl_register();
+            material.specular.gl_register();
+            material.emissive.gl_register();
+        }
+    }
+
+    pub fn update_assets(&mut self) {
+        // OPTIMIZE .update(); iteration to use a custom HashMap / a bitset for assets to be updated
+        for (_, camera) in self.cameras.iter_mut() {
+            if camera.update_projection {
+                camera.update();
+            }
+        }
+        // FIX iterate through update hashmap and register gl textures
     }
 }
 

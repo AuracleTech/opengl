@@ -162,3 +162,11 @@ fn get_uniform_location(program_id: u32, name: &str) -> i32 {
         location => location,
     }
 }
+
+impl Drop for Program {
+    fn drop(&mut self) {
+        unsafe {
+            gl::DeleteProgram(self.gl_id);
+        }
+    }
+}

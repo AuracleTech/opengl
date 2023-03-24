@@ -1,6 +1,6 @@
 use cgmath::{Matrix4, Point3, Vector2, Vector3, Vector4};
 use gl::types::{GLenum, GLsizei, GLuint};
-use glfw::{Glfw, Window, WindowEvent};
+use glfw::{Action, Glfw, Key, MouseButton, Version, Window, WindowEvent};
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, sync::mpsc::Receiver};
 
@@ -21,24 +21,36 @@ pub struct Revenant {
     pub events: Receiver<(f64, WindowEvent)>,
     pub gl_config: GLConfig,
     pub assets: Assets,
+    pub inputs: Inputs,
+    pub frame_time: f64,
+    pub frame_time_last: f64,
+    pub frame_time_delta: f64,
 }
 
 pub struct Assets {
-    pub programs: HashMap<String, Program>,
-    pub images: HashMap<String, Image>,
-    pub textures: HashMap<String, Texture>,
-    pub materials: HashMap<String, Material>,
-    pub fonts: HashMap<String, Font>,
-    pub cameras: HashMap<String, Camera>,
-    pub pointlights: HashMap<String, PointLight>,
-    pub dirlights: HashMap<String, DirLight>,
-    pub spotlights: HashMap<String, SpotLight>,
-    pub meshes: HashMap<String, Mesh>,
-    pub models: HashMap<String, Model>,
+    pub(crate) programs: HashMap<String, Program>,
+    pub(crate) images: HashMap<String, Image>,
+    pub(crate) textures: HashMap<String, Texture>,
+    pub(crate) materials: HashMap<String, Material>,
+    pub(crate) fonts: HashMap<String, Font>,
+    pub(crate) cameras: HashMap<String, Camera>,
+    pub(crate) pointlights: HashMap<String, PointLight>,
+    pub(crate) dirlights: HashMap<String, DirLight>,
+    pub(crate) spotlights: HashMap<String, SpotLight>,
+    pub(crate) meshes: HashMap<String, Mesh>,
+    pub(crate) models: HashMap<String, Model>,
+}
+
+pub struct Inputs {
+    pub keys: HashMap<Key, Action>,
+    pub mouse_buttons: HashMap<MouseButton, Action>,
+    pub mouse_pos: Option<(f64, f64)>,
+    pub mouse_scroll: Option<(f64, f64)>,
 }
 
 pub struct GLConfig {
     pub max_vertex_attribs: i32,
+    pub gl_version: Version,
 }
 
 // TODO remove debug everywhere

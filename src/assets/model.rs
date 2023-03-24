@@ -53,9 +53,8 @@ impl Model {
         Self { meshes }
     }
 
-    pub fn draw(&mut self, program: &Program) {
-        for mesh in &mut self.meshes {
-            mesh.setup_mesh();
+    pub fn draw(&self, program: &Program) {
+        for mesh in &self.meshes {
             mesh.draw(program);
         }
     }
