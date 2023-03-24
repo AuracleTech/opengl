@@ -155,4 +155,27 @@ impl Revenant {
         self.frame_time = self.glfw.get_time();
         self.frame_time_delta = self.frame_time - self.frame_time_last;
     }
+
+    pub fn cycle_polygon_mode(&mut self) {
+        let mut polygon_mode: [i32; 2] = [0; 2];
+        unsafe {
+            gl::GetIntegerv(gl::POLYGON_MODE, polygon_mode.as_mut_ptr());
+        }
+        let polygon_mode = match polygon_mode[0] as u32 {
+            gl::FILL => gl::LINE,
+            gl::LINE => gl::POINT,
+            gl::POINT => gl::FILL,
+            _ => panic!("Unknown polygon mode"),
+        };
+        unsafe {
+            gl::PolygonMode(gl::FRONT_AND_BACK, polygon_mode);
+        }
+        let text = match polygon_mode {
+            gl::FILL => "FILL",
+            gl::LINE => "LINE",
+            gl::POINT => "POINT",
+            _ => panic!("Unknown polygon mode"),
+        };
+        println!("Polygon mode: {}", text);
+    }
 }

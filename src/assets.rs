@@ -186,7 +186,7 @@ impl Assets {
 
     // FIX use for textures, materials, etc
     // FIX make a hashmap of assets to be updated
-    fn gl_register_assets(&mut self) {
+    fn _gl_register_assets(&mut self) {
         for (_, texture) in self.textures.iter_mut() {
             texture.gl_register();
         }
