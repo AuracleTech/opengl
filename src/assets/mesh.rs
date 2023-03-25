@@ -1,5 +1,5 @@
-use crate::types::{Indice, Mesh, Program, Texture, Vertex};
-use cgmath::point3;
+use crate::types::{Indice, Mesh, Position, Program, Texture, Vertex};
+use cgmath::{point3, vec3};
 use gl::types::{GLenum, GLsizei, GLsizeiptr, GLvoid};
 use std::ffi::c_void;
 
@@ -30,7 +30,7 @@ impl Mesh {
             .chunks(3)
             .map(|x| Vertex {
                 position: point3(x[0], x[1], x[2]),
-                // normal: vec3(0.0, 0.0, 0.0),
+                normal: vec3(0.0, 0.0, 0.0),
                 // tex_coords: vec2(0.0, 0.0),
             })
             .collect();
@@ -51,9 +51,9 @@ impl Mesh {
         let size = (self.vertices.len() * std::mem::size_of::<Vertex>()) as GLsizeiptr;
         let data = self.vertices.as_ptr() as *const c_void;
         let stride = std::mem::size_of::<Vertex>() as GLsizei;
-        // let offset_normals = std::mem::size_of::<Position>() as *const c_void;
+        let offset_normals = std::mem::size_of::<Position>() as *const c_void;
         // let offset_tex_coords =
-        // (std::mem::size_of::<Position>() + std::mem::size_of::<Normal>()) as *const c_void;
+        //     (std::mem::size_of::<Position>() + std::mem::size_of::<Normal>()) as *const c_void;
         let ebo_size = (self.indices.len() * std::mem::size_of::<Indice>()) as GLsizeiptr;
         unsafe {
             gl::GenBuffers(1, &mut self.vbo);
@@ -80,8 +80,8 @@ impl Mesh {
             gl::EnableVertexAttribArray(0);
             gl::VertexAttribPointer(0, 3, gl::FLOAT, gl::FALSE, stride, std::ptr::null());
             // vertex normals
-            // gl::EnableVertexAttribArray(1);
-            // gl::VertexAttribPointer(1, 3, gl::FLOAT, gl::FALSE, stride, offset_normals);
+            gl::EnableVertexAttribArray(1);
+            gl::VertexAttribPointer(1, 3, gl::FLOAT, gl::FALSE, stride, offset_normals);
             // // vertex texture coords
             // gl::EnableVertexAttribArray(2);
             // gl::VertexAttribPointer(2, 2, gl::FLOAT, gl::FALSE, stride, offset_tex_coords);

@@ -1,5 +1,5 @@
 use crate::types::{Mesh, Model, Program, Vertex};
-use cgmath::point3;
+use cgmath::{point3, vec3};
 use gltf::mesh::{util::ReadIndices, Mode};
 use std::path::PathBuf;
 
@@ -20,11 +20,11 @@ impl Model {
                         None => break,
                     };
                     let position = point3(position[0], position[1], position[2]);
-                    // let normal = vec3(0.0, 0.0, 0.0);
+                    let normal = vec3(0.0, 0.0, 0.0);
                     // let tex_coords = vec2(0.0, 0.0);
                     vertices.push(Vertex {
                         position,
-                        // normal,
+                        normal,
                         // tex_coords,
                     });
                 }

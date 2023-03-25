@@ -104,7 +104,7 @@ pub enum Filtering {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Vertex {
     pub position: Position,
-    // pub normal: Normal,
+    pub normal: Normal,
     // pub tex_coords: TexCoords,
 }
 
