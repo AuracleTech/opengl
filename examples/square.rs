@@ -19,6 +19,8 @@ fn main() {
         min_fov_y: 130.0,
     };
 
+    let cube_triangulated = assets::load_foreign_model("cube_triangulate_cam_light", "glb");
+
     const VERTICES: [f32; 12] = [
         0.5, 0.5, 0.0, //
         0.5, -0.5, 0.0, //
@@ -48,7 +50,10 @@ fn main() {
     let shader_light_fs = assets::load_foreign_shader("light", "fs");
     let program_light = Program::new(shader_light_vs, shader_light_fs);
 
-    revenant.assets.add_mesh("square_mesh", square_mesh);
+    revenant
+        .assets
+        .add_model("cube_triangulated", cube_triangulated);
+    revenant.assets.add_mesh("square", square_mesh);
     revenant.assets.add_camera("main", camera_main);
     revenant.assets.add_program("light", program_light);
 
@@ -133,7 +138,8 @@ fn render(revenant: &mut Revenant) {
 
     let camera_main = revenant.assets.get_camera("main");
     let program_light = revenant.assets.get_program("light");
-    let square_mesh = revenant.assets.get_mesh("square_mesh");
+    let cube_triangulated = revenant.assets.get_model("cube_triangulated");
+    let square_mesh = revenant.assets.get_mesh("square");
 
     program_light.use_program();
     program_light.set_uniform_mat4("model", &Matrix4::identity());
@@ -148,6 +154,7 @@ fn render(revenant: &mut Revenant) {
     program_light.set_uniform_mat4("projection", &camera_main.projection);
 
     square_mesh.draw(program_light);
+    cube_triangulated.draw(program_light);
 
     revenant.end_frame();
 }
