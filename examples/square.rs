@@ -9,7 +9,7 @@ use revenant::{
 fn main() {
     let mut revenant = Revenant::new();
     let mut camera_controller = CameraController {
-        aim_sensitivity: 0.1,
+        aim_sensitivity: 0.03,
         speed_factor: 3.0,
         speed: 0.00,
         yaw: 200.0,
@@ -89,10 +89,11 @@ fn input(revenant: &mut Revenant, camera_controller: &mut CameraController) {
         camera_controller.pitch = camera_controller.pitch.clamp(-89.9, 89.9);
         camera_controller.yaw = camera_controller.yaw.rem_euclid(360.0);
 
+        let pitch_radians_cos = camera_controller.pitch.to_radians().cos();
         camera_main.front = vec3(
-            camera_controller.pitch.to_radians().cos() * camera_controller.yaw.to_radians().cos(),
+            pitch_radians_cos * camera_controller.yaw.to_radians().cos(),
             camera_controller.pitch.to_radians().sin(),
-            camera_controller.pitch.to_radians().cos() * camera_controller.yaw.to_radians().sin(),
+            pitch_radians_cos * camera_controller.yaw.to_radians().sin(),
         )
         .normalize();
         camera_main.right = camera_main.front.cross(camera_main.up);
@@ -135,6 +136,7 @@ fn render(revenant: &mut Revenant) {
     let square_mesh = revenant.assets.get_mesh("square_mesh");
 
     program_light.use_program();
+    program_light.set_uniform_mat4("model", &Matrix4::identity());
     program_light.set_uniform_mat4(
         "view",
         &Matrix4::look_at_rh(

@@ -16,14 +16,14 @@ pub type RGBA = Vector4<ColorChannel>;
 pub type Indice = u32; // OPTIMIZE use u16 if possible
 
 pub struct Revenant {
-    pub glfw: Glfw,
-    pub window: Window,
-    pub events: Receiver<(f64, WindowEvent)>,
-    pub gl_config: GLConfig,
+    pub(crate) glfw: Glfw,
+    pub(crate) window: Window,
+    pub(crate) events: Receiver<(f64, WindowEvent)>,
+    pub(crate) gl_config: GLConfig,
     pub assets: Assets,
     pub inputs: Inputs,
-    pub frame_time: f64,
-    pub frame_time_last: f64,
+    pub(crate) frame_time: f64,
+    pub(crate) frame_time_last: f64,
     pub frame_time_delta: f64,
 }
 
@@ -42,8 +42,8 @@ pub struct Assets {
 }
 
 pub struct Inputs {
-    pub keys: HashMap<Key, Action>,
-    pub mouse_buttons: HashMap<MouseButton, Action>,
+    pub(crate) keys: HashMap<Key, Action>,
+    pub(crate) mouse_buttons: HashMap<MouseButton, Action>,
     pub mouse_pos: Option<(f64, f64)>,
     pub mouse_scroll: Option<(f64, f64)>,
 }
@@ -110,15 +110,15 @@ pub struct Vertex {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Mesh {
-    pub gl_mode: GLenum,
+    pub(crate) gl_mode: GLenum,
 
-    pub vertices: Vec<Vertex>,
-    pub indices: Vec<Indice>,
-    pub textures: Vec<Texture>,
+    pub(crate) vertices: Vec<Vertex>,
+    pub(crate) indices: Vec<Indice>,
+    pub(crate) textures: Vec<Texture>,
 
-    pub vao: GLuint, // FIX SHOULD BE PRIVATE pub(crate) maybe ?
-    pub vbo: GLuint, // FIX SHOULD BE PRIVATE pub(crate) maybe ?
-    pub ebo: GLuint, // FIX SHOULD BE PRIVATE pub(crate) maybe ?
+    pub(crate) vao: GLuint,
+    pub(crate) vbo: GLuint,
+    pub(crate) ebo: GLuint,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
