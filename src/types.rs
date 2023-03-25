@@ -101,8 +101,8 @@ pub enum Filtering {
     // TODO add anisotropic filtering
 }
 
-#[repr(C)]
 #[derive(Serialize, Deserialize, Debug)]
+#[repr(C)]
 pub struct Vertex {
     pub position: Position,
     pub normal: Normal,

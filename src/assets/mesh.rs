@@ -1,5 +1,4 @@
 use crate::types::{Indice, Mesh, Normal, Position, Program, Texture, Vertex};
-use cgmath::{point3, vec2, vec3};
 use gl::types::{GLenum, GLsizei, GLsizeiptr, GLvoid};
 use std::ffi::c_void;
 
@@ -16,29 +15,6 @@ impl Mesh {
             vertices,
             indices,
             textures,
-            vao: 0,
-            vbo: 0,
-            ebo: 0,
-        };
-        mesh.setup_mesh();
-        mesh
-    }
-
-    // TEMP
-    pub fn new_raw(gl_mode: GLenum, vertices: &[f32], indices: &[u32]) -> Self {
-        let vertices = vertices
-            .chunks(3)
-            .map(|x| Vertex {
-                position: point3(x[0], x[1], x[2]),
-                normal: vec3(0.0, 0.0, 0.0),
-                tex_coords: vec2(0.0, 0.0),
-            })
-            .collect();
-        let mut mesh = Self {
-            gl_mode,
-            vertices,
-            indices: indices.to_vec(),
-            textures: Vec::new(),
             vao: 0,
             vbo: 0,
             ebo: 0,

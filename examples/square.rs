@@ -2,7 +2,7 @@ use cgmath::{point3, vec3, InnerSpace, Matrix4, SquareMatrix};
 use glfw::Key;
 use revenant::{
     assets,
-    types::{Camera, Mesh, Program, ProjectionKind},
+    types::{Camera, Program, ProjectionKind},
     Revenant,
 };
 
@@ -21,15 +21,6 @@ fn main() {
 
     let cube = assets::load_foreign_model("cube_cam_light", "glb");
     let tree = assets::load_foreign_model("tree_cam_light", "glb");
-
-    const VERTICES: [f32; 12] = [
-        0.5, 0.5, 0.0, //
-        0.5, -0.5, 0.0, //
-        -0.5, -0.5, 0.0, //
-        -0.5, 0.5, 0.0, //
-    ];
-    const INDICES: [u32; 6] = [0, 1, 3, 1, 2, 3];
-    let square_mesh = Mesh::new_raw(gl::TRIANGLES, &VERTICES, &INDICES);
 
     let camera_main = Camera {
         pos: point3(1.84, 0.8, 3.1),
@@ -53,7 +44,6 @@ fn main() {
 
     revenant.assets.add_model("cube", cube);
     revenant.assets.add_model("tree", tree);
-    revenant.assets.add_mesh("square", square_mesh);
     revenant.assets.add_camera("main", camera_main);
     revenant.assets.add_program("light", program_light);
 
@@ -139,7 +129,6 @@ fn render(revenant: &mut Revenant) {
     let camera_main = revenant.assets.get_camera("main");
     let program_light = revenant.assets.get_program("light");
     let cube = revenant.assets.get_model("cube");
-    let square_mesh = revenant.assets.get_mesh("square");
     let tree = revenant.assets.get_model("tree");
 
     program_light.use_program();
@@ -158,7 +147,6 @@ fn render(revenant: &mut Revenant) {
     program_light.set_uniform_mat4("model", &Matrix4::from_translation(vec3(0.0, 0.0, 3.0)));
     cube.draw(program_light);
     program_light.set_uniform_mat4("model", &Matrix4::from_translation(vec3(0.0, 0.0, -3.0)));
-    square_mesh.draw(program_light);
 
     revenant.end_frame();
 }
