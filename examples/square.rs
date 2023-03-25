@@ -15,8 +15,8 @@ fn main() {
         yaw: 200.0,
         pitch: -20.0,
         mouse_pos_last: (0.0, 0.0),
-        max_fov_y: 10.0,
-        min_fov_y: 130.0,
+        min_fov_y: 10.0,
+        max_fov_y: 130.0,
     };
 
     let cube = assets::load_foreign_model("cube_cam_light", "glb");
@@ -59,14 +59,19 @@ fn input(revenant: &mut Revenant, camera_controller: &mut CameraController) {
 
     if let Some((_, scroll_y)) = revenant.inputs.mouse_scroll {
         match camera_main.projection_kind {
-            ProjectionKind::Perspective { fov_y, .. } => {
-                let fov_y = fov_y - scroll_y as f32;
-                let fov_y = fov_y.clamp(camera_controller.min_fov_y, camera_controller.max_fov_y);
+            ProjectionKind::Perspective {
+                aspect_ratio,
+                far,
+                fov_y,
+                near,
+            } => {
+                let mut fov_y = fov_y - scroll_y as f32;
+                fov_y = fov_y.clamp(camera_controller.min_fov_y, camera_controller.max_fov_y);
                 camera_main.projection_kind = ProjectionKind::Perspective {
-                    aspect_ratio: 16.0 / 9.0,
+                    aspect_ratio,
                     fov_y,
-                    near: 0.1,
-                    far: 100.0,
+                    near,
+                    far,
                 };
                 camera_main.update_projection = true;
             }
