@@ -27,8 +27,9 @@
 - [x] Emissive Textures
 - [x] Bikeshedding
 - [x] Outlining
-- [ ] Loading Mesh
-- [ ] Loading Model
+- [x] Loading Mesh
+- [x] Loading Model
+- [ ] Model Textures
 - [ ] Setup world environment playground
 - [ ] Client Server Architecture
 - [ ] Multiplayer
