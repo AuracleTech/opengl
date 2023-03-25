@@ -101,11 +101,12 @@ pub enum Filtering {
     // TODO add anisotropic filtering
 }
 
+#[repr(C)]
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Vertex {
     pub position: Position,
     pub normal: Normal,
-    // pub tex_coords: TexCoords,
+    pub tex_coords: TexCoords,
 }
 
 #[derive(Serialize, Deserialize, Debug)]

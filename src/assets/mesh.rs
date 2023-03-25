@@ -1,5 +1,5 @@
-use crate::types::{Indice, Mesh, Position, Program, Texture, Vertex};
-use cgmath::{point3, vec3};
+use crate::types::{Indice, Mesh, Normal, Position, Program, Texture, Vertex};
+use cgmath::{point3, vec2, vec3};
 use gl::types::{GLenum, GLsizei, GLsizeiptr, GLvoid};
 use std::ffi::c_void;
 
@@ -31,7 +31,7 @@ impl Mesh {
             .map(|x| Vertex {
                 position: point3(x[0], x[1], x[2]),
                 normal: vec3(0.0, 0.0, 0.0),
-                // tex_coords: vec2(0.0, 0.0),
+                tex_coords: vec2(0.0, 0.0),
             })
             .collect();
         let mut mesh = Self {
@@ -49,11 +49,10 @@ impl Mesh {
 
     pub fn setup_mesh(&mut self) {
         let size = (self.vertices.len() * std::mem::size_of::<Vertex>()) as GLsizeiptr;
-        let data = self.vertices.as_ptr() as *const c_void;
+        let data = self.vertices.as_ptr();
         let stride = std::mem::size_of::<Vertex>() as GLsizei;
-        let offset_normals = std::mem::size_of::<Position>() as *const c_void;
-        // let offset_tex_coords =
-        //     (std::mem::size_of::<Position>() + std::mem::size_of::<Normal>()) as *const c_void;
+        let offset_normals = std::mem::size_of::<Position>();
+        let offset_tex_coords = std::mem::size_of::<Position>() + std::mem::size_of::<Normal>();
         let ebo_size = (self.indices.len() * std::mem::size_of::<Indice>()) as GLsizeiptr;
         unsafe {
             gl::GenBuffers(1, &mut self.vbo);
@@ -65,7 +64,12 @@ impl Mesh {
             gl::BindBuffer(gl::ARRAY_BUFFER, self.vbo);
 
             // VBO
-            gl::BufferData(gl::ARRAY_BUFFER, size, data, gl::STATIC_DRAW);
+            gl::BufferData(
+                gl::ARRAY_BUFFER,
+                size,
+                data as *const c_void,
+                gl::STATIC_DRAW,
+            );
 
             // EBO
             gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, self.ebo);
@@ -81,10 +85,24 @@ impl Mesh {
             gl::VertexAttribPointer(0, 3, gl::FLOAT, gl::FALSE, stride, std::ptr::null());
             // vertex normals
             gl::EnableVertexAttribArray(1);
-            gl::VertexAttribPointer(1, 3, gl::FLOAT, gl::FALSE, stride, offset_normals);
+            gl::VertexAttribPointer(
+                1,
+                3,
+                gl::FLOAT,
+                gl::FALSE,
+                stride,
+                offset_normals as *const c_void,
+            );
             // // vertex texture coords
-            // gl::EnableVertexAttribArray(2);
-            // gl::VertexAttribPointer(2, 2, gl::FLOAT, gl::FALSE, stride, offset_tex_coords);
+            gl::EnableVertexAttribArray(2);
+            gl::VertexAttribPointer(
+                2,
+                2,
+                gl::FLOAT,
+                gl::FALSE,
+                stride,
+                offset_tex_coords as *const c_void,
+            );
         }
     }
 
