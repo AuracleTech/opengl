@@ -4,17 +4,11 @@ use std::ffi::c_void;
 
 // TODO default texture similar to garry's mod (white & black checkerboard)
 impl Mesh {
-    pub fn new(
-        gl_mode: GLenum,
-        vertices: Vec<Vertex>,
-        indices: Vec<Indice>,
-        textures: Vec<Texture>,
-    ) -> Self {
+    pub fn new(gl_mode: GLenum, vertices: Vec<Vertex>, indices: Vec<Indice>) -> Self {
         let mut mesh = Self {
             gl_mode,
             vertices,
             indices,
-            textures,
             vao: 0,
             vbo: 0,
             ebo: 0,
@@ -108,12 +102,6 @@ impl Mesh {
     }
 
     fn draw_elements(&self) {
-        // TEMP serialize the mesh to a JSON file for debugging
-        // let serialized = serde_json::to_string(&self).expect("Failed to serialize meshes");
-        // std::fs::write("veiled/cube mesh serialized.json", serialized)
-        //     .expect("Failed to write meshes.json");
-        // std::process::exit(0);
-
         let count = self.indices.len() as GLsizei;
         unsafe {
             gl::DrawElements(self.gl_mode, count, gl::UNSIGNED_INT, std::ptr::null());

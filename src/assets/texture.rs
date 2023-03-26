@@ -1,7 +1,21 @@
-use crate::types::{Filtering, Image, ImageFormat, ImageSize, Texture, TextureKind, Wrapping};
-use gl::types::{GLenum, GLint, GLvoid};
+use crate::types::{Image, ImageFormat, ImageSize, Texture, TextureKind};
+use gl::types::{GLint, GLvoid};
 
 impl Texture {
+    pub fn from_image(image: Image) -> Self {
+        // TODO set configurable default values
+        Texture {
+            gl_id: 0,
+            image,
+            kind: TextureKind::Diffuse,
+            gl_s_wrapping: gl::REPEAT,
+            gl_t_wrapping: gl::REPEAT,
+            gl_min_filtering: gl::LINEAR_MIPMAP_LINEAR,
+            gl_mag_filtering: gl::LINEAR,
+            mipmapping: true,
+        }
+    }
+
     pub fn gl_register(&mut self) {
         let internal_format = match self.image.format {
             ImageFormat::RGB => gl::RGB,
@@ -19,11 +33,6 @@ impl Texture {
         unsafe {
             gl::PixelStorei(gl::UNPACK_ALIGNMENT, alignment);
         }
-
-        let gl_s_wrapping = gl_wrapping_from(&self.s_wrapping);
-        let gl_t_wrapping = gl_wrapping_from(&self.t_wrapping);
-        let gl_min_filtering = gl_filtering_from(&self.min_filtering);
-        let gl_mag_filtering = gl_filtering_from(&self.mag_filtering);
 
         // TODO 3D texture
         let target = gl::TEXTURE_2D;
@@ -56,11 +65,19 @@ impl Texture {
         }
         unsafe {
             // wrapping
-            gl::TexParameteri(target, gl::TEXTURE_WRAP_S, gl_s_wrapping as i32);
-            gl::TexParameteri(target, gl::TEXTURE_WRAP_T, gl_t_wrapping as i32);
+            gl::TexParameteri(target, gl::TEXTURE_WRAP_S, self.gl_s_wrapping as GLint);
+            gl::TexParameteri(target, gl::TEXTURE_WRAP_T, self.gl_t_wrapping as GLint);
             // filtering
-            gl::TexParameteri(target, gl::TEXTURE_MIN_FILTER, gl_min_filtering as i32);
-            gl::TexParameteri(target, gl::TEXTURE_MAG_FILTER, gl_mag_filtering as i32);
+            gl::TexParameteri(
+                target,
+                gl::TEXTURE_MIN_FILTER,
+                self.gl_min_filtering as GLint,
+            );
+            gl::TexParameteri(
+                target,
+                gl::TEXTURE_MAG_FILTER,
+                self.gl_mag_filtering as GLint,
+            );
         }
         // mipmapping
         if self.mipmapping {
@@ -70,20 +87,6 @@ impl Texture {
         }
 
         self.gl_id = id;
-    }
-
-    pub fn from_image(image: Image) -> Self {
-        // TODO set configurable default values
-        Texture {
-            gl_id: 0,
-            image,
-            kind: TextureKind::Diffuse,
-            s_wrapping: Wrapping::Repeat,
-            t_wrapping: Wrapping::Repeat,
-            min_filtering: Filtering::LinearMipmapLinear,
-            mag_filtering: Filtering::Linear,
-            mipmapping: true,
-        }
     }
 
     // TODO deal with max amount of texture units
@@ -105,25 +108,5 @@ impl Texture {
             // TODO add texture type (2D, 3D ... ) in Texture struct
             gl::TexParameteri(gl::TEXTURE_2D, param, value);
         }
-    }
-}
-
-fn gl_filtering_from(filtering: &Filtering) -> GLenum {
-    match filtering {
-        Filtering::Nearest => gl::NEAREST,
-        Filtering::Linear => gl::LINEAR,
-        Filtering::NearestMipmapNearest => gl::NEAREST_MIPMAP_NEAREST,
-        Filtering::NearestMipmapLinear => gl::NEAREST_MIPMAP_LINEAR,
-        Filtering::LinearMipmapNearest => gl::LINEAR_MIPMAP_NEAREST,
-        Filtering::LinearMipmapLinear => gl::LINEAR_MIPMAP_LINEAR,
-    }
-}
-
-fn gl_wrapping_from(wrapping: &Wrapping) -> GLenum {
-    match wrapping {
-        Wrapping::Repeat => gl::REPEAT,
-        Wrapping::MirroredRepeat => gl::MIRRORED_REPEAT,
-        Wrapping::ClampToEdge => gl::CLAMP_TO_EDGE,
-        Wrapping::ClampToBorder => gl::CLAMP_TO_BORDER,
     }
 }

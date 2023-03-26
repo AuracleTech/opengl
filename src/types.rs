@@ -9,7 +9,7 @@ pub type Uniaxial = f32;
 pub type Position = Point3<Uniaxial>;
 pub type Direction = Vector3<Uniaxial>;
 pub type Normal = Vector3<Uniaxial>;
-pub type TexCoords = Vector2<Uniaxial>; // OPTIMIZE use u16 if possible or even u8
+pub type TexCoord = Vector2<Uniaxial>; // OPTIMIZE use u16 if possible or even u8
 pub type ColorChannel = f32;
 pub type RGB = Vector3<ColorChannel>;
 pub type RGBA = Vector4<ColorChannel>;
@@ -54,7 +54,7 @@ pub struct GLConfig {
 }
 
 // TODO remove debug everywhere
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum TextureKind {
     Diffuse,
     Specular,
@@ -65,7 +65,7 @@ pub enum TextureKind {
 }
 
 // TODO remove debug everywhere
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum ImageFormat {
     RGBA,
     RGB,
@@ -74,31 +74,10 @@ pub enum ImageFormat {
     Unicolor,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum ImageSize {
     I2D { x: GLsizei, y: GLsizei },
     I3D { x: GLsizei, y: GLsizei, z: GLsizei },
-}
-
-// TODO remove debug everywhere
-#[derive(Serialize, Deserialize, Debug)]
-pub enum Wrapping {
-    Repeat,
-    MirroredRepeat,
-    ClampToEdge,
-    ClampToBorder,
-}
-
-// TODO remove debug everywhere
-#[derive(Serialize, Deserialize, Debug)]
-pub enum Filtering {
-    Nearest,
-    Linear,
-    NearestMipmapNearest,
-    LinearMipmapNearest,
-    NearestMipmapLinear,
-    LinearMipmapLinear,
-    // TODO add anisotropic filtering
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -106,7 +85,7 @@ pub enum Filtering {
 pub struct Vertex {
     pub position: Position,
     pub normal: Normal,
-    pub tex_coords: TexCoords,
+    pub tex_coord: TexCoord,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -115,7 +94,6 @@ pub struct Mesh {
 
     pub(crate) vertices: Vec<Vertex>,
     pub(crate) indices: Vec<Indice>,
-    pub(crate) textures: Vec<Texture>,
 
     pub(crate) vao: GLuint,
     pub(crate) vbo: GLuint,
@@ -124,7 +102,8 @@ pub struct Mesh {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Model {
-    pub meshes: Vec<Mesh>,
+    pub(crate) meshes: Vec<Mesh>,
+    pub(crate) textures: Vec<Texture>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -218,16 +197,16 @@ pub struct Glyph {
 }
 
 // TODO remove debug everywhere
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Texture {
-    pub gl_id: GLuint,
-    pub image: Image,
-    pub kind: TextureKind,
-    pub s_wrapping: Wrapping,
-    pub t_wrapping: Wrapping,
-    pub min_filtering: Filtering,
-    pub mag_filtering: Filtering,
-    pub mipmapping: bool,
+    pub(crate) gl_id: GLuint,
+    pub(crate) image: Image,
+    pub(crate) kind: TextureKind,
+    pub(crate) gl_s_wrapping: GLenum,
+    pub(crate) gl_t_wrapping: GLenum,
+    pub(crate) gl_min_filtering: GLenum,
+    pub(crate) gl_mag_filtering: GLenum,
+    pub(crate) mipmapping: bool,
 }
 
 pub struct Font {
@@ -239,7 +218,7 @@ pub struct Font {
 }
 
 // TODO remove debug everywhere
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Image {
     pub data: Vec<u8>,
     pub format: ImageFormat,

@@ -1,6 +1,4 @@
-use crate::types::{
-    Filtering, Font, Glyph, Image, ImageFormat, ImageSize, Texture, TextureKind, Wrapping,
-};
+use crate::types::{Font, Glyph, Image, ImageFormat, ImageSize, Texture, TextureKind};
 use freetype::Library;
 use image::{ImageBuffer, Rgba};
 use std::{collections::HashMap, path::PathBuf};
@@ -99,22 +97,15 @@ impl Font {
             },
         };
 
-        let kind = TextureKind::Diffuse;
-        let s_wrapping = Wrapping::Repeat;
-        let t_wrapping = Wrapping::Repeat;
-        let min_filtering = Filtering::Linear;
-        let mag_filtering = Filtering::Linear;
-        let mipmapping = false;
-
         let mut sprite = Texture {
             gl_id: 0,
             image,
-            kind,
-            s_wrapping,
-            t_wrapping,
-            min_filtering,
-            mag_filtering,
-            mipmapping,
+            kind: TextureKind::Diffuse,
+            gl_s_wrapping: gl::REPEAT,
+            gl_t_wrapping: gl::REPEAT,
+            gl_min_filtering: gl::LINEAR,
+            gl_mag_filtering: gl::LINEAR,
+            mipmapping: false,
         };
         sprite.gl_register();
 
