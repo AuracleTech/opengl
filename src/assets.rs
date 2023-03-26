@@ -310,3 +310,12 @@ pub fn save_image_to_png(image: &Image, name: &str) -> Result<(), Box<dyn std::e
     dynamic_image.save_with_format(path, ImageFormat::Png)?;
     Ok(())
 }
+
+pub fn save_json<T>(name: &str, data: T)
+where
+    T: Serialize,
+{
+    let path = get_path(NATIVE_FOLDER, &name, "json");
+    let serialized = serde_json::to_string(&data).expect("Failed to serialize data.");
+    std::fs::write(path, serialized).expect("Failed to write to file.");
+}
