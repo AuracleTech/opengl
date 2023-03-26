@@ -14,22 +14,21 @@ impl Model {
         let (gltf, buffers, _) = gltf::import(&path).expect("Failed to import gltf file");
         let mut meshes = Vec::new();
 
-        // Load buffers
-        // let mut buffer_data = Vec::new();
-        // for buffer in gltf.buffers() {
-        //     match buffer.source() {
-        //         gltf::buffer::Source::Bin => {
-        //             // if let Some(blob) = gltf.blob.as_deref() {
-        //             //     buffer_data.push(blob.into());
-        //             //     println!("Found a bin, saving");
-        //             // };
-        //         }
-        //         gltf::buffer::Source::Uri(uri) => {
-        //             let bin = load_binary(uri).expect("Failed to load binary");
-        //             buffer_data.push(bin);
-        //         }
-        //     }
-        // }
+        let mut buffer_data = Vec::new();
+        for buffer in gltf.buffers() {
+            match buffer.source() {
+                gltf::buffer::Source::Bin => {
+                    // if let Some(blob) = gltf.blob.as_deref() {
+                    //     buffer_data.push(blob.into());
+                    //     println!("Found a bin, saving");
+                    // };
+                }
+                gltf::buffer::Source::Uri(uri) => {
+                    let bin = std::fs::read(uri).expect("Failed to read buffer data");
+                    buffer_data.push(bin);
+                }
+            }
+        }
 
         let mut mesh_set = 0;
         for mesh in gltf.meshes() {
@@ -74,11 +73,10 @@ impl Model {
                     Mode::TriangleFan => gl::TRIANGLE_FAN,
                 };
 
-                let indices = match reader.read_indices().expect("Failed to read indices") {
-                    ReadIndices::U16(indices) => indices.map(|x| u32::from(x)).collect(),
-                    ReadIndices::U32(indices) => indices.collect(),
-                    ReadIndices::U8(indices) => indices.map(|x| u32::from(x)).collect(),
-                };
+                let mut indices = Vec::new();
+                if let Some(indices_raw) = reader.read_indices() {
+                    indices.append(&mut indices_raw.into_u32().collect::<Vec<u32>>());
+                }
 
                 let mut textures = Vec::new();
                 // let mut materials = Vec::new();
@@ -125,20 +123,6 @@ impl Model {
     pub fn draw(&self, program: &Program) {
         for mesh in &self.meshes {
             mesh.draw(program);
-        }
-    }
-}
-
-fn next_tex_coords(read_tex_coords: ReadTexCoords) -> Vector2<Uniaxial> {
-    match read_tex_coords {
-        ReadTexCoords::F32(mut uv) => uv.next().unwrap().into(),
-        ReadTexCoords::U8(mut uv) => {
-            let uv = uv.next().unwrap();
-            vec2(uv[0] as f32 / 255.0, uv[1] as f32 / 255.0)
-        }
-        ReadTexCoords::U16(mut uv) => {
-            let uv = uv.next().unwrap();
-            vec2(uv[0] as f32 / 65535.0, uv[1] as f32 / 65535.0)
         }
     }
 }
