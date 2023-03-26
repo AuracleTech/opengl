@@ -6,6 +6,7 @@ layout (location = 2) in vec2 a_tex_coord;
 uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
+uniform sampler2D diffuse_map;
 
 out vec3 normal;
 out vec2 tex_coord;

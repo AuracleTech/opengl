@@ -4,9 +4,9 @@
 		{
 			"type": "cargo",
 			"command": "run",
-			"args": ["--example", "square"],
+			"args": ["--example", "example"],
 			"problemMatcher": ["$rustc"],
-			"label": "Run square example",
+			"label": "Run example example",
 			"group": {
 				"kind": "build",
 				"isDefault": true
