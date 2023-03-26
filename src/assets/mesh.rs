@@ -1,6 +1,29 @@
-use crate::types::{Indice, Mesh, Normal, Position, Program, Texture, Vertex};
-use gl::types::{GLenum, GLsizei, GLsizeiptr, GLvoid};
+use crate::types::{Indice, Normal, Position, TexCoord};
+use gl::types::{GLenum, GLsizei, GLsizeiptr, GLuint, GLvoid};
+use serde::{Deserialize, Serialize};
 use std::ffi::c_void;
+
+use super::{program::Program, texture::Texture};
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct Mesh {
+    pub(crate) gl_mode: GLenum,
+
+    pub(crate) vertices: Vec<Vertex>,
+    pub(crate) indices: Vec<Indice>,
+
+    pub(crate) vao: GLuint,
+    pub(crate) vbo: GLuint,
+    pub(crate) ebo: GLuint,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+#[repr(C)]
+pub struct Vertex {
+    pub position: Position,
+    pub normal: Normal,
+    pub tex_coord: TexCoord,
+}
 
 // TODO default texture similar to garry's mod (white & black checkerboard)
 impl Mesh {

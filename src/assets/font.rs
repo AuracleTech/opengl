@@ -1,7 +1,35 @@
-use crate::types::{Font, Glyph, Image, ImageFormat, ImageSize, Texture, TextureKind};
 use freetype::Library;
 use image::{ImageBuffer, Rgba};
+use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, path::PathBuf};
+
+use super::{
+    image::{Image, ImageFormat, ImageSize},
+    texture::TextureKind,
+    Texture,
+};
+
+// TODO remove debug everywhere
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct Font {
+    pub sprite: Texture,
+    pub glyphs: HashMap<char, Glyph>,
+    pub width: u32,
+    pub height: u32,
+    pub line_height: u32,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct Glyph {
+    pub width: i32,
+    pub height: i32,
+    pub sprite_x: u32,
+    pub sprite_y: u32,
+    pub bearing_x: i32,
+    pub bearing_y: i32,
+    pub advance_x: i64,
+    pub advance_y: i64,
+}
 
 impl Font {
     pub fn from_ttf(path: PathBuf) -> Font {
@@ -97,17 +125,12 @@ impl Font {
             },
         };
 
-        let mut sprite = Texture {
-            gl_id: 0,
-            image,
-            kind: TextureKind::Diffuse,
-            gl_s_wrapping: gl::REPEAT,
-            gl_t_wrapping: gl::REPEAT,
-            gl_min_filtering: gl::LINEAR,
-            gl_mag_filtering: gl::LINEAR,
-            mipmapping: false,
-        };
-        sprite.gl_register();
+        let mut sprite = Texture::from_image(image);
+        sprite.kind = TextureKind::Diffuse;
+        sprite.gl_s_wrapping = gl::REPEAT;
+        sprite.gl_t_wrapping = gl::REPEAT;
+        sprite.gl_min_filtering = gl::LINEAR;
+        sprite.gl_mag_filtering = gl::LINEAR;
 
         Font {
             sprite,

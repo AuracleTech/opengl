@@ -1,15 +1,32 @@
 pub mod assets;
-#[allow(dead_code)]
-pub mod types; // TODO SET PRIVATE
-use glfw::Context;
-use std::env;
+mod types;
+use assets::Assets;
+// TODO SET PRIVATE
+use glfw::{Context, Glfw, Version, Window, WindowEvent};
+use inputs::Inputs;
+use std::{env, sync::mpsc::Receiver};
 mod inputs;
-pub use types::Revenant;
-use types::{Assets, GLConfig, ImageSize, Inputs};
 
 // TODO flexible window size
 const WIN_DIM_X: u32 = 1600;
 const WIN_DIM_Y: u32 = 900;
+
+pub struct Revenant {
+    pub(crate) glfw: Glfw,
+    pub(crate) window: Window,
+    pub(crate) events: Receiver<(f64, WindowEvent)>,
+    pub(crate) gl_config: RevenantGLConfig,
+    pub assets: Assets,
+    pub inputs: Inputs,
+    pub(crate) frame_time: f64,
+    pub(crate) frame_time_last: f64,
+    pub frame_time_delta: f64,
+}
+
+pub struct RevenantGLConfig {
+    pub max_vertex_attribs: i32,
+    pub gl_version: Version,
+}
 
 impl Revenant {
     pub fn new() -> Self {
@@ -58,7 +75,7 @@ impl Revenant {
             glfw,
             window,
             events,
-            gl_config: GLConfig {
+            gl_config: RevenantGLConfig {
                 max_vertex_attribs,
                 gl_version,
             },
@@ -83,21 +100,8 @@ impl Revenant {
         // Set window icon
         // TODO make this a setting & serialize icon
         let icon_asset = assets::load_foreign_image("icon", "png");
-        let mut icon_pixels: Vec<u32> = vec![];
-        for chunk in icon_asset.data.chunks_exact(4) {
-            let u32_value = u32::from_le_bytes([chunk[0], chunk[1], chunk[2], chunk[3]]);
-            icon_pixels.push(u32_value);
-        }
-        let (width, height) = match icon_asset.size {
-            ImageSize::I2D { x, y } => (x, y),
-            _ => panic!("Icon size is not 2D."),
-        };
         let mut icons = Vec::new();
-        icons.push(glfw::PixelImage {
-            width: width as u32,
-            height: height as u32,
-            pixels: icon_pixels,
-        });
+        icons.push(icon_asset.to_glfw_pixelimage());
         self.window.set_icon_from_pixels(icons);
     }
 

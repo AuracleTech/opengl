@@ -1,7 +1,3 @@
-use crate::types::{
-    Assets, Camera, DirLight, Font, Image, ImageSize, Material, Mesh, Model, PointLight, Program,
-    Shader, SpotLight, Texture,
-};
 use ::image::{DynamicImage, ImageBuffer, ImageFormat};
 use bincode::{deserialize, serialize};
 use serde::{de::DeserializeOwned, Serialize};
@@ -11,14 +7,41 @@ use std::{
     io::{Read, Write},
     path::PathBuf,
 };
-mod camera;
-mod font;
-mod image;
-mod mesh;
-mod model;
-mod program;
-mod shader;
-mod texture;
+
+pub mod camera;
+pub mod font;
+pub mod image;
+pub mod light;
+pub mod material;
+pub mod mesh;
+pub mod model;
+pub mod program;
+pub mod shader;
+pub mod texture;
+use self::camera::Camera;
+use self::font::Font;
+use self::image::{Image, ImageSize};
+use self::light::{DirLight, PointLight, SpotLight};
+use self::material::Material;
+use self::mesh::Mesh;
+use self::model::Model;
+use self::program::Program;
+use self::shader::Shader;
+use self::texture::Texture;
+
+pub struct Assets {
+    pub(crate) programs: HashMap<String, Program>,
+    pub(crate) images: HashMap<String, Image>,
+    pub(crate) textures: HashMap<String, Texture>,
+    pub(crate) materials: HashMap<String, Material>,
+    pub(crate) fonts: HashMap<String, Font>,
+    pub(crate) cameras: HashMap<String, Camera>,
+    pub(crate) pointlights: HashMap<String, PointLight>,
+    pub(crate) dirlights: HashMap<String, DirLight>,
+    pub(crate) spotlights: HashMap<String, SpotLight>,
+    pub(crate) meshes: HashMap<String, Mesh>,
+    pub(crate) models: HashMap<String, Model>,
+}
 
 impl Assets {
     pub fn new() -> Self {

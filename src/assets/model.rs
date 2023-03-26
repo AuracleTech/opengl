@@ -1,11 +1,24 @@
-use crate::types::{Image, Mesh, Model, Program, Texture, Vertex};
 use cgmath::{vec2, vec3};
 use gltf::{
     image::Source,
     mesh::Mode,
     texture::{MagFilter, MinFilter, WrappingMode},
 };
+use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
+
+use super::{
+    image::Image,
+    mesh::{Mesh, Vertex},
+    program::Program, // TODO remove Vertex and create a function inside mesh to load the mesh 🧠
+    texture::Texture,
+}; // TODO put in sub module?
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct Model {
+    pub(crate) meshes: Vec<Mesh>,
+    pub(crate) textures: Vec<Texture>,
+}
 
 impl Model {
     pub fn from_gltf(path: PathBuf) -> Self {

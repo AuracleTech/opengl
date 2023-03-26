@@ -1,6 +1,9 @@
-use crate::types::Shader;
-use gl::types::GLchar;
+use gl::types::{GLchar, GLuint};
 use std::{ffi::CString, fs::File, io::Read, path::PathBuf};
+
+pub struct Shader {
+    pub gl_id: GLuint,
+}
 
 impl Shader {
     pub fn from_foreign(path: PathBuf, extension: &str) -> Self {

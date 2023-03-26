@@ -1,8 +1,11 @@
 use cgmath::{point3, vec3, InnerSpace, Matrix4, SquareMatrix};
 use glfw::Key;
 use revenant::{
-    assets,
-    types::{Camera, Program, ProjectionKind},
+    assets::{
+        self,
+        camera::{Camera, ProjectionKind},
+        program::Program,
+    },
     Revenant,
 };
 
@@ -23,21 +26,7 @@ fn main() {
     let tree = assets::load_foreign_model("tree_cam_light", "glb");
     let cube_textured = assets::load_foreign_model("cube_textured_cam_light", "glb");
 
-    let camera_main = Camera {
-        pos: point3(1.84, 0.8, 3.1),
-        front: vec3(0.0, 0.0, -1.0),
-        up: vec3(0.0, 1.0, 0.0),
-        right: vec3(0.0, 0.0, 0.0),
-
-        update_projection: true,
-        projection_kind: ProjectionKind::Perspective {
-            aspect_ratio: 16.0 / 9.0,
-            fov_y: 45.0,
-            near: 0.1,
-            far: 100.0,
-        },
-        projection: Matrix4::identity(),
-    };
+    let camera_main = Camera::new_perspective(point3(1.84, 0.8, 3.1));
 
     let shader_light_vs = assets::load_foreign_shader("light", "vs");
     let shader_light_fs = assets::load_foreign_shader("light", "fs");

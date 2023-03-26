@@ -1,6 +1,11 @@
-use crate::types::{Program, Shader};
 use cgmath::{Matrix4, Point3, Vector3, Vector4};
-use gl::types::GLchar;
+use gl::types::{GLchar, GLuint};
+
+use super::shader::Shader; // TODO FIX everywhere it uses super it should use subcrate instead
+
+pub struct Program {
+    pub gl_id: GLuint,
+}
 
 impl Program {
     pub fn new(vertex_shader: Shader, fragment_shader: Shader) -> Self {

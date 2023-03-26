@@ -1,7 +1,12 @@
-use glfw::{Action, Key, WindowEvent};
-
-use crate::types::Inputs;
+use glfw::{Action, Key, MouseButton, WindowEvent};
 use std::{collections::HashMap, sync::mpsc::Receiver};
+
+pub struct Inputs {
+    pub(crate) keys: HashMap<Key, Action>,
+    pub(crate) mouse_buttons: HashMap<MouseButton, Action>,
+    pub mouse_pos: Option<(f64, f64)>,
+    pub mouse_scroll: Option<(f64, f64)>,
+}
 
 impl Inputs {
     pub fn new() -> Self {

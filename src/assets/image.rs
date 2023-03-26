@@ -1,6 +1,32 @@
-use crate::types::{Image, ImageFormat, ImageSize};
+use gl::types::GLsizei;
 use image::DynamicImage;
+use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
+
+// TODO remove debug everywhere
+#[non_exhaustive]
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct Image {
+    pub data: Vec<u8>,
+    pub format: ImageFormat,
+    pub size: ImageSize,
+}
+
+// TODO remove debug everywhere
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub enum ImageFormat {
+    RGBA,
+    RGB,
+    RG,
+    R,
+    Unicolor,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub enum ImageSize {
+    I2D { x: GLsizei, y: GLsizei },
+    I3D { x: GLsizei, y: GLsizei, z: GLsizei },
+}
 
 impl Image {
     pub fn from_file(path: PathBuf, extension: &str) -> Self {
@@ -88,5 +114,24 @@ impl Image {
         };
 
         Self { data, format, size }
+    }
+
+    pub fn to_glfw_pixelimage(&self) -> glfw::PixelImage {
+        let (width, height) = match self.size {
+            ImageSize::I2D { x, y } => (x, y),
+            _ => panic!("Icon size is not 2D."),
+        };
+
+        let mut icon_pixels: Vec<u32> = vec![];
+        for chunk in self.data.chunks_exact(4) {
+            let u32_value = u32::from_le_bytes([chunk[0], chunk[1], chunk[2], chunk[3]]);
+            icon_pixels.push(u32_value);
+        }
+
+        glfw::PixelImage {
+            width: width as u32,
+            height: height as u32,
+            pixels: icon_pixels,
+        }
     }
 }

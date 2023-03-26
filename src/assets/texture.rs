@@ -1,10 +1,36 @@
-use crate::types::{Image, ImageFormat, ImageSize, Texture, TextureKind};
-use gl::types::{GLint, GLvoid};
+use gl::types::{GLenum, GLint, GLuint, GLvoid};
+use serde::{Deserialize, Serialize};
+
+use super::image::{Image, ImageFormat, ImageSize}; // FIX TODO REPLACE IMAGE FORMAT BY GL_FORMAT OR SOMETHING
+
+// TODO remove debug everywhere
+#[non_exhaustive]
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct Texture {
+    gl_id: GLuint,
+    image: Image,
+    pub(crate) kind: TextureKind,
+    pub(crate) gl_s_wrapping: GLenum,
+    pub(crate) gl_t_wrapping: GLenum,
+    pub(crate) gl_min_filtering: GLenum,
+    pub(crate) gl_mag_filtering: GLenum,
+    mipmapping: bool,
+}
+
+// TODO remove debug everywhere
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub enum TextureKind {
+    Diffuse,
+    Specular,
+    Normal,
+    Height,
+    Emissive,
+    Ambient,
+}
 
 impl Texture {
     pub fn from_image(image: Image) -> Self {
-        // TODO set configurable default values
-        Texture {
+        let mut texture = Texture {
             gl_id: 0,
             image,
             kind: TextureKind::Diffuse,
@@ -13,7 +39,9 @@ impl Texture {
             gl_min_filtering: gl::LINEAR_MIPMAP_LINEAR,
             gl_mag_filtering: gl::LINEAR,
             mipmapping: true,
-        }
+        };
+        texture.gl_register();
+        texture
     }
 
     pub fn gl_register(&mut self) {
