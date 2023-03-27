@@ -79,17 +79,17 @@ impl Model {
                         MagFilter::Linear => gl::LINEAR,
                     };
                 }
-                let base_color_image = match texture_source {
+                let albedo_image = match texture_source {
                     Source::Uri { uri, .. } => Image::from_uri(uri),
                     Source::View { view, .. } => {
                         let data = &buffer_data[view.buffer().index()][view.offset()..];
                         Image::from_data(data)
                     }
                 };
-                let mut base_color = Texture::from_image(base_color_image);
-                base_color.gl_s_wrapping = wrap_s;
-                base_color.gl_t_wrapping = wrap_t;
-                material = Material::Pbr { base_color }
+                let mut albedo = Texture::from_image(albedo_image);
+                albedo.gl_s_wrapping = wrap_s;
+                albedo.gl_t_wrapping = wrap_t;
+                material = Material::Pbr { albedo }
             }
         }
 
@@ -147,17 +147,17 @@ impl Model {
 
     pub fn draw(&self, program: &Program) {
         match self.material {
-            Material::Pbr { ref base_color } => {
-                base_color.gl_bind(0);
-                program.set_uniform_int("base_color", 0);
+            Material::Pbr { ref albedo, .. } => {
+                albedo.gl_bind(0);
+                program.set_uniform_int("albedo", 0);
                 for mesh in &self.meshes {
-                    mesh.draw(program);
+                    mesh.draw();
                 }
-                base_color.gl_unbind();
+                albedo.gl_unbind();
             }
             Material::None => {
                 for mesh in &self.meshes {
-                    mesh.draw(program);
+                    mesh.draw();
                 }
             }
             Material::Phong { .. } => panic!("Phong material not implemented"),

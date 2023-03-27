@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Serialize, Deserialize, Debug)]
 pub enum Material {
     Pbr {
-        base_color: Texture,
+        albedo: Texture,
         // metallic: Texture,
         // roughness: Texture,
         // ao: Texture,

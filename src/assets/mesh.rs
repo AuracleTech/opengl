@@ -3,8 +3,6 @@ use gl::types::{GLenum, GLsizei, GLsizeiptr, GLuint, GLvoid};
 use serde::{Deserialize, Serialize};
 use std::ffi::c_void;
 
-use super::{program::Program, texture::Texture};
-
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Mesh {
     pub(crate) gl_mode: GLenum,
@@ -99,7 +97,7 @@ impl Mesh {
         }
     }
 
-    pub fn draw(&self, _program: &Program) {
+    pub fn draw(&self) {
         self.gl_bind_vao();
         self.draw_elements();
         match self.gl_mode {
