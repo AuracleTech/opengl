@@ -22,7 +22,6 @@ use self::camera::Camera;
 use self::font::Font;
 use self::image::{Image, ImageSize};
 use self::light::{DirLight, PointLight, SpotLight};
-use self::material::Material;
 use self::mesh::Mesh;
 use self::model::Model;
 use self::program::Program;
@@ -33,7 +32,6 @@ pub struct Assets {
     pub(crate) programs: HashMap<String, Program>,
     pub(crate) images: HashMap<String, Image>,
     pub(crate) textures: HashMap<String, Texture>,
-    pub(crate) materials: HashMap<String, Material>,
     pub(crate) fonts: HashMap<String, Font>,
     pub(crate) cameras: HashMap<String, Camera>,
     pub(crate) pointlights: HashMap<String, PointLight>,
@@ -50,7 +48,6 @@ impl Assets {
             programs: HashMap::new(),
             images: HashMap::new(),
             textures: HashMap::new(),
-            materials: HashMap::new(),
             fonts: HashMap::new(),
             cameras: HashMap::new(),
             pointlights: HashMap::new(),
@@ -69,9 +66,6 @@ impl Assets {
     }
     pub fn add_texture(&mut self, name: &str, texture: Texture) {
         self.textures.insert(name.to_owned(), texture);
-    }
-    pub fn add_material(&mut self, name: &str, material: Material) {
-        self.materials.insert(name.to_owned(), material);
     }
     pub fn add_font(&mut self, name: &str, font: Font) {
         self.fonts.insert(name.to_owned(), font);
@@ -109,11 +103,6 @@ impl Assets {
         self.textures
             .get(name)
             .expect(&format!("Texture '{}' not found.", name))
-    }
-    pub fn get_material(&self, name: &str) -> &Material {
-        self.materials
-            .get(name)
-            .expect(&format!("Material '{}' not found.", name))
     }
     pub fn get_font(&self, name: &str) -> &Font {
         self.fonts
@@ -166,11 +155,6 @@ impl Assets {
             .get_mut(name)
             .expect(&format!("Texture '{}' not found.", name))
     }
-    pub fn get_mut_material(&mut self, name: &str) -> &mut Material {
-        self.materials
-            .get_mut(name)
-            .expect(&format!("Material '{}' not found.", name))
-    }
     pub fn get_mut_font(&mut self, name: &str) -> &mut Font {
         self.fonts
             .get_mut(name)
@@ -207,19 +191,6 @@ impl Assets {
             .expect(&format!("Model '{}' not found.", name))
     }
 
-    // FIX use for textures, materials, etc
-    // FIX make a hashmap of assets to be updated
-    fn _gl_register_assets(&mut self) {
-        for (_, texture) in self.textures.iter_mut() {
-            texture.gl_register();
-        }
-        for (_, material) in self.materials.iter_mut() {
-            material.diffuse.gl_register();
-            material.specular.gl_register();
-            material.emissive.gl_register();
-        }
-    }
-
     pub fn update_assets(&mut self) {
         // OPTIMIZE .update(); iteration to use a custom HashMap / a bitset for assets to be updated
         for (_, camera) in self.cameras.iter_mut() {
@@ -227,7 +198,6 @@ impl Assets {
                 camera.update();
             }
         }
-        // FIX iterate through update hashmap and register gl textures
     }
 }
 

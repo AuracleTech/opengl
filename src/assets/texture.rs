@@ -30,7 +30,7 @@ pub enum TextureKind {
 
 impl Texture {
     pub fn from_image(image: Image) -> Self {
-        let mut texture = Texture {
+        let mut texture = Self {
             gl_id: 0,
             image,
             kind: TextureKind::Diffuse,
@@ -118,14 +118,14 @@ impl Texture {
     }
 
     // TODO deal with max amount of texture units
-    pub fn gl_bind(&self, texture_unit: u32) {
+    pub fn gl_bind(&self, bind_position: GLuint) {
         unsafe {
-            gl::ActiveTexture(gl::TEXTURE0 + texture_unit);
             gl::BindTexture(gl::TEXTURE_2D, self.gl_id);
+            gl::ActiveTexture(gl::TEXTURE0 + bind_position);
         }
     }
 
-    pub fn gl_unbind() {
+    pub fn gl_unbind(&self) {
         unsafe {
             gl::BindTexture(gl::TEXTURE_2D, 0);
         }

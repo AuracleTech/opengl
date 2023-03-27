@@ -1,5 +1,5 @@
 use crate::types::{Direction, Position};
-use cgmath::{ortho, perspective, vec3, Deg, Matrix4, SquareMatrix};
+use cgmath::{vec3, Deg, Matrix4, SquareMatrix};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -37,13 +37,6 @@ pub enum ProjectionKind {
 
 impl Camera {
     pub fn new_perspective(pos: Position) -> Self {
-        let projection_kind = ProjectionKind::Perspective {
-            aspect_ratio: 16.0 / 9.0,
-            fov_y: 45.0,
-            near: 0.1,
-            far: 100.0,
-        };
-
         Self {
             pos,
             front: vec3(0.0, 0.0, -1.0),
@@ -51,21 +44,17 @@ impl Camera {
             right: vec3(0.0, 0.0, 0.0),
 
             update_projection: true,
-            projection_kind,
+            projection_kind: ProjectionKind::Perspective {
+                aspect_ratio: 16.0 / 9.0,
+                fov_y: 45.0,
+                near: 0.1,
+                far: 100.0,
+            },
             projection: Matrix4::identity(),
         }
     }
 
     pub fn new_orthographic(pos: Position) -> Self {
-        let projection_kind = ProjectionKind::Orthographic {
-            left: -1.0,
-            right: 1.0,
-            bottom: -1.0,
-            top: 1.0,
-            near: 0.1,
-            far: 100.0,
-        };
-
         Self {
             pos,
             front: vec3(0.0, 0.0, -1.0),
@@ -73,7 +62,14 @@ impl Camera {
             right: vec3(0.0, 0.0, 0.0),
 
             update_projection: true,
-            projection_kind,
+            projection_kind: ProjectionKind::Orthographic {
+                left: -1.0,
+                right: 1.0,
+                bottom: -1.0,
+                top: 1.0,
+                near: 0.1,
+                far: 100.0,
+            },
             projection: Matrix4::identity(),
         }
     }
@@ -86,8 +82,7 @@ impl Camera {
                 far,
                 fov_y,
             } => {
-                self.update_projection = false;
-                self.projection = perspective(Deg(fov_y), aspect_ratio, near, far);
+                self.projection = cgmath::perspective(Deg(fov_y), aspect_ratio, near, far);
             }
             ProjectionKind::Orthographic {
                 left,
@@ -97,9 +92,9 @@ impl Camera {
                 near,
                 far,
             } => {
-                self.update_projection = false;
-                self.projection = ortho(left, right, bottom, top, near, far);
+                self.projection = cgmath::ortho(left, right, bottom, top, near, far);
             }
         }
+        self.update_projection = false;
     }
 }

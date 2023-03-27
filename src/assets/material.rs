@@ -3,9 +3,25 @@ use serde::{Deserialize, Serialize};
 
 // TODO remove debug everywhere
 #[derive(Serialize, Deserialize, Debug)]
-pub struct Material {
-    pub diffuse: Texture,
-    pub specular: Texture,
-    pub specular_strength: f32,
-    pub emissive: Texture,
+pub enum Material {
+    Pbr {
+        base_color: Texture,
+        // metallic: Texture,
+        // roughness: Texture,
+        // ao: Texture,
+        // emissive: Texture,
+    },
+    Phong {
+        diffuse: Texture,
+        specular: Texture,
+        specular_strength: f32,
+        emissive: Texture,
+    },
+    None,
+}
+
+impl Default for Material {
+    fn default() -> Self {
+        Self::None
+    }
 }

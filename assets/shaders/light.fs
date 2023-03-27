@@ -3,8 +3,13 @@ out vec4 frag_color;
 
 in vec3 normal;
 in vec2 tex_coord;
+in vec3 frag_pos;
+
+uniform sampler2D base_color;
 
 void main()
 {
-    frag_color = vec4(normal, 1.0) * 0.5 + 0.5 + vec4(0.0, tex_coord, 0.0);
+    vec3 norm = normalize(normal);
+    vec3 diffuse = texture(base_color, tex_coord).rgb;
+    frag_color = vec4(diffuse, 1.0) + 0.1;
 }

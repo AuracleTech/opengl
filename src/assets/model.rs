@@ -9,6 +9,7 @@ use std::path::PathBuf;
 
 use super::{
     image::Image,
+    material::Material,
     mesh::{Mesh, Vertex},
     program::Program, // TODO remove Vertex and create a function inside mesh to load the mesh 🧠
     texture::Texture,
@@ -17,7 +18,7 @@ use super::{
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Model {
     pub(crate) meshes: Vec<Mesh>,
-    pub(crate) textures: Vec<Texture>,
+    pub(crate) material: Material,
 }
 
 impl Model {
@@ -39,9 +40,9 @@ impl Model {
             }
         }
 
-        let mut textures = Vec::new();
-        for material in gltf.materials() {
-            let pbr = material.pbr_metallic_roughness();
+        let mut material = Material::None;
+        for gltf_material in gltf.materials() {
+            let pbr = gltf_material.pbr_metallic_roughness();
             let base_color_texture = &pbr.base_color_texture();
             if let Some(texture_source) = &pbr
                 .base_color_texture()
@@ -78,17 +79,17 @@ impl Model {
                         MagFilter::Linear => gl::LINEAR,
                     };
                 }
-                let diffuse_image = match texture_source {
+                let base_color_image = match texture_source {
                     Source::Uri { uri, .. } => Image::from_uri(uri),
                     Source::View { view, .. } => {
                         let data = &buffer_data[view.buffer().index()][view.offset()..];
                         Image::from_data(data)
                     }
                 };
-                let mut texture = Texture::from_image(diffuse_image);
-                texture.gl_s_wrapping = wrap_s;
-                texture.gl_t_wrapping = wrap_t;
-                textures.push(texture);
+                let mut base_color = Texture::from_image(base_color_image);
+                base_color.gl_s_wrapping = wrap_s;
+                base_color.gl_t_wrapping = wrap_t;
+                material = Material::Pbr { base_color }
             }
         }
 
@@ -141,12 +142,25 @@ impl Model {
             }
         }
 
-        Self { meshes, textures }
+        Self { meshes, material }
     }
 
     pub fn draw(&self, program: &Program) {
-        for mesh in &self.meshes {
-            mesh.draw(program);
+        match self.material {
+            Material::Pbr { ref base_color } => {
+                base_color.gl_bind(0);
+                program.set_uniform_int("base_color", 0);
+                for mesh in &self.meshes {
+                    mesh.draw(program);
+                }
+                base_color.gl_unbind();
+            }
+            Material::None => {
+                for mesh in &self.meshes {
+                    mesh.draw(program);
+                }
+            }
+            Material::Phong { .. } => panic!("Phong material not implemented"),
         }
     }
 }

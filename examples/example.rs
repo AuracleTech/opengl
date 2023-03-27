@@ -25,6 +25,7 @@ fn main() {
     let cube = assets::load_foreign_model("cube_cam_light", "glb");
     let tree = assets::load_foreign_model("tree_cam_light", "glb");
     let cube_textured = assets::load_foreign_model("cube_textured_cam_light", "glb");
+    // let lantern = assets::load_foreign_model("lantern", "glb");
 
     let camera_main = Camera::new_perspective(point3(1.84, 0.8, 3.1));
 
@@ -35,6 +36,7 @@ fn main() {
     revenant.assets.add_model("cube", cube);
     revenant.assets.add_model("tree", tree);
     revenant.assets.add_model("cube_textured", cube_textured);
+    // revenant.assets.add_model("lantern", lantern);
     revenant.assets.add_camera("main", camera_main);
     revenant.assets.add_program("light", program_light);
 
@@ -135,6 +137,7 @@ fn render(revenant: &mut Revenant) {
     let cube = revenant.assets.get_model("cube");
     let tree = revenant.assets.get_model("tree");
     let cube_textured = revenant.assets.get_model("cube_textured");
+    // let lantern = revenant.assets.get_model("lantern");
 
     program_light.use_program();
     program_light.set_uniform_mat4("model", &Matrix4::identity());
@@ -153,6 +156,8 @@ fn render(revenant: &mut Revenant) {
     cube.draw(program_light);
     program_light.set_uniform_mat4("model", &Matrix4::from_translation(vec3(0.0, 0.0, -4.0)));
     cube_textured.draw(program_light);
+    program_light.set_uniform_mat4("model", &Matrix4::from_translation(vec3(0.0, 0.0, 8.0)));
+    // lantern.draw(program_light);
 
     revenant.end_frame();
 }

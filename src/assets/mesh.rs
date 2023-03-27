@@ -109,7 +109,6 @@ impl Mesh {
             _ => panic!("Unsupported gl_mode yet!"),
         }
         self.gl_unbind();
-        Texture::gl_unbind();
     }
 
     fn gl_bind_vao(&self) {
