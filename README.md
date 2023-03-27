@@ -29,11 +29,11 @@
 - [x] Outlining
 - [x] Loading Mesh
 - [x] Loading Model
-- [ ] Model Textures
+- [x] Model Textures
+- [ ] Depth Testing
 - [ ] Setup world environment playground
 - [ ] Client Server Architecture
 - [ ] Multiplayer
-- [ ] Depth Testing
 - [ ] Stencil Testing
 - [ ] Blending
 - [ ] Face Culling
@@ -57,7 +57,7 @@
 - [ ] Bloom
 - [ ] Deferred Shading
 - [ ] SSAO
-- [ ] PBR
+- [ ] PBR (Physically Based Rendering)
 - [ ] Equirectangular Environment Mapping
 - [ ] Irradiance Convolution
 - [ ] Prefilter Environment Map

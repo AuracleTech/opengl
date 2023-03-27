@@ -1,7 +1,7 @@
 use gl::types::{GLenum, GLint, GLuint, GLvoid};
 use serde::{Deserialize, Serialize};
 
-use super::image::{Image, ImageFormat, ImageSize}; // FIX TODO REPLACE IMAGE FORMAT BY GL_FORMAT OR SOMETHING
+use super::image::{Image, ImageSize}; // FIX TODO REPLACE IMAGE FORMAT BY GL_FORMAT OR SOMETHING
 
 // TODO remove debug everywhere
 #[non_exhaustive]
@@ -45,17 +45,18 @@ impl Texture {
     }
 
     pub fn gl_register(&mut self) {
-        let internal_format = match self.image.format {
-            ImageFormat::RGB => gl::RGB,
-            ImageFormat::RGBA => gl::RGBA,
-            ImageFormat::RG => panic!("RG format not supported yet."),
-            ImageFormat::R => panic!("R format not supported yet."),
-            ImageFormat::Unicolor => gl::RED,
+        let internal_format = match self.image.gl_format {
+            gl::RED => gl::RED,
+            gl::RG => gl::RG,
+            gl::RGB => gl::RGB,
+            gl::RGBA => gl::RGBA,
+            _ => panic!("Texture format not supported yet."),
         };
         let alignment = match internal_format {
-            gl::RGB => 1,
-            gl::RGBA => 4,
             gl::RED => 1,
+            gl::RG => 2,
+            gl::RGB => 3,
+            gl::RGBA => 4,
             _ => panic!("Texture format not supported yet."),
         };
         unsafe {

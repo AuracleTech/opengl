@@ -21,6 +21,7 @@ pub struct Revenant {
     pub(crate) frame_time: f64,
     pub(crate) frame_time_last: f64,
     pub frame_time_delta: f64,
+    pub frame_count_total: u64,
 }
 
 pub struct RevenantGLConfig {
@@ -85,6 +86,7 @@ impl Revenant {
             frame_time: 0.0,
             frame_time_last: 0.0,
             frame_time_delta: 0.0,
+            frame_count_total: 0,
         };
 
         revenant.gl_init();
@@ -155,6 +157,7 @@ impl Revenant {
 
     pub fn end_frame(&mut self) {
         self.window.swap_buffers();
+        self.frame_count_total += 1;
         self.frame_time_last = self.frame_time;
         self.frame_time = self.glfw.get_time();
         self.frame_time_delta = self.frame_time - self.frame_time_last;

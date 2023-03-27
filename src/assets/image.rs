@@ -1,4 +1,4 @@
-use gl::types::GLsizei;
+use gl::types::{GLenum, GLsizei};
 use image::DynamicImage;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
@@ -8,18 +8,8 @@ use std::path::PathBuf;
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Image {
     pub data: Vec<u8>,
-    pub format: ImageFormat,
+    pub gl_format: GLenum,
     pub size: ImageSize,
-}
-
-// TODO remove debug everywhere
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub enum ImageFormat {
-    RGBA,
-    RGB,
-    RG,
-    R,
-    Unicolor,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -35,34 +25,7 @@ impl Image {
             _ => panic!("Unsupported image extension: {}", extension),
         };
 
-        // TODO support more than 3 channels
-        const MAX_TEXTURE_SIZE: u32 = std::i32::MAX as u32;
-        if image.width() > MAX_TEXTURE_SIZE || image.height() > MAX_TEXTURE_SIZE {
-            panic!(
-                "Texture size exceeds maximum allowed size of {} pixels",
-                MAX_TEXTURE_SIZE
-            );
-        }
-
-        let size = ImageSize::I2D {
-            x: image.width() as i32,
-            y: image.height() as i32,
-        };
-
-        // TODO support more than 3 channels
-        let format = match image.color() {
-            image::ColorType::Rgb8 => ImageFormat::RGB,
-            image::ColorType::Rgba8 => ImageFormat::RGBA,
-            _ => panic!("Texture format not supported."),
-        };
-
-        let data = match image {
-            DynamicImage::ImageRgb8(texture_image) => texture_image.into_raw(),
-            DynamicImage::ImageRgba8(texture_image) => texture_image.into_raw(),
-            _ => panic!("Image format not supported"),
-        };
-
-        Self { data, format, size }
+        Self::from_dynamic_image(image)
     }
 
     // TODO ability to fail gracefully just like me :D
@@ -102,8 +65,8 @@ impl Image {
 
         // TODO support more than 3 channels
         let format = match dynamic_image.color() {
-            image::ColorType::Rgb8 => ImageFormat::RGB,
-            image::ColorType::Rgba8 => ImageFormat::RGBA,
+            image::ColorType::Rgb8 => gl::RGB,
+            image::ColorType::Rgba8 => gl::RGBA,
             _ => panic!("Texture format not supported."),
         };
 
@@ -113,7 +76,11 @@ impl Image {
             _ => panic!("Image format not supported"),
         };
 
-        Self { data, format, size }
+        Self {
+            data,
+            gl_format: format,
+            size,
+        }
     }
 
     pub fn to_glfw_pixelimage(&self) -> glfw::PixelImage {

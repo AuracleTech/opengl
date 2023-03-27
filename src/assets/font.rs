@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, path::PathBuf};
 
 use super::{
-    image::{Image, ImageFormat, ImageSize},
+    image::{Image, ImageSize},
     texture::TextureKind,
     Texture,
 };
@@ -118,7 +118,7 @@ impl Font {
 
         let image = Image {
             data: sprite_sheet.into_raw(),
-            format: ImageFormat::RGBA,
+            gl_format: gl::RGBA,
             size: ImageSize::I2D {
                 x: sprite_sheet_width as i32,
                 y: sprite_sheet_height as i32,

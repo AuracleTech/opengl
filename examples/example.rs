@@ -29,16 +29,16 @@ fn main() {
 
     let camera_main = Camera::new_perspective(point3(1.84, 0.8, 3.1));
 
-    let shader_light_vs = assets::load_foreign_shader("light", "vs");
-    let shader_light_fs = assets::load_foreign_shader("light", "fs");
-    let program_light = Program::new(shader_light_vs, shader_light_fs);
+    let shader_pbr_vs = assets::load_foreign_shader("pbr", "vs");
+    let shader_pbr_fs = assets::load_foreign_shader("pbr", "fs");
+    let program_pbr = Program::new(shader_pbr_vs, shader_pbr_fs);
 
     revenant.assets.add_model("cube", cube);
     revenant.assets.add_model("tree", tree);
     revenant.assets.add_model("cube_textured", cube_textured);
     // revenant.assets.add_model("lantern", lantern);
     revenant.assets.add_camera("main", camera_main);
-    revenant.assets.add_program("light", program_light);
+    revenant.assets.add_program("pbr", program_pbr);
 
     while !revenant.should_close() {
         input(&mut revenant, &mut camera_controller);
@@ -133,15 +133,15 @@ fn render(revenant: &mut Revenant) {
     revenant.start_frame();
 
     let camera_main = revenant.assets.get_camera("main");
-    let program_light = revenant.assets.get_program("light");
+    let program_pbr = revenant.assets.get_program("pbr");
     let cube = revenant.assets.get_model("cube");
     let tree = revenant.assets.get_model("tree");
     let cube_textured = revenant.assets.get_model("cube_textured");
     // let lantern = revenant.assets.get_model("lantern");
 
-    program_light.use_program();
-    program_light.set_uniform_mat4("model", &Matrix4::identity());
-    program_light.set_uniform_mat4(
+    program_pbr.use_program();
+    program_pbr.set_uniform_mat4("model", &Matrix4::identity());
+    program_pbr.set_uniform_mat4(
         "view",
         &Matrix4::look_at_rh(
             camera_main.pos,
@@ -149,14 +149,14 @@ fn render(revenant: &mut Revenant) {
             camera_main.up,
         ),
     );
-    program_light.set_uniform_mat4("projection", &camera_main.projection);
+    program_pbr.set_uniform_mat4("projection", &camera_main.projection);
 
-    tree.draw(program_light);
-    program_light.set_uniform_mat4("model", &Matrix4::from_translation(vec3(0.0, 0.0, 4.0)));
-    cube.draw(program_light);
-    program_light.set_uniform_mat4("model", &Matrix4::from_translation(vec3(0.0, 0.0, -4.0)));
-    cube_textured.draw(program_light);
-    program_light.set_uniform_mat4("model", &Matrix4::from_translation(vec3(0.0, 0.0, 8.0)));
+    tree.draw(program_pbr);
+    program_pbr.set_uniform_mat4("model", &Matrix4::from_translation(vec3(0.0, 0.0, 4.0)));
+    cube.draw(program_pbr);
+    program_pbr.set_uniform_mat4("model", &Matrix4::from_translation(vec3(0.0, 0.0, -4.0)));
+    cube_textured.draw(program_pbr);
+    program_pbr.set_uniform_mat4("model", &Matrix4::from_translation(vec3(0.0, 0.0, 8.0)));
     // lantern.draw(program_light);
 
     revenant.end_frame();
