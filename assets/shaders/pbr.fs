@@ -15,9 +15,10 @@ float LinearizeDepth(float depth)
     return (2.0 * near * far) / (far + near - depth_normalized * (far - near));	
 }
 
-float random_number_0_1(vec2 uv)
+// TODO move dither in post process
+float dither(vec2 uv)
 {
-    return fract(sin(dot(uv.xy, vec2(12.9898, 78.233))) * 43758.5453);
+    return fract(sin(dot(uv.xy, vec2(12.9898, 78.233))) * 43758.5453) / 256.0 - 0.001953125;
 }
 
 void main()
@@ -31,9 +32,7 @@ void main()
     float depth = LinearizeDepth(gl_FragCoord.z) / far; // divide by far for demonstration
     result += vec4(vec3(depth), 1.0);
 
-    // result = result * 0.00001;
-
-    result += vec4(vec3(random_number_0_1(tex_coord) / 256), 1.0);
+    result += vec4(vec3(dither(tex_coord)), 1.0);
 
     frag_color = result;
 }
