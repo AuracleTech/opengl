@@ -48,12 +48,6 @@ impl Program {
             );
         }
 
-        // cleanup
-        unsafe {
-            gl::DeleteShader(vertex_shader.gl_id);
-            gl::DeleteShader(fragment_shader.gl_id);
-        }
-
         Self {
             gl_id: shader_program,
         }
