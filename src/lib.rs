@@ -1,9 +1,8 @@
 pub mod assets;
-mod traits;
 mod types;
 use assets::Assets;
 use gl::types::{GLenum, GLuint};
-// TODO SET PRIVATE
+// TODO SET ASSETS PRIVATE?
 use glfw::{Context, Glfw, Version, Window, WindowEvent};
 use inputs::Inputs;
 use std::{
@@ -11,6 +10,8 @@ use std::{
     ffi::{c_void, CStr},
     sync::mpsc::Receiver,
 };
+#[allow(dead_code)]
+mod debug;
 mod inputs;
 
 // TODO flexible window size
