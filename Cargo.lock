@@ -678,6 +678,7 @@ dependencies = [
  "optick",
  "serde",
  "serde_json",
+ "terminal_color_builder",
  "url",
 ]
 
@@ -761,6 +762,12 @@ dependencies = [
  "quote",
  "unicode-ident",
 ]
+
+[[package]]
+name = "terminal_color_builder"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "51bc10d4f2e7a2580c9fbeb550ef748c81430cfaffb046f047204bb5a75dbff0"
 
 [[package]]
 name = "threadpool"
