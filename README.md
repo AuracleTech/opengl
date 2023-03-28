@@ -30,7 +30,7 @@
 - [x] Loading Mesh
 - [x] Loading Model
 - [x] Model Textures
-- [ ] Depth Testing
+- [x] Depth Testing
 - [ ] Setup world environment playground
 - [ ] Client Server Architecture
 - [ ] Multiplayer
