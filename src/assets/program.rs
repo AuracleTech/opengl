@@ -8,49 +8,26 @@ pub struct Program {
 }
 
 impl Program {
-    pub fn new(vertex_shader: Shader, fragment_shader: Shader) -> Self {
-        // shader program
-        let shader_program = unsafe {
-            let program = gl::CreateProgram();
-            gl::AttachShader(program, vertex_shader.gl_id);
-            gl::AttachShader(program, fragment_shader.gl_id);
-            gl::LinkProgram(program);
-            program
-        };
+    pub fn new(shaders: Vec<Shader>) -> Self {
+        let gl_id = unsafe { gl::CreateProgram() };
 
-        if shader_program <= 0 {
-            panic!("Failed to create shader program");
+        for shader in shaders {
+            // TODO verifications (shader already attached, shader not compiled, etc.)
+            unsafe {
+                gl::AttachShader(gl_id, shader.gl_id);
+            }
         }
-
-        // shader program link verification
-        let mut success = 0;
         unsafe {
-            gl::GetProgramiv(shader_program, gl::LINK_STATUS, &mut success);
-        }
-        if success == 0 {
-            let mut log_length = 0;
-            unsafe {
-                gl::GetProgramiv(shader_program, gl::INFO_LOG_LENGTH, &mut log_length);
-            }
-            let mut log = Vec::with_capacity(log_length as usize);
-            unsafe {
-                gl::GetProgramInfoLog(
-                    shader_program,
-                    log_length,
-                    std::ptr::null_mut(),
-                    log.as_mut_ptr() as *mut GLchar,
-                );
-                log.set_len(log_length as usize);
-            }
-            panic!(
-                "Failed to link shader program: {}",
-                String::from_utf8(log).expect("Shader program log is not valid UTF-8.")
-            );
+            gl::LinkProgram(gl_id);
         }
 
-        Self {
-            gl_id: shader_program,
+        if gl_id <= 0 {
+            panic!("Failed to link shader program");
         }
+
+        verify_link(gl_id);
+
+        Self { gl_id }
     }
 
     pub fn use_program(&self) {
@@ -159,6 +136,33 @@ fn get_uniform_location(program_id: u32, name: &str) -> i32 {
     match unsafe { gl::GetUniformLocation(program_id, formatted_name.as_ptr()) } {
         -1 => panic!("Failed to find uniform location: {}", name),
         location => location,
+    }
+}
+
+fn verify_link(gl_id: GLuint) {
+    let mut success = 0;
+    unsafe {
+        gl::GetProgramiv(gl_id, gl::LINK_STATUS, &mut success);
+    }
+    if success == 0 {
+        let mut log_length = 0;
+        unsafe {
+            gl::GetProgramiv(gl_id, gl::INFO_LOG_LENGTH, &mut log_length);
+        }
+        let mut log = Vec::with_capacity(log_length as usize);
+        unsafe {
+            gl::GetProgramInfoLog(
+                gl_id,
+                log_length,
+                std::ptr::null_mut(),
+                log.as_mut_ptr() as *mut GLchar,
+            );
+            log.set_len(log_length as usize);
+        }
+        panic!(
+            "Failed to link shader program: {}",
+            String::from_utf8(log).expect("Shader program log is not valid UTF-8.")
+        );
     }
 }
 

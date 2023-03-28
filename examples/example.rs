@@ -3,7 +3,7 @@ use glfw::Key;
 use revenant::{
     assets::{
         self,
-        camera::{Camera, ProjectionKind},
+        camera::{Camera, CameraProjectionKind},
         program::Program,
     },
     Revenant,
@@ -31,7 +31,11 @@ fn main() {
 
     let shader_pbr_vs = assets::load_foreign_shader("pbr", "vs");
     let shader_pbr_fs = assets::load_foreign_shader("pbr", "fs");
-    let program_pbr = Program::new(shader_pbr_vs, shader_pbr_fs);
+    let program_pbr = Program::new(vec![shader_pbr_vs, shader_pbr_fs]);
+
+    let shader_outliner_vs = assets::load_foreign_shader("outliner", "vs");
+    let shader_outliner_fs = assets::load_foreign_shader("outliner", "fs");
+    let program_outliner = Program::new(vec![shader_outliner_vs, shader_outliner_fs]);
 
     revenant.assets.add_model("cube", cube);
     revenant.assets.add_model("tree", tree);
@@ -39,6 +43,7 @@ fn main() {
     // revenant.assets.add_model("lantern", lantern);
     revenant.assets.add_camera("main", camera_main);
     revenant.assets.add_program("pbr", program_pbr);
+    revenant.assets.add_program("outliner", program_outliner);
 
     while !revenant.should_close() {
         input(&mut revenant, &mut camera_controller);
@@ -52,7 +57,7 @@ fn input(revenant: &mut Revenant, camera_controller: &mut CameraController) {
 
     if let Some((_, scroll_y)) = revenant.inputs.mouse_scroll {
         match camera_main.projection_kind {
-            ProjectionKind::Perspective {
+            CameraProjectionKind::Perspective {
                 aspect_ratio,
                 far,
                 fov_y,
@@ -60,7 +65,7 @@ fn input(revenant: &mut Revenant, camera_controller: &mut CameraController) {
             } => {
                 let mut fov_y = fov_y - scroll_y as f32;
                 fov_y = fov_y.clamp(camera_controller.min_fov_y, camera_controller.max_fov_y);
-                camera_main.projection_kind = ProjectionKind::Perspective {
+                camera_main.projection_kind = CameraProjectionKind::Perspective {
                     aspect_ratio,
                     fov_y,
                     near,
@@ -134,6 +139,7 @@ fn render(revenant: &mut Revenant) {
 
     let camera_main = revenant.assets.get_camera("main");
     let program_pbr = revenant.assets.get_program("pbr");
+    let program_outliner = revenant.assets.get_program("outliner");
     let cube = revenant.assets.get_model("cube");
     let tree = revenant.assets.get_model("tree");
     let cube_textured = revenant.assets.get_model("cube_textured");
@@ -151,6 +157,11 @@ fn render(revenant: &mut Revenant) {
     );
     program_pbr.set_uniform_mat4("projection", &camera_main.projection);
 
+    // unsafe {
+    //     gl::StencilOp(gl::KEEP, gl::KEEP, gl::REPLACE);
+    //     gl::StencilFunc(gl::ALWAYS, 1, 0xFF); // all fragments should pass the stencil test
+    //     gl::StencilMask(0xFF); // enable writing to the stencil buffer
+    // }
     tree.draw(program_pbr);
     program_pbr.set_uniform_mat4("model", &Matrix4::from_translation(vec3(0.0, 0.0, 4.0)));
     cube.draw(program_pbr);
@@ -158,6 +169,34 @@ fn render(revenant: &mut Revenant) {
     cube_textured.draw(program_pbr);
     program_pbr.set_uniform_mat4("model", &Matrix4::from_translation(vec3(0.0, 0.0, 8.0)));
     // lantern.draw(program_light);
+
+    // unsafe {
+    //     gl::StencilFunc(gl::NOTEQUAL, 1, 0xFF);
+    //     gl::StencilMask(0x00); // disable writing to the stencil buffer
+    //     gl::Disable(gl::DEPTH_TEST);
+    // }
+    // program_outliner.use_program();
+    // program_outliner.set_uniform_mat4("model", &Matrix4::identity());
+    // program_outliner.set_uniform_mat4(
+    //     "view",
+    //     &Matrix4::look_at_rh(
+    //         camera_main.pos,
+    //         camera_main.pos + camera_main.front,
+    //         camera_main.up,
+    //     ),
+    // );
+    // program_outliner.set_uniform_mat4("projection", &camera_main.projection);
+    // tree.draw(program_outliner);
+    // program_outliner.set_uniform_mat4("model", &Matrix4::from_translation(vec3(0.0, 0.0, 4.0)));
+    // cube.draw(program_outliner);
+    // program_outliner.set_uniform_mat4("model", &Matrix4::from_translation(vec3(0.0, 0.0, -4.0)));
+    // cube_textured.draw(program_outliner);
+    // program_outliner.set_uniform_mat4("model", &Matrix4::from_translation(vec3(0.0, 0.0, 8.0)));
+    // // lantern.draw(program_outliner);
+    // unsafe {
+    //     gl::StencilMask(0xFF);
+    //     gl::Enable(gl::DEPTH_TEST);
+    // }
 
     revenant.end_frame();
 }

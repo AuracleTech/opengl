@@ -17,8 +17,8 @@ use super::{
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Model {
-    pub(crate) meshes: Vec<Mesh>,
-    pub(crate) material: Material,
+    meshes: Vec<Mesh>,
+    material: Material,
 }
 
 impl Model {
@@ -86,7 +86,7 @@ impl Model {
                         Image::from_data(data)
                     }
                 };
-                let mut albedo = Texture::from_image(albedo_image);
+                let mut albedo = Texture::new(albedo_image);
                 albedo.gl_s_wrapping = wrap_s;
                 albedo.gl_t_wrapping = wrap_t;
                 material = Material::Pbr { albedo }
@@ -147,13 +147,15 @@ impl Model {
 
     pub fn draw(&self, program: &Program) {
         match self.material {
+            // TODO make a Vec of Mesh in a hashmap with the material as key
+            // that way we can draw all the meshes with the same material at once
             Material::Pbr { ref albedo, .. } => {
                 albedo.gl_bind(0);
                 program.set_uniform_int("albedo", 0);
                 for mesh in &self.meshes {
                     mesh.draw();
                 }
-                albedo.gl_unbind();
+                Texture::gl_unbind();
             }
             Material::None => {
                 for mesh in &self.meshes {

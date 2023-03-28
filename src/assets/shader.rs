@@ -57,12 +57,12 @@ impl Shader {
         }
         let why = String::from_utf8(log).expect("Failed to convert log to String.");
         panic!(
-            "Failed to compile '{}' shader: {}",
+            "Failed to compile shader type {}: {}",
             match shader_type {
                 gl::VERTEX_SHADER => "Vertex",
                 gl::FRAGMENT_SHADER => "Fragment",
                 gl::GEOMETRY_SHADER => "Geometry",
-                _ => "Other",
+                _ => "Unknown",
             },
             why
         );

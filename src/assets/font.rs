@@ -125,7 +125,7 @@ impl Font {
             },
         };
 
-        let mut sprite = Texture::from_image(image);
+        let mut sprite = Texture::new(image);
         sprite.kind = TextureKind::Diffuse;
         sprite.gl_s_wrapping = gl::REPEAT;
         sprite.gl_t_wrapping = gl::REPEAT;

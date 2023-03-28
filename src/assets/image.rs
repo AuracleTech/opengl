@@ -64,7 +64,7 @@ impl Image {
         };
 
         // TODO support more than 3 channels
-        let format = match dynamic_image.color() {
+        let gl_format = match dynamic_image.color() {
             image::ColorType::Rgb8 => gl::RGB,
             image::ColorType::Rgba8 => gl::RGBA,
             _ => panic!("Texture format not supported."),
@@ -78,7 +78,7 @@ impl Image {
 
         Self {
             data,
-            gl_format: format,
+            gl_format,
             size,
         }
     }

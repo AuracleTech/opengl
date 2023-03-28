@@ -11,14 +11,13 @@ pub struct Camera {
 
     // TODO make a list of assets to update or something like that to avoid adding a bool to each asset
     pub update_projection: bool,
-    pub projection_kind: ProjectionKind,
+    pub projection_kind: CameraProjectionKind,
     pub projection: Matrix4<f32>,
 }
 
 // TODO remove debug
 #[derive(Serialize, Deserialize, Debug)]
-// FIX QUICK rename to CameraProjection
-pub enum ProjectionKind {
+pub enum CameraProjectionKind {
     Perspective {
         aspect_ratio: f32,
         near: f32,
@@ -44,7 +43,7 @@ impl Camera {
             right: vec3(0.0, 0.0, 0.0),
 
             update_projection: true,
-            projection_kind: ProjectionKind::Perspective {
+            projection_kind: CameraProjectionKind::Perspective {
                 aspect_ratio: 16.0 / 9.0,
                 fov_y: 45.0,
                 near: 0.1,
@@ -62,7 +61,7 @@ impl Camera {
             right: vec3(0.0, 0.0, 0.0),
 
             update_projection: true,
-            projection_kind: ProjectionKind::Orthographic {
+            projection_kind: CameraProjectionKind::Orthographic {
                 left: -1.0,
                 right: 1.0,
                 bottom: -1.0,
@@ -76,7 +75,7 @@ impl Camera {
 
     pub fn update(&mut self) {
         match self.projection_kind {
-            ProjectionKind::Perspective {
+            CameraProjectionKind::Perspective {
                 aspect_ratio,
                 near,
                 far,
@@ -84,7 +83,7 @@ impl Camera {
             } => {
                 self.projection = cgmath::perspective(Deg(fov_y), aspect_ratio, near, far);
             }
-            ProjectionKind::Orthographic {
+            CameraProjectionKind::Orthographic {
                 left,
                 right,
                 bottom,

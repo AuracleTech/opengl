@@ -1,10 +1,16 @@
 pub mod assets;
+mod traits;
 mod types;
 use assets::Assets;
+use gl::types::{GLenum, GLuint};
 // TODO SET PRIVATE
 use glfw::{Context, Glfw, Version, Window, WindowEvent};
 use inputs::Inputs;
-use std::{env, sync::mpsc::Receiver};
+use std::{
+    env,
+    ffi::{c_void, CStr},
+    sync::mpsc::Receiver,
+};
 mod inputs;
 
 // TODO flexible window size
@@ -22,11 +28,55 @@ pub struct Revenant {
     pub(crate) frame_time_last: f64,
     pub frame_time_delta: f64,
     pub frame_count_total: u64,
+    pub debug: bool,
 }
 
 pub struct RevenantGLConfig {
     pub max_vertex_attribs: i32,
     pub gl_version: Version,
+}
+
+extern "system" fn debug_callback(
+    source: GLenum,
+    gltype: GLenum,
+    id: GLuint,
+    severity: GLenum,
+    _length: i32,
+    message: *const i8,
+    _user_param: *mut c_void,
+) {
+    let source_str = match source {
+        gl::DEBUG_SOURCE_API => "API",
+        gl::DEBUG_SOURCE_WINDOW_SYSTEM => "Window System",
+        gl::DEBUG_SOURCE_SHADER_COMPILER => "Shader Compiler",
+        gl::DEBUG_SOURCE_THIRD_PARTY => "Third Party",
+        gl::DEBUG_SOURCE_APPLICATION => "Application",
+        _ => "Other",
+    };
+    let type_str = match gltype {
+        gl::DEBUG_TYPE_ERROR => "Error",
+        gl::DEBUG_TYPE_DEPRECATED_BEHAVIOR => "Deprecated Behavior",
+        gl::DEBUG_TYPE_UNDEFINED_BEHAVIOR => "Undefined Behavior",
+        gl::DEBUG_TYPE_PORTABILITY => "Portability",
+        gl::DEBUG_TYPE_PERFORMANCE => "Performance",
+        gl::DEBUG_TYPE_MARKER => "Marker",
+        gl::DEBUG_TYPE_PUSH_GROUP => "Push Group",
+        gl::DEBUG_TYPE_POP_GROUP => "Pop Group",
+        _ => "Other",
+    };
+    let severity_str = match severity {
+        gl::DEBUG_SEVERITY_HIGH => "High",
+        gl::DEBUG_SEVERITY_MEDIUM => "Medium",
+        gl::DEBUG_SEVERITY_LOW => "Low",
+        _ => "Notification",
+    };
+    unsafe {
+        let message_str = CStr::from_ptr(message).to_str().unwrap();
+        println!(
+            "OpenGL Debug: [{}] [{}] [{}] ({}) - {}",
+            source_str, type_str, id, severity_str, message_str
+        );
+    }
 }
 
 impl Revenant {
@@ -72,6 +122,9 @@ impl Revenant {
 
         let gl_version = window.get_context_version();
 
+        // TODO make this a setting
+        let debug = false;
+
         let mut revenant = Self {
             glfw,
             window,
@@ -87,6 +140,7 @@ impl Revenant {
             frame_time_last: 0.0,
             frame_time_delta: 0.0,
             frame_count_total: 0,
+            debug,
         };
 
         revenant.gl_init();
@@ -125,15 +179,29 @@ impl Revenant {
         unsafe {
             gl::ClearColor(0.0, 0.0, 0.0, 1.0);
             gl::Enable(gl::DEPTH_TEST);
+            // gl::Enable(gl::STENCIL_TEST);
             gl::Enable(gl::BLEND);
             gl::BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
-
-            // TODO verify this AI mess
-            // gl::Enable(gl::DEPTH_TEST);
-            // gl::DepthFunc(gl::LESS);
-            // gl::Enable(gl::CULL_FACE);
-            // gl::CullFace(gl::BACK);
-            // gl::FrontFace(gl::CCW);
+        }
+        if self.debug {
+            unsafe {
+                gl::Enable(gl::DEBUG_OUTPUT);
+                gl::DebugMessageCallback(
+                    Some(
+                        debug_callback
+                            as extern "system" fn(
+                                GLenum,
+                                GLenum,
+                                GLuint,
+                                GLenum,
+                                i32,
+                                *const i8,
+                                *mut c_void,
+                            ),
+                    ),
+                    std::ptr::null(),
+                );
+            }
         }
     }
 
@@ -152,7 +220,7 @@ impl Revenant {
     pub fn start_frame(&mut self) {
         // TODO make this configurable
         unsafe {
-            gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
+            gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT | gl::STENCIL_BUFFER_BIT);
         }
     }
 

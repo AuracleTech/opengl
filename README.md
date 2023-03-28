@@ -31,10 +31,10 @@
 - [x] Loading Model
 - [x] Model Textures
 - [x] Depth Testing
+- [ ] Stencil Testing
 - [ ] Setup world environment playground
 - [ ] Client Server Architecture
 - [ ] Multiplayer
-- [ ] Stencil Testing
 - [ ] Blending
 - [ ] Face Culling
 - [ ] Hotkey Register
