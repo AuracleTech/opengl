@@ -6,10 +6,6 @@ use serde::{Deserialize, Serialize};
 pub enum MaterialKind {
     Pbr {
         albedo: Texture,
-        // metallic: Texture,
-        // roughness: Texture,
-        // ao: Texture,
-        // emissive: Texture,
     },
     Phong {
         diffuse: Texture,
