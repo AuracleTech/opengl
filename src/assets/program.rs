@@ -9,6 +9,7 @@ pub struct Program {
     pub gl_id: GLuint,
 }
 
+// TODO Verify on creation the inputs (vertex attributes, uniforms, etc.) and list them for the material linking creation
 impl Program {
     pub fn new(shaders: Vec<&Shader>) -> Self {
         let gl_id = unsafe { gl::CreateProgram() };
