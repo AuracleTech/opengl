@@ -1,7 +1,6 @@
+use super::image::{Image, ImageSize};
 use gl::types::{GLenum, GLint, GLuint, GLvoid};
-use serde::{Deserialize, Serialize};
-
-use super::image::{Image, ImageSize}; // FIX TODO REPLACE IMAGE FORMAT BY GL_FORMAT OR SOMETHING
+use serde::{Deserialize, Serialize}; // FIX TODO REPLACE IMAGE FORMAT BY GL_FORMAT OR SOMETHING
 
 // TODO remove debug everywhere
 #[non_exhaustive]
@@ -31,16 +30,37 @@ pub enum TextureKind {
 impl Texture {
     // TODO configurable tex options
     pub fn new(image: Image) -> Self {
-        let mipmapping = true;
-        let kind = TextureKind::Diffuse;
-        let gl_s_wrapping = gl::REPEAT;
-        let gl_t_wrapping = gl::REPEAT;
-        let gl_min_filtering = gl::LINEAR_MIPMAP_LINEAR;
-        let gl_mag_filtering = gl::LINEAR;
-        // TODO 3D texture
-        let target = gl::TEXTURE_2D;
+        let mut texture = Self::default();
+        texture.image = image;
+        texture.gl_register();
+        texture
+    }
 
-        let alignment = match image.gl_format {
+    pub fn gl_unbind(&self) {
+        unsafe {
+            // TODO add texture type (2D, 3D ... ) in Texture struct
+            // TODO add texture unit in Texture struct
+            // TODO move function inside Texture struct
+            gl::BindTexture(self.image.gl_target, 0);
+        }
+    }
+
+    // TODO deal with max amount of texture units
+    pub fn gl_bind(&self, bind_position: GLuint) {
+        unsafe {
+            gl::BindTexture(self.image.gl_target, self.gl_id);
+            gl::ActiveTexture(gl::TEXTURE0 + bind_position);
+        }
+    }
+
+    pub fn gl_set_param_i(&self, param: u32, value: i32) {
+        unsafe {
+            gl::TexParameteri(self.image.gl_target, param, value);
+        }
+    }
+
+    pub fn gl_register(&mut self) {
+        let alignment = match self.image.gl_format {
             gl::RGB => 1,
             gl::RGBA => 4,
             _ => panic!("Texture format not supported yet."),
@@ -48,26 +68,24 @@ impl Texture {
         unsafe {
             gl::PixelStorei(gl::UNPACK_ALIGNMENT, alignment);
         }
-
-        let mut gl_id = 0;
         unsafe {
-            gl::GenTextures(1, &mut gl_id);
-            gl::BindTexture(target, gl_id);
+            gl::GenTextures(1, &mut self.gl_id);
+            gl::BindTexture(self.image.gl_target, self.gl_id);
         }
-        match image.size {
+        match self.image.size {
             ImageSize::I2D { x, y } => {
                 unsafe {
                     // texture data
                     gl::TexImage2D(
-                        target,
+                        self.image.gl_target,
                         0,
-                        image.gl_format as GLint,
+                        self.image.gl_format as GLint,
                         x,
                         y,
                         0,
-                        image.gl_format,
+                        self.image.gl_format,
                         gl::UNSIGNED_BYTE,
-                        image.data.as_ptr() as *const GLvoid,
+                        self.image.data.as_ptr() as *const GLvoid,
                     );
                 }
             }
@@ -76,54 +94,50 @@ impl Texture {
         }
         unsafe {
             // wrapping
-            gl::TexParameteri(target, gl::TEXTURE_WRAP_S, gl_s_wrapping as GLint);
-            gl::TexParameteri(target, gl::TEXTURE_WRAP_T, gl_t_wrapping as GLint);
+            gl::TexParameteri(
+                self.image.gl_target,
+                gl::TEXTURE_WRAP_S,
+                self.gl_s_wrapping as GLint,
+            );
+            gl::TexParameteri(
+                self.image.gl_target,
+                gl::TEXTURE_WRAP_T,
+                self.gl_t_wrapping as GLint,
+            );
             // filtering
-            gl::TexParameteri(target, gl::TEXTURE_MIN_FILTER, gl_min_filtering as GLint);
-            gl::TexParameteri(target, gl::TEXTURE_MAG_FILTER, gl_mag_filtering as GLint);
+            gl::TexParameteri(
+                self.image.gl_target,
+                gl::TEXTURE_MIN_FILTER,
+                self.gl_min_filtering as GLint,
+            );
+            gl::TexParameteri(
+                self.image.gl_target,
+                gl::TEXTURE_MAG_FILTER,
+                self.gl_mag_filtering as GLint,
+            );
         }
         // mipmapping
-        if mipmapping {
+        if self.mipmapping {
             unsafe {
-                gl::GenerateMipmap(target);
+                gl::GenerateMipmap(self.image.gl_target);
             }
         }
 
-        Texture::gl_unbind();
+        self.gl_unbind();
+    }
+}
 
+impl Default for Texture {
+    fn default() -> Self {
         Self {
-            gl_id,
-            image,
-            kind,
-            gl_s_wrapping,
-            gl_t_wrapping,
-            gl_min_filtering,
-            gl_mag_filtering,
-            mipmapping,
-        }
-    }
-
-    pub fn gl_unbind() {
-        unsafe {
-            // TODO add texture type (2D, 3D ... ) in Texture struct
-            // TODO add texture unit in Texture struct
-            // TODO move function inside Texture struct
-            gl::BindTexture(gl::TEXTURE_2D, 0);
-        }
-    }
-
-    // TODO deal with max amount of texture units
-    pub fn gl_bind(&self, bind_position: GLuint) {
-        unsafe {
-            gl::BindTexture(gl::TEXTURE_2D, self.gl_id);
-            gl::ActiveTexture(gl::TEXTURE0 + bind_position);
-        }
-    }
-
-    pub fn gl_set_param_i(&self, param: u32, value: i32) {
-        unsafe {
-            // TODO add texture type (2D, 3D ... ) in Texture struct
-            gl::TexParameteri(gl::TEXTURE_2D, param, value);
+            gl_id: 0,
+            image: Image::default(),
+            kind: TextureKind::Diffuse,
+            gl_s_wrapping: gl::REPEAT,
+            gl_t_wrapping: gl::REPEAT,
+            gl_min_filtering: gl::LINEAR_MIPMAP_LINEAR,
+            gl_mag_filtering: gl::LINEAR,
+            mipmapping: true,
         }
     }
 }

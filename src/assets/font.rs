@@ -3,11 +3,7 @@ use image::{ImageBuffer, Rgba};
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, path::PathBuf};
 
-use super::{
-    image::{Image, ImageSize},
-    texture::TextureKind,
-    Texture,
-};
+use super::{image::Image, texture::TextureKind, Texture};
 
 // TODO remove debug everywhere
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -84,8 +80,6 @@ impl Font {
             highest_glyph_height,
             Rgba([255, 255, 255, 0]),
         );
-        let sprite_sheet_width = sprite_sheet.width();
-        let sprite_sheet_height = sprite_sheet.height();
 
         for glyph_index in 0..total_glyphs {
             face.load_glyph(glyph_index, freetype::face::LoadFlag::RENDER)
@@ -116,14 +110,7 @@ impl Font {
             sprite_x += bitmap_width;
         }
 
-        let image = Image {
-            data: sprite_sheet.into_raw(),
-            gl_format: gl::RGBA,
-            size: ImageSize::I2D {
-                x: sprite_sheet_width as i32,
-                y: sprite_sheet_height as i32,
-            },
-        };
+        let image = Image::from_data(&sprite_sheet.into_raw());
 
         let mut sprite = Texture::new(image);
         sprite.kind = TextureKind::Diffuse;

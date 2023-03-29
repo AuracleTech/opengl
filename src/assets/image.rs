@@ -7,9 +7,10 @@ use std::path::PathBuf;
 #[non_exhaustive]
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Image {
-    pub data: Vec<u8>,
     pub gl_format: GLenum,
+    pub gl_target: GLenum,
     pub size: ImageSize,
+    pub data: Vec<u8>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -25,13 +26,13 @@ impl Image {
             _ => panic!("Unsupported image extension: {}", extension),
         };
 
-        Self::from_dynamic_image(image)
+        Self::new(image)
     }
 
     // TODO ability to fail gracefully just like me :D
     pub fn from_data(data: &[u8]) -> Self {
         let image = image::load_from_memory(data).expect("Failed to load image.");
-        Self::from_dynamic_image(image)
+        Self::new(image)
     }
 
     pub fn from_uri(uri: &str) -> Image {
@@ -45,10 +46,12 @@ impl Image {
             .expect("Failed to convert image URI to file path.");
         let image_result = image::open(path).expect("Failed to load image.");
 
-        Self::from_dynamic_image(image_result)
+        Self::new(image_result)
     }
 
-    pub fn from_dynamic_image(dynamic_image: DynamicImage) -> Self {
+    pub fn new(dynamic_image: DynamicImage) -> Self {
+        let mut image = Self::default();
+
         // TODO support more than 3 channels
         const MAX_TEXTURE_SIZE: u32 = std::i32::MAX as u32;
         if dynamic_image.width() > MAX_TEXTURE_SIZE || dynamic_image.height() > MAX_TEXTURE_SIZE {
@@ -58,29 +61,25 @@ impl Image {
             );
         }
 
-        let size = ImageSize::I2D {
-            x: dynamic_image.width() as i32,
-            y: dynamic_image.height() as i32,
-        };
-
         // TODO support more than 3 channels
-        let gl_format = match dynamic_image.color() {
+        image.gl_format = match dynamic_image.color() {
             image::ColorType::Rgb8 => gl::RGB,
             image::ColorType::Rgba8 => gl::RGBA,
             _ => panic!("Texture format not supported."),
         };
 
-        let data = match dynamic_image {
+        image.size = ImageSize::I2D {
+            x: dynamic_image.width() as i32,
+            y: dynamic_image.height() as i32,
+        };
+
+        image.data = match dynamic_image {
             DynamicImage::ImageRgb8(texture_image) => texture_image.into_raw(),
             DynamicImage::ImageRgba8(texture_image) => texture_image.into_raw(),
             _ => panic!("Image format not supported"),
         };
 
-        Self {
-            data,
-            gl_format,
-            size,
-        }
+        image
     }
 
     pub fn to_glfw_pixelimage(&self) -> glfw::PixelImage {
@@ -99,6 +98,18 @@ impl Image {
             width: width as u32,
             height: height as u32,
             pixels: icon_pixels,
+        }
+    }
+}
+
+impl Default for Image {
+    fn default() -> Self {
+        Self {
+            gl_format: gl::RGB,
+            // TODO support more than 2D textures
+            gl_target: gl::TEXTURE_2D,
+            size: ImageSize::I2D { x: 0, y: 0 },
+            data: vec![],
         }
     }
 }

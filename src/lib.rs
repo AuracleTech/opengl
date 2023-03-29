@@ -1,17 +1,15 @@
 pub mod assets;
 mod types;
-use assets::Assets;
 use gl::types::{GLenum, GLuint};
 // TODO SET ASSETS PRIVATE?
-use glfw::{Context, Glfw, Version, Window, WindowEvent};
+use glfw::{Context, Glfw, PixelImage, Version, Window, WindowEvent};
 use inputs::Inputs;
 use std::{
     env,
     ffi::{c_void, CStr},
     sync::mpsc::Receiver,
 };
-#[allow(dead_code)]
-mod debug;
+mod benchmark;
 mod inputs;
 
 // TODO flexible window size
@@ -23,13 +21,11 @@ pub struct Revenant {
     pub(crate) window: Window,
     pub(crate) events: Receiver<(f64, WindowEvent)>,
     pub(crate) gl_config: RevenantGLConfig,
-    pub assets: Assets,
     pub inputs: Inputs,
     pub(crate) frame_time: f64,
     pub(crate) frame_time_last: f64,
     pub frame_time_delta: f64,
     pub frame_count_total: u64,
-    pub debug: bool,
 }
 
 pub struct RevenantGLConfig {
@@ -123,9 +119,6 @@ impl Revenant {
 
         let gl_version = window.get_context_version();
 
-        // TODO make this a setting
-        let debug = false;
-
         let mut revenant = Self {
             glfw,
             window,
@@ -135,31 +128,22 @@ impl Revenant {
                 gl_version,
             },
             // OPTIMIZE custom allocator? Maybe not necessary
-            assets: Assets::new(),
             inputs: Inputs::new(),
             frame_time: 0.0,
             frame_time_last: 0.0,
             frame_time_delta: 0.0,
             frame_count_total: 0,
-            debug,
         };
 
         revenant.gl_init();
-
-        revenant.set_window_icon();
         // TODO make this a setting or function
         revenant.set_position_center();
         // TODO make this configurable
         revenant
     }
 
-    fn set_window_icon(&mut self) {
-        // Set window icon
-        // TODO make this a setting & serialize icon
-        let icon_asset = assets::load_foreign_image("icon", "png");
-        let mut icons = Vec::new();
-        icons.push(icon_asset.to_glfw_pixelimage());
-        self.window.set_icon_from_pixels(icons);
+    pub fn set_window_icon(&mut self, images: Vec<PixelImage>) {
+        self.window.set_icon_from_pixels(images);
     }
 
     fn set_position_center(&mut self) {
@@ -184,53 +168,50 @@ impl Revenant {
             gl::Enable(gl::BLEND);
             gl::BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
         }
-        if self.debug {
-            unsafe {
-                gl::Enable(gl::DEBUG_OUTPUT);
-                gl::DebugMessageCallback(
-                    Some(
-                        debug_callback
-                            as extern "system" fn(
-                                GLenum,
-                                GLenum,
-                                GLuint,
-                                GLenum,
-                                i32,
-                                *const i8,
-                                *mut c_void,
-                            ),
-                    ),
-                    std::ptr::null(),
-                );
-            }
+
+        #[cfg(debug_assertions)]
+        unsafe {
+            gl::Enable(gl::DEBUG_OUTPUT);
+            gl::DebugMessageCallback(
+                Some(
+                    debug_callback
+                        as extern "system" fn(
+                            GLenum,
+                            GLenum,
+                            GLuint,
+                            GLenum,
+                            i32,
+                            *const i8,
+                            *mut c_void,
+                        ),
+                ),
+                std::ptr::null(),
+            );
         }
     }
 
     pub fn should_close(&mut self) -> bool {
-        let should_close = self.window.should_close();
+        // END FRAME
+        self.window.swap_buffers();
+        self.frame_count_total += 1;
+        self.frame_time_last = self.frame_time;
+        self.frame_time = self.glfw.get_time();
+        self.frame_time_delta = self.frame_time - self.frame_time_last;
+        self.gl_clear();
         self.glfw.poll_events();
-        self.assets.update_assets();
         self.inputs.update(&self.events);
-        should_close
+        self.window.should_close()
     }
 
     pub fn set_should_close(&mut self, should_close: bool) {
         self.window.set_should_close(should_close);
     }
 
-    pub fn start_frame(&mut self) {
+    pub fn gl_clear(&mut self) {
         // TODO make this configurable
         unsafe {
             gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT | gl::STENCIL_BUFFER_BIT);
         }
-    }
-
-    pub fn end_frame(&mut self) {
-        self.window.swap_buffers();
-        self.frame_count_total += 1;
-        self.frame_time_last = self.frame_time;
-        self.frame_time = self.glfw.get_time();
-        self.frame_time_delta = self.frame_time - self.frame_time_last;
     }
 
     pub fn cycle_polygon_mode(&mut self) {

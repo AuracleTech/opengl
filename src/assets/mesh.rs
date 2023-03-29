@@ -97,16 +97,32 @@ impl Mesh {
         }
     }
 
+    #[inline]
+    fn gl_draw_elements(&self) {
+        unsafe {
+            gl::DrawElements(
+                self.gl_mode,
+                self.indices.len() as GLsizei,
+                gl::UNSIGNED_INT,
+                std::ptr::null(),
+            );
+        }
+    }
+
     pub fn draw(&self) {
         self.gl_bind_vao();
-        self.draw_elements();
-        match self.gl_mode {
-            gl::TRIANGLES => (),
-            gl::LINES => (),
-            gl::QUADS => panic!("QUADS are not supported!"), // OPTIMIZE should be deprecated in favor of gl::TRIANGLES
-            _ => panic!("Unsupported gl_mode yet!"),
+        self.gl_draw_elements();
+        #[cfg(debug_assertions)]
+        {
+            let error;
+            unsafe {
+                error = gl::GetError();
+            }
+            if error != gl::NO_ERROR {
+                println!("GL ERROR: {}", error);
+            }
         }
-        self.gl_unbind();
+        self.gl_unbind_vao();
     }
 
     fn gl_bind_vao(&self) {
@@ -115,20 +131,9 @@ impl Mesh {
         }
     }
 
-    fn gl_unbind(&self) {
+    fn gl_unbind_vao(&self) {
         unsafe {
             gl::BindVertexArray(0);
-        }
-    }
-
-    fn draw_elements(&self) {
-        let count = self.indices.len() as GLsizei;
-        unsafe {
-            gl::DrawElements(self.gl_mode, count, gl::UNSIGNED_INT, std::ptr::null());
-            let error = gl::GetError();
-            if error != gl::NO_ERROR {
-                println!("GL ERROR: {}", error);
-            }
         }
     }
 }

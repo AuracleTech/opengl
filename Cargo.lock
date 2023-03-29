@@ -677,6 +677,7 @@ dependencies = [
  "image",
  "optick",
  "serde",
+ "serde_derive",
  "serde_json",
  "terminal_color_builder",
  "url",

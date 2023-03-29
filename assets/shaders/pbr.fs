@@ -5,8 +5,12 @@ in vec3 normal;
 in vec2 tex_coord;
 in vec3 frag_pos;
 
-uniform sampler2D albedo;
+struct Material {
+    sampler2D albedo;
+};
+uniform Material material;
 
+// TODO move to ???
 float near = 0.1; // TODO use camera near
 float far  = 100.0;  // TODO use camera far
 float LinearizeDepth(float depth) 
@@ -23,10 +27,10 @@ float dither(vec2 uv)
 
 void main()
 {
-    vec4 result = vec4(0.0);
+    vec4 result = vec4(0.1, 0.01, 0.05, 1.0);
 
     vec3 norm = normalize(normal);
-    vec3 diffuse = texture(albedo, tex_coord).rgb;
+    vec3 diffuse = texture(material.albedo, tex_coord).rgb;
     result += vec4(diffuse, 1.0);
 
     float depth = LinearizeDepth(gl_FragCoord.z) / far; // divide by far for demonstration

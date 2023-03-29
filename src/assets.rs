@@ -28,8 +28,8 @@ use self::program::Program;
 use self::shader::Shader;
 use self::texture::Texture;
 
+// OPTIMIZE use hashmap of ID number instead of string
 pub struct Assets {
-    pub(crate) programs: HashMap<String, Program>,
     pub(crate) images: HashMap<String, Image>,
     pub(crate) textures: HashMap<String, Texture>,
     pub(crate) fonts: HashMap<String, Font>,
@@ -39,13 +39,13 @@ pub struct Assets {
     pub(crate) spotlights: HashMap<String, SpotLight>,
     pub(crate) meshes: HashMap<String, Mesh>,
     pub(crate) models: HashMap<String, Model>,
+    pub(crate) shaders: HashMap<String, Shader>,
+    pub(crate) programs: HashMap<String, Program>,
 }
 
 impl Assets {
     pub fn new() -> Self {
         Self {
-            // OPTIMIZE use hashmap of ID u64 instead of string
-            programs: HashMap::new(),
             images: HashMap::new(),
             textures: HashMap::new(),
             fonts: HashMap::new(),
@@ -55,45 +55,69 @@ impl Assets {
             spotlights: HashMap::new(),
             meshes: HashMap::new(),
             models: HashMap::new(),
+            shaders: HashMap::new(),
+            programs: HashMap::new(),
         }
     }
 
-    pub fn add_program(&mut self, name: &str, program: Program) {
-        self.programs.insert(name.to_owned(), program);
-    }
-    pub fn add_image(&mut self, name: &str, image: Image) {
-        self.images.insert(name.to_owned(), image);
-    }
-    pub fn add_texture(&mut self, name: &str, texture: Texture) {
-        self.textures.insert(name.to_owned(), texture);
-    }
-    pub fn add_font(&mut self, name: &str, font: Font) {
-        self.fonts.insert(name.to_owned(), font);
-    }
-    pub fn add_camera(&mut self, name: &str, camera: Camera) {
+    // SECTION NEW
+
+    pub fn new_camera(&mut self, name: &str, camera: Camera) {
         self.cameras.insert(name.to_owned(), camera);
     }
-    pub fn add_pointlight(&mut self, name: &str, pointlight: PointLight) {
-        self.pointlights.insert(name.to_owned(), pointlight);
-    }
-    pub fn add_dirlight(&mut self, name: &str, dirlight: DirLight) {
-        self.dirlights.insert(name.to_owned(), dirlight);
-    }
-    pub fn add_spotlight(&mut self, name: &str, spotlight: SpotLight) {
-        self.spotlights.insert(name.to_owned(), spotlight);
-    }
-    pub fn add_mesh(&mut self, name: &str, mesh: Mesh) {
-        self.meshes.insert(name.to_owned(), mesh);
-    }
-    pub fn add_model(&mut self, name: &str, model: Model) {
-        self.models.insert(name.to_owned(), model);
+    pub fn new_program(&mut self, name: &str, shader_names: Vec<&str>) {
+        let mut shaders = Vec::new();
+        for shader_name in shader_names {
+            shaders.push(self.get_shader(shader_name));
+        }
+        let program = Program::new(shaders);
+        self.programs.insert(name.to_owned(), program);
     }
 
-    pub fn get_program(&self, name: &str) -> &Program {
-        self.programs
-            .get(name)
-            .expect(&format!("Program '{}' not found.", name))
+    // SECTION NEW FOREIGN
+
+    pub fn new_font_foreign(&mut self, name: &str, extension: &str) -> &Font {
+        let path = get_path(FOREIGN_FOLDER, &name, extension);
+        // TODO save_image_to_png(&font.sprite.image, name).expect("Failed to save image to png");
+        let font = match extension.to_lowercase().as_str() {
+            "ttf" => Font::from_ttf(path),
+            _ => panic!("Unsupported font extension: {}", extension),
+        };
+        self.fonts.insert(name.to_owned(), font);
+        self.get_font(name)
     }
+    pub fn new_image_foreign(&mut self, name: &str, extension: &str) -> &Image {
+        let path = get_path(FOREIGN_FOLDER, &name, extension);
+        let image = match extension.to_lowercase().as_str() {
+            "jpg" | "png" => Image::from_file(path, extension),
+            _ => panic!("Unsupported image extension: {}", extension),
+        };
+        self.images.insert(name.to_owned(), image);
+        self.get_image(name)
+    }
+    pub fn new_shader_foreign(&mut self, name: &str, extension: &str) -> &Shader {
+        let path = get_path(SHADER_FOLDER, &name, extension);
+        let shader = match extension.to_lowercase().as_str() {
+            "vs" => Shader::from_foreign(path, extension),
+            "fs" => Shader::from_foreign(path, extension),
+            _ => panic!("Unknown shader extension: '{}'.", extension),
+        };
+        self.shaders
+            .insert(format!("{}_{}", name, extension), shader);
+        self.get_shader(&format!("{}_{}", name, extension))
+    }
+    pub fn new_model_foreign(&mut self, name: &str, extension: &str) -> &Model {
+        let path = get_path(FOREIGN_FOLDER, &name, extension);
+        let model = match extension.to_lowercase().as_str() {
+            "glb" | "gltf" => Model::from_gltf(path, &self.programs),
+            _ => panic!("Unsupported file extension"),
+        };
+        self.models.insert(name.to_owned(), model);
+        self.get_model(name)
+    }
+
+    // SECTION GET
+
     pub fn get_image(&self, name: &str) -> &Image {
         self.images
             .get(name)
@@ -139,12 +163,19 @@ impl Assets {
             .get(name)
             .expect(&format!("Model '{}' not found.", name))
     }
-
-    pub fn get_mut_program(&mut self, name: &str) -> &mut Program {
+    pub fn get_shader(&self, name: &str) -> &Shader {
+        self.shaders
+            .get(name)
+            .expect(&format!("Shader '{}' not found.", name))
+    }
+    pub fn get_program(&self, name: &str) -> &Program {
         self.programs
-            .get_mut(name)
+            .get(name)
             .expect(&format!("Program '{}' not found.", name))
     }
+
+    // SECTION GET MUT
+
     pub fn get_mut_image(&mut self, name: &str) -> &mut Image {
         self.images
             .get_mut(name)
@@ -191,7 +222,7 @@ impl Assets {
             .expect(&format!("Model '{}' not found.", name))
     }
 
-    pub fn update_assets(&mut self) {
+    pub fn update(&mut self) {
         // OPTIMIZE .update(); iteration to use a custom HashMap / a bitset for assets to be updated
         for (_, camera) in self.cameras.iter_mut() {
             if camera.update_projection {
@@ -258,37 +289,6 @@ where
         .expect("Failed to read file.");
     let serialized = deserialize::<T>(&encoded).expect("Failed to deserialize data.");
     serialized
-}
-
-pub fn load_foreign_font(name: &str, extension: &str) -> Font {
-    let path = get_path(FOREIGN_FOLDER, &name, extension);
-    // TODO save_image_to_png(&font.sprite.image, name).expect("Failed to save image to png");
-    match extension.to_lowercase().as_str() {
-        "ttf" => Font::from_ttf(path),
-        _ => panic!("Unsupported font extension: {}", extension),
-    }
-}
-pub fn load_foreign_image(name: &str, extension: &str) -> Image {
-    let path = get_path(FOREIGN_FOLDER, &name, extension);
-    match extension.to_lowercase().as_str() {
-        "jpg" | "png" => Image::from_file(path, extension),
-        _ => panic!("Unsupported image extension: {}", extension),
-    }
-}
-pub fn load_foreign_shader(name: &str, extension: &str) -> Shader {
-    let path = get_path(SHADER_FOLDER, &name, extension);
-    match extension.to_lowercase().as_str() {
-        "vs" => Shader::from_foreign(path, extension),
-        "fs" => Shader::from_foreign(path, extension),
-        _ => panic!("Unknown shader extension: '{}'.", extension),
-    }
-}
-pub fn load_foreign_model(name: &str, extension: &str) -> Model {
-    let path = get_path(FOREIGN_FOLDER, &name, extension);
-    match extension.to_lowercase().as_str() {
-        "glb" | "gltf" => Model::from_gltf(path),
-        _ => panic!("Unsupported file extension"),
-    }
 }
 
 pub fn save_image_to_png(image: &Image, name: &str) -> Result<(), Box<dyn std::error::Error>> {

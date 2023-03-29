@@ -1,3 +1,11 @@
+use super::{
+    image::Image,
+    material::{Material, MaterialKind},
+    // TODO remove Vertex and create a function inside mesh to load the mesh 🧠
+    mesh::{Mesh, Vertex},
+    program::Program,
+    texture::Texture,
+};
 use cgmath::{vec2, vec3};
 use gltf::{
     image::Source,
@@ -5,27 +13,18 @@ use gltf::{
     texture::{MagFilter, MinFilter, WrappingMode},
 };
 use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
-
-use super::{
-    image::Image,
-    material::Material,
-    mesh::{Mesh, Vertex},
-    program::Program, // TODO remove Vertex and create a function inside mesh to load the mesh 🧠
-    texture::Texture,
-}; // TODO put in sub module?
+use std::{collections::HashMap, path::PathBuf}; // TODO put in sub module?
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Model {
     meshes: Vec<Mesh>,
-    material: Material,
+    materials: Vec<Material>,
+    material_meshes_pairs: HashMap<usize, Vec<usize>>,
 }
 
 impl Model {
-    pub fn from_gltf(path: PathBuf) -> Self {
+    pub fn from_gltf(path: PathBuf, programs: &HashMap<String, Program>) -> Self {
         let (gltf, buffers, _) = gltf::import(&path).expect("Failed to import gltf file");
-
-        let mut meshes = Vec::new();
 
         let mut buffer_data = Vec::new();
         for buffer in gltf.buffers() {
@@ -40,7 +39,8 @@ impl Model {
             }
         }
 
-        let mut material = Material::None;
+        let mut materials = Vec::new();
+        let mut material_meshes_pairs = HashMap::new();
         for gltf_material in gltf.materials() {
             let pbr = gltf_material.pbr_metallic_roughness();
             let base_color_texture = &pbr.base_color_texture();
@@ -89,10 +89,22 @@ impl Model {
                 let mut albedo = Texture::new(albedo_image);
                 albedo.gl_s_wrapping = wrap_s;
                 albedo.gl_t_wrapping = wrap_t;
-                material = Material::Pbr { albedo }
+                // TODO add min and mag filter
+                // TODO mipmaps?
+
+                let program = programs.get("pbr").expect("Failed to find pbr program");
+
+                materials.push(Material {
+                    program: program.clone(),
+                    kind: MaterialKind::Pbr { albedo },
+                });
+
+                // TEMPORARY - ASSIGN EVERY MESH TO THE FIRST MATERIAL
+                material_meshes_pairs.insert(0, vec![0]);
             }
         }
 
+        let mut meshes = Vec::new();
         for mesh in gltf.meshes() {
             for primitive in mesh.primitives() {
                 let reader = primitive.reader(|buffer| Some(&buffers[buffer.index()]));
@@ -142,27 +154,30 @@ impl Model {
             }
         }
 
-        Self { meshes, material }
+        Self {
+            meshes,
+            materials,
+            material_meshes_pairs,
+        }
     }
 
-    pub fn draw(&self, program: &Program) {
-        match self.material {
-            // TODO make a Vec of Mesh in a hashmap with the material as key
-            // that way we can draw all the meshes with the same material at once
-            Material::Pbr { ref albedo, .. } => {
-                albedo.gl_bind(0);
-                program.set_uniform_int("albedo", 0);
-                for mesh in &self.meshes {
-                    mesh.draw();
-                }
-                Texture::gl_unbind();
-            }
-            Material::None => {
-                for mesh in &self.meshes {
-                    mesh.draw();
+    pub fn draw(&self) {
+        // TODO draw with a hardcoded material program
+        for (mat_index, mesh_indexes) in &self.material_meshes_pairs {
+            let material = &self.materials[*mat_index as usize];
+            material.activate();
+
+            for mesh_index in mesh_indexes {
+                let mesh = &self.meshes[*mesh_index as usize];
+                match mesh.gl_mode {
+                    gl::TRIANGLES => mesh.draw(),
+                    // OPTIMIZE quads should be deprecated in favor of gl::TRIANGLES
+                    gl::QUADS => panic!("QUADS are deprecated no longer supported!"),
+                    _ => panic!("Unsupported gl_mode yet!"),
                 }
             }
-            Material::Phong { .. } => panic!("Phong material not implemented"),
+
+            material.deactivate();
         }
     }
 }

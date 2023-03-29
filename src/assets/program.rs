@@ -1,14 +1,16 @@
 use cgmath::{Matrix4, Point3, Vector3, Vector4};
 use gl::types::{GLchar, GLuint};
+use serde::{Deserialize, Serialize};
 
 use super::shader::Shader; // TODO FIX everywhere it uses super it should use subcrate instead
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Program {
     pub gl_id: GLuint,
 }
 
 impl Program {
-    pub fn new(shaders: Vec<Shader>) -> Self {
+    pub fn new(shaders: Vec<&Shader>) -> Self {
         let gl_id = unsafe { gl::CreateProgram() };
 
         for shader in shaders {

@@ -2,15 +2,21 @@ use cgmath::{point3, vec3, InnerSpace, Matrix4, SquareMatrix};
 use glfw::Key;
 use revenant::{
     assets::{
-        self,
         camera::{Camera, CameraProjectionKind},
-        program::Program,
+        Assets,
     },
     Revenant,
 };
 
 fn main() {
     let mut revenant = Revenant::new();
+    let mut assets = Assets::new();
+
+    let icon_asset = assets.new_image_foreign("icon", "png");
+    let mut icons = vec![icon_asset.to_glfw_pixelimage()];
+    icons.push(icon_asset.to_glfw_pixelimage());
+    revenant.set_window_icon(icons);
+
     let mut camera_controller = CameraController {
         aim_sensitivity: 0.03,
         speed_factor: 4,
@@ -22,38 +28,35 @@ fn main() {
         max_fov_y: 130.0,
     };
 
-    let cube = assets::load_foreign_model("cube_cam_light", "glb");
-    let tree = assets::load_foreign_model("tree_cam_light", "glb");
-    let cube_textured = assets::load_foreign_model("cube_textured_cam_light", "glb");
-    // let lantern = assets::load_foreign_model("lantern", "glb");
-
-    let camera_main = Camera::new_perspective(point3(1.84, 0.8, 3.1));
-
-    let shader_pbr_vs = assets::load_foreign_shader("pbr", "vs");
-    let shader_pbr_fs = assets::load_foreign_shader("pbr", "fs");
-    let program_pbr = Program::new(vec![shader_pbr_vs, shader_pbr_fs]);
-
-    let shader_outliner_vs = assets::load_foreign_shader("outliner", "vs");
-    let shader_outliner_fs = assets::load_foreign_shader("outliner", "fs");
-    let program_outliner = Program::new(vec![shader_outliner_vs, shader_outliner_fs]);
-
-    revenant.assets.add_model("cube", cube);
-    revenant.assets.add_model("tree", tree);
-    revenant.assets.add_model("cube_textured", cube_textured);
-    // revenant.assets.add_model("lantern", lantern);
-    revenant.assets.add_camera("main", camera_main);
-    revenant.assets.add_program("pbr", program_pbr);
-    revenant.assets.add_program("outliner", program_outliner);
+    init_assets(&mut assets);
 
     while !revenant.should_close() {
-        input(&mut revenant, &mut camera_controller);
-        render(&mut revenant);
+        assets.update();
+        input(&mut revenant, &mut assets, &mut camera_controller);
+        render(&mut assets);
     }
 }
 
 #[inline]
-fn input(revenant: &mut Revenant, camera_controller: &mut CameraController) {
-    let camera_main = revenant.assets.get_mut_camera("main");
+fn init_assets(assets: &mut Assets) {
+    assets.new_camera("main", Camera::new_perspective(point3(1.84, 0.8, 3.1)));
+
+    assets.new_shader_foreign("pbr", "vs");
+    assets.new_shader_foreign("pbr", "fs");
+    assets.new_program("pbr", vec!["pbr_vs", "pbr_fs"]);
+
+    // assets.new_shader_foreign("outliner", "vs");
+    // assets.new_shader_foreign("outliner", "fs");
+    // assets.new_program("outliner", vec!["outliner_vs", "outliner_fs"]);
+
+    assets.new_model_foreign("cube", "glb");
+    assets.new_model_foreign("tree", "glb");
+    assets.new_model_foreign("cube_textured", "glb");
+}
+
+#[inline]
+fn input(revenant: &mut Revenant, assets: &mut Assets, camera_controller: &mut CameraController) {
+    let camera_main = assets.get_mut_camera("main");
 
     if let Some((_, scroll_y)) = revenant.inputs.mouse_scroll {
         match camera_main.projection_kind {
@@ -134,16 +137,13 @@ fn input(revenant: &mut Revenant, camera_controller: &mut CameraController) {
 }
 
 #[inline]
-fn render(revenant: &mut Revenant) {
-    revenant.start_frame();
-
-    let camera_main = revenant.assets.get_camera("main");
-    let program_pbr = revenant.assets.get_program("pbr");
-    let program_outliner = revenant.assets.get_program("outliner");
-    let cube = revenant.assets.get_model("cube");
-    let tree = revenant.assets.get_model("tree");
-    let cube_textured = revenant.assets.get_model("cube_textured");
-    // let lantern = revenant.assets.get_model("lantern");
+fn render(assets: &mut Assets) {
+    let camera_main = assets.get_camera("main");
+    let program_pbr = assets.get_program("pbr");
+    // let program_outliner = assets.get_program("outliner");
+    let cube = assets.get_model("cube");
+    let tree = assets.get_model("tree");
+    let cube_textured = assets.get_model("cube_textured");
 
     program_pbr.use_program();
     program_pbr.set_uniform_mat4("model", &Matrix4::identity());
@@ -162,13 +162,12 @@ fn render(revenant: &mut Revenant) {
     //     gl::StencilFunc(gl::ALWAYS, 1, 0xFF); // all fragments should pass the stencil test
     //     gl::StencilMask(0xFF); // enable writing to the stencil buffer
     // }
-    tree.draw(program_pbr);
+    tree.draw();
     program_pbr.set_uniform_mat4("model", &Matrix4::from_translation(vec3(0.0, 0.0, 4.0)));
-    cube.draw(program_pbr);
+    cube.draw();
     program_pbr.set_uniform_mat4("model", &Matrix4::from_translation(vec3(0.0, 0.0, -4.0)));
-    cube_textured.draw(program_pbr);
-    program_pbr.set_uniform_mat4("model", &Matrix4::from_translation(vec3(0.0, 0.0, 8.0)));
-    // lantern.draw(program_light);
+    cube_textured.draw();
+    // program_pbr.set_uniform_mat4("model", &Matrix4::from_translation(vec3(0.0, 0.0, 8.0)));
 
     // unsafe {
     //     gl::StencilFunc(gl::NOTEQUAL, 1, 0xFF);
@@ -192,13 +191,10 @@ fn render(revenant: &mut Revenant) {
     // program_outliner.set_uniform_mat4("model", &Matrix4::from_translation(vec3(0.0, 0.0, -4.0)));
     // cube_textured.draw(program_outliner);
     // program_outliner.set_uniform_mat4("model", &Matrix4::from_translation(vec3(0.0, 0.0, 8.0)));
-    // // lantern.draw(program_outliner);
     // unsafe {
     //     gl::StencilMask(0xFF);
     //     gl::Enable(gl::DEPTH_TEST);
     // }
-
-    revenant.end_frame();
 }
 
 struct CameraController {
