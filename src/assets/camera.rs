@@ -1,18 +1,14 @@
-use crate::types::{Direction, Position};
-use cgmath::{vec3, Deg, Matrix4, SquareMatrix};
+use crate::types::Position;
+use cgmath::{point3, vec3, Deg, EuclideanSpace, Matrix4, Quaternion, Rotation3, SquareMatrix};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Camera {
     pub pos: Position,
-    pub up: Direction,
-    pub front: Direction,
-    pub right: Direction,
-
-    // TODO make a list of assets to update or something like that to avoid adding a bool to each asset
-    pub update_projection: bool,
+    pub quat: Quaternion<f32>,
     pub projection_kind: CameraProjectionKind,
     pub projection: Matrix4<f32>,
+    pub view: Matrix4<f32>,
 }
 
 // TODO remove debug
@@ -35,42 +31,24 @@ pub enum CameraProjectionKind {
 }
 
 impl Camera {
-    pub fn new_perspective(pos: Position) -> Self {
-        Self {
-            pos,
-            front: vec3(0.0, 0.0, -1.0),
-            up: vec3(0.0, 1.0, 0.0),
-            right: vec3(0.0, 0.0, 0.0),
-
-            update_projection: true,
-            projection_kind: CameraProjectionKind::Perspective {
-                aspect_ratio: 16.0 / 9.0,
-                fov_y: 45.0,
-                near: 0.1,
-                far: 100.0,
-            },
-            projection: Matrix4::identity(),
-        }
+    pub fn perspective(pos: Position) -> Self {
+        let mut camera = Self::default();
+        camera.pos = pos;
+        camera
     }
 
-    pub fn new_orthographic(pos: Position) -> Self {
-        Self {
-            pos,
-            front: vec3(0.0, 0.0, -1.0),
-            up: vec3(0.0, 1.0, 0.0),
-            right: vec3(0.0, 0.0, 0.0),
-
-            update_projection: true,
-            projection_kind: CameraProjectionKind::Orthographic {
-                left: -1.0,
-                right: 1.0,
-                bottom: -1.0,
-                top: 1.0,
-                near: 0.1,
-                far: 100.0,
-            },
-            projection: Matrix4::identity(),
-        }
+    pub fn orthographic(pos: Position) -> Self {
+        let mut camera = Self::default();
+        camera.pos = pos;
+        camera.projection_kind = CameraProjectionKind::Orthographic {
+            left: -1.0,
+            right: 1.0,
+            bottom: -1.0,
+            top: 1.0,
+            near: 0.1,
+            far: 100.0,
+        };
+        camera
     }
 
     pub fn update(&mut self) {
@@ -94,6 +72,26 @@ impl Camera {
                 self.projection = cgmath::ortho(left, right, bottom, top, near, far);
             }
         }
-        self.update_projection = false;
+        self.view = Matrix4::from(self.quat.conjugate())
+            * Matrix4::from_translation(self.pos.to_vec() * -1.0);
+    }
+}
+
+impl Default for Camera {
+    fn default() -> Self {
+        let mut camera = Self {
+            pos: point3(0.0, 0.0, 0.0),
+            quat: Quaternion::from_axis_angle(vec3(0.0, 1.0, 0.0), Deg(0.0)),
+            projection_kind: CameraProjectionKind::Perspective {
+                aspect_ratio: 16.0 / 9.0,
+                fov_y: 45.0,
+                near: 0.1,
+                far: 100.0,
+            },
+            projection: Matrix4::identity(),
+            view: Matrix4::identity(),
+        };
+        camera.update();
+        camera
     }
 }

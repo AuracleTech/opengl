@@ -68,6 +68,7 @@ impl Image {
             _ => panic!("Texture format not supported."),
         };
 
+        // TODO 3D textures
         image.size = ImageSize::I2D {
             x: dynamic_image.width() as i32,
             y: dynamic_image.height() as i32,

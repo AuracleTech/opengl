@@ -1,7 +1,8 @@
 pub mod assets;
+mod benchmark;
+mod inputs;
 mod types;
 use gl::types::{GLenum, GLuint};
-// TODO SET ASSETS PRIVATE?
 use glfw::{Context, Glfw, PixelImage, Version, Window, WindowEvent};
 use inputs::Inputs;
 use std::{
@@ -9,8 +10,6 @@ use std::{
     ffi::{c_void, CStr},
     sync::mpsc::Receiver,
 };
-mod benchmark;
-mod inputs;
 
 // TODO flexible window size
 const WIN_DIM_X: u32 = 1600;

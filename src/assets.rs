@@ -221,15 +221,6 @@ impl Assets {
             .get_mut(name)
             .expect(&format!("Model '{}' not found.", name))
     }
-
-    pub fn update(&mut self) {
-        // OPTIMIZE .update(); iteration to use a custom HashMap / a bitset for assets to be updated
-        for (_, camera) in self.cameras.iter_mut() {
-            if camera.update_projection {
-                camera.update();
-            }
-        }
-    }
 }
 
 const ASSETS_FOLDER: &str = "assets";

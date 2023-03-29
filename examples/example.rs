@@ -1,4 +1,4 @@
-use cgmath::{point3, vec3, InnerSpace, Matrix4, SquareMatrix};
+use cgmath::{point3, vec3, Deg, Matrix4, Quaternion, Rotation3, SquareMatrix, Vector3};
 use glfw::Key;
 use revenant::{
     assets::{
@@ -31,7 +31,6 @@ fn main() {
     init_assets(&mut assets);
 
     while !revenant.should_close() {
-        assets.update();
         input(&mut revenant, &mut assets, &mut camera_controller);
         render(&mut assets);
     }
@@ -39,7 +38,7 @@ fn main() {
 
 #[inline]
 fn init_assets(assets: &mut Assets) {
-    assets.new_camera("main", Camera::new_perspective(point3(1.84, 0.8, 3.1)));
+    assets.new_camera("main", Camera::perspective(point3(1.84, 0.8, 3.1)));
 
     assets.new_shader_foreign("pbr", "vs");
     assets.new_shader_foreign("pbr", "fs");
@@ -74,7 +73,6 @@ fn input(revenant: &mut Revenant, assets: &mut Assets, camera_controller: &mut C
                     near,
                     far,
                 };
-                camera_main.update_projection = true;
             }
             _ => {}
         };
@@ -84,39 +82,48 @@ fn input(revenant: &mut Revenant, assets: &mut Assets, camera_controller: &mut C
         let mouse_x_delta = mouse_x - camera_controller.mouse_pos_last.0;
         let mouse_y_delta = mouse_y - camera_controller.mouse_pos_last.1;
 
-        camera_controller.yaw += mouse_x_delta as f32 * camera_controller.aim_sensitivity;
+        camera_controller.yaw -= mouse_x_delta as f32 * camera_controller.aim_sensitivity;
         camera_controller.pitch -= mouse_y_delta as f32 * camera_controller.aim_sensitivity;
 
         camera_controller.pitch = camera_controller.pitch.clamp(-89.9, 89.9);
         camera_controller.yaw = camera_controller.yaw.rem_euclid(360.0);
 
-        let pitch_radians_cos = camera_controller.pitch.to_radians().cos();
-        camera_main.front = vec3(
-            pitch_radians_cos * camera_controller.yaw.to_radians().cos(),
-            camera_controller.pitch.to_radians().sin(),
-            pitch_radians_cos * camera_controller.yaw.to_radians().sin(),
-        )
-        .normalize();
-        camera_main.right = camera_main.front.cross(camera_main.up);
+        let quat_yaw = Quaternion::from_axis_angle(Vector3::unit_y(), Deg(camera_controller.yaw));
+        let quat_pitch =
+            Quaternion::from_axis_angle(Vector3::unit_x(), Deg(camera_controller.pitch));
+        camera_main.quat = quat_yaw * quat_pitch;
+        camera_main.update();
     }
 
     if revenant.inputs.is_key_down(Key::W) {
-        camera_main.pos += camera_main.front * camera_controller.speed;
+        let forward = camera_main.quat * Vector3::unit_z();
+        camera_main.pos -= forward * camera_controller.speed;
+        camera_main.update();
     }
     if revenant.inputs.is_key_down(Key::S) {
-        camera_main.pos -= camera_main.front * camera_controller.speed;
+        let forward = camera_main.quat * Vector3::unit_z();
+        camera_main.pos += forward * camera_controller.speed;
+        camera_main.update();
     }
     if revenant.inputs.is_key_down(Key::A) {
-        camera_main.pos -= camera_main.right * camera_controller.speed;
+        let right = camera_main.quat * Vector3::unit_x();
+        camera_main.pos -= right * camera_controller.speed;
+        camera_main.update();
     }
     if revenant.inputs.is_key_down(Key::D) {
-        camera_main.pos += camera_main.right * camera_controller.speed;
+        let right = camera_main.quat * Vector3::unit_x();
+        camera_main.pos += right * camera_controller.speed;
+        camera_main.update();
     }
     if revenant.inputs.is_key_down(Key::Space) {
-        camera_main.pos += camera_main.up * camera_controller.speed;
+        let up = camera_main.quat * Vector3::unit_y();
+        camera_main.pos += up * camera_controller.speed;
+        camera_main.update();
     }
     if revenant.inputs.is_key_down(Key::LeftControl) {
-        camera_main.pos -= camera_main.up * camera_controller.speed;
+        let up = camera_main.quat * Vector3::unit_y();
+        camera_main.pos -= up * camera_controller.speed;
+        camera_main.update();
     }
     if revenant.inputs.is_key_down(Key::LeftShift) {
         camera_controller.speed_factor = match camera_controller.speed_factor {
@@ -147,14 +154,7 @@ fn render(assets: &mut Assets) {
 
     program_pbr.use_program();
     program_pbr.set_uniform_mat4("model", &Matrix4::identity());
-    program_pbr.set_uniform_mat4(
-        "view",
-        &Matrix4::look_at_rh(
-            camera_main.pos,
-            camera_main.pos + camera_main.front,
-            camera_main.up,
-        ),
-    );
+    program_pbr.set_uniform_mat4("view", &camera_main.view);
     program_pbr.set_uniform_mat4("projection", &camera_main.projection);
 
     // unsafe {
