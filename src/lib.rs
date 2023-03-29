@@ -3,7 +3,7 @@ mod benchmark;
 mod inputs;
 mod types;
 use gl::types::{GLenum, GLuint};
-use glfw::{Context, Glfw, PixelImage, Version, Window, WindowEvent};
+use glfw::{Context, Glfw, PixelImage, Window, WindowEvent};
 use inputs::Inputs;
 use std::{
     env,
@@ -19,17 +19,15 @@ pub struct Revenant {
     pub(crate) glfw: Glfw,
     pub(crate) window: Window,
     pub(crate) events: Receiver<(f64, WindowEvent)>,
-    pub(crate) gl_config: RevenantGLConfig,
-    pub inputs: Inputs,
     pub(crate) frame_time: f64,
     pub(crate) frame_time_last: f64,
     pub frame_time_delta: f64,
     pub frame_count_total: u64,
+    pub inputs: Inputs,
 }
 
 pub struct RevenantGLConfig {
     pub max_vertex_attribs: i32,
-    pub gl_version: Version,
 }
 
 extern "system" fn debug_callback(
@@ -110,28 +108,16 @@ impl Revenant {
         window.set_cursor_mode(glfw::CursorMode::Disabled);
         window.make_current();
 
-        // TODO check if current_vertex_attribs <= max_vertex_attribs before initializing each vertex attributes
-        let mut max_vertex_attribs = 0;
-        unsafe {
-            gl::GetIntegerv(gl::MAX_VERTEX_ATTRIBS, &mut max_vertex_attribs);
-        }
-
-        let gl_version = window.get_context_version();
-
         let mut revenant = Self {
             glfw,
             window,
             events,
-            gl_config: RevenantGLConfig {
-                max_vertex_attribs,
-                gl_version,
-            },
             // OPTIMIZE custom allocator? Maybe not necessary
-            inputs: Inputs::new(),
             frame_time: 0.0,
             frame_time_last: 0.0,
             frame_time_delta: 0.0,
             frame_count_total: 0,
+            inputs: Inputs::new(),
         };
 
         revenant.gl_init();

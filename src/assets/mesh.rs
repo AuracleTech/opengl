@@ -71,6 +71,14 @@ impl Mesh {
                 gl::STATIC_DRAW,
             );
 
+            /*
+            // TODO check if current_vertex_attribs <= max_vertex_attribs before initializing each vertex attributes
+            let mut gl_max_vertex_attribs = 0;
+            unsafe {
+                gl::GetIntegerv(gl::MAX_VERTEX_ATTRIBS, &mut gl_max_vertex_attribs);
+            }
+             */
+
             // vertex positions
             gl::EnableVertexAttribArray(0);
             gl::VertexAttribPointer(0, 3, gl::FLOAT, gl::FALSE, stride, std::ptr::null());
