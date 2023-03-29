@@ -26,10 +26,6 @@ pub struct Revenant {
     pub inputs: Inputs,
 }
 
-pub struct RevenantGLConfig {
-    pub max_vertex_attribs: i32,
-}
-
 extern "system" fn debug_callback(
     source: GLenum,
     gltype: GLenum,
