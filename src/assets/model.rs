@@ -1,6 +1,6 @@
 use super::{
     image::Image,
-    material::{Material, MaterialKind},
+    material::{Material, MaterialFormat},
     // TODO remove Vertex and create a function inside mesh to load the mesh 🧠
     mesh::{Mesh, Vertex},
     program::Program,
@@ -96,7 +96,7 @@ impl Model {
 
                 materials.push(Material {
                     program: program.clone(),
-                    kind: MaterialKind::Pbr { albedo },
+                    format: MaterialFormat::Pbr { albedo },
                 });
 
                 // TEMPORARY - ASSIGN EVERY MESH TO THE FIRST MATERIAL
@@ -162,11 +162,10 @@ impl Model {
     }
 
     pub fn draw(&self) {
-        // TODO draw with a hardcoded material program
+        // TODO draw default objects with a hardcoded material program
         for (mat_index, mesh_indexes) in &self.material_meshes_pairs {
             let material = &self.materials[*mat_index as usize];
             material.activate();
-
             for mesh_index in mesh_indexes {
                 let mesh = &self.meshes[*mesh_index as usize];
                 match mesh.gl_mode {
@@ -176,7 +175,6 @@ impl Model {
                     _ => panic!("Unsupported gl_mode yet!"),
                 }
             }
-
             material.deactivate();
         }
     }

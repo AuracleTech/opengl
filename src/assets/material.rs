@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 
 // TODO remove debug everywhere
 #[derive(Serialize, Deserialize, Debug)]
-pub enum MaterialKind {
+pub enum MaterialFormat {
     Pbr {
         albedo: Texture,
     },
@@ -18,27 +18,26 @@ pub enum MaterialKind {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Material {
     pub program: Program,
-    pub kind: MaterialKind,
+    pub format: MaterialFormat,
 }
 
 impl Material {
     pub fn activate(&self) {
-        self.program.use_program();
-        match self.kind {
-            MaterialKind::Pbr { ref albedo, .. } => {
+        match self.format {
+            MaterialFormat::Pbr { ref albedo, .. } => {
                 albedo.gl_bind(0);
                 self.program.set_uniform_int("material.albedo", 0);
             }
-            MaterialKind::Phong { .. } => panic!("Phong material not implemented"),
+            MaterialFormat::Phong { .. } => panic!("Phong material not implemented"),
         }
     }
 
     pub fn deactivate(&self) {
-        match self.kind {
-            MaterialKind::Pbr { ref albedo, .. } => {
+        match self.format {
+            MaterialFormat::Pbr { ref albedo, .. } => {
                 albedo.gl_unbind();
             }
-            MaterialKind::Phong { .. } => panic!("Phong material not implemented"),
+            MaterialFormat::Phong { .. } => panic!("Phong material not implemented"),
         }
     }
 }
