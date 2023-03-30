@@ -152,11 +152,14 @@ fn render(assets: &mut Assets) {
     let cube_textured = assets.get_model("cube_textured");
     let camera_main = assets.get_camera("main");
 
-    // unsafe {
-    //     gl::StencilOp(gl::KEEP, gl::KEEP, gl::REPLACE);
-    //     gl::StencilFunc(gl::ALWAYS, 1, 0xFF); // all fragments should pass the stencil test
-    //     gl::StencilMask(0xFF); // enable writing to the stencil buffer
-    // }
+    unsafe {
+        gl::Enable(gl::DEPTH_TEST);
+        gl::Enable(gl::STENCIL_TEST);
+        gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT | gl::STENCIL_BUFFER_BIT);
+        gl::StencilOp(gl::KEEP, gl::KEEP, gl::REPLACE);
+        gl::StencilMask(0xFF);
+        gl::StencilFunc(gl::ALWAYS, 1, 0xFF);
+    }
     {
         program_pbr.use_program();
         program_pbr.set_uniform_mat4("model", &Matrix4::identity());
@@ -169,6 +172,12 @@ fn render(assets: &mut Assets) {
         cube.draw();
         program_pbr.set_uniform_mat4("model", &Matrix4::from_translation(vec3(0.0, 0.0, 8.0)));
     }
+
+    unsafe {
+        gl::StencilFunc(gl::NOTEQUAL, 1, 0xFF);
+        gl::StencilMask(0x00);
+        gl::Disable(gl::DEPTH_TEST);
+    }
     {
         program_outliner.use_program();
         program_outliner.set_uniform_mat4("model", &Matrix4::from_scale(1.1));
@@ -176,32 +185,11 @@ fn render(assets: &mut Assets) {
         program_outliner.set_uniform_mat4("projection", &camera_main.projection);
         cube_textured.draw();
     }
-    // unsafe {
-    //     gl::StencilFunc(gl::NOTEQUAL, 1, 0xFF);
-    //     gl::StencilMask(0x00); // disable writing to the stencil buffer
-    //     gl::Disable(gl::DEPTH_TEST);
-    // }
-    // program_outliner.use_program();
-    // program_outliner.set_uniform_mat4("model", &Matrix4::identity());
-    // program_outliner.set_uniform_mat4(
-    //     "view",
-    //     &Matrix4::look_at_rh(
-    //         camera_main.pos,
-    //         camera_main.pos + camera_main.front,
-    //         camera_main.up,
-    //     ),
-    // );
-    // program_outliner.set_uniform_mat4("projection", &camera_main.projection);
-    // tree.draw(program_outliner);
-    // program_outliner.set_uniform_mat4("model", &Matrix4::from_translation(vec3(0.0, 0.0, 4.0)));
-    // cube.draw(program_outliner);
-    // program_outliner.set_uniform_mat4("model", &Matrix4::from_translation(vec3(0.0, 0.0, -4.0)));
-    // cube_textured.draw(program_outliner);
-    // program_outliner.set_uniform_mat4("model", &Matrix4::from_translation(vec3(0.0, 0.0, 8.0)));
-    // unsafe {
-    //     gl::StencilMask(0xFF);
-    //     gl::Enable(gl::DEPTH_TEST);
-    // }
+
+    unsafe {
+        gl::StencilMask(0xFF);
+        gl::Enable(gl::DEPTH_TEST);
+    }
 }
 
 struct CameraController {

@@ -108,7 +108,7 @@ impl Revenant {
             glfw,
             window,
             events,
-            // OPTIMIZE custom allocator? Maybe not necessary
+            // OPTIMIZE custom allocator? May not necessary
             frame_time: 0.0,
             frame_time_last: 0.0,
             frame_time_delta: 0.0,
@@ -144,8 +144,7 @@ impl Revenant {
         // TODO make all this configurable
         unsafe {
             gl::ClearColor(0.0, 0.0, 0.0, 1.0);
-            gl::Enable(gl::DEPTH_TEST);
-            // gl::Enable(gl::STENCIL_TEST);
+            gl::Enable(gl::STENCIL_TEST);
             gl::Enable(gl::BLEND);
             gl::BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
         }
@@ -178,7 +177,6 @@ impl Revenant {
         self.frame_time_last = self.frame_time;
         self.frame_time = self.glfw.get_time();
         self.frame_time_delta = self.frame_time - self.frame_time_last;
-        self.gl_clear();
         self.glfw.poll_events();
         self.inputs.update(&self.events);
         self.window.should_close()
@@ -186,13 +184,6 @@ impl Revenant {
 
     pub fn set_should_close(&mut self, should_close: bool) {
         self.window.set_should_close(should_close);
-    }
-
-    pub fn gl_clear(&mut self) {
-        // TODO make this configurable
-        unsafe {
-            gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT | gl::STENCIL_BUFFER_BIT);
-        }
     }
 
     pub fn cycle_polygon_mode(&mut self) {
