@@ -44,9 +44,9 @@ fn init_assets(assets: &mut Assets) {
     assets.new_shader_foreign("pbr", "fs");
     assets.new_program("pbr", vec!["pbr_vs", "pbr_fs"]);
 
-    // assets.new_shader_foreign("outliner", "vs");
-    // assets.new_shader_foreign("outliner", "fs");
-    // assets.new_program("outliner", vec!["outliner_vs", "outliner_fs"]);
+    assets.new_shader_foreign("outliner", "vs");
+    assets.new_shader_foreign("outliner", "fs");
+    assets.new_program("outliner", vec!["outliner_vs", "outliner_fs"]);
 
     assets.new_model_foreign("cube", "glb");
     assets.new_model_foreign("tree", "glb");
@@ -145,30 +145,37 @@ fn input(revenant: &mut Revenant, assets: &mut Assets, camera_controller: &mut C
 
 #[inline]
 fn render(assets: &mut Assets) {
-    let camera_main = assets.get_camera("main");
     let program_pbr = assets.get_program("pbr");
-    // let program_outliner = assets.get_program("outliner");
+    let program_outliner = assets.get_program("outliner");
     let cube = assets.get_model("cube");
     let tree = assets.get_model("tree");
     let cube_textured = assets.get_model("cube_textured");
-
-    program_pbr.use_program();
-    program_pbr.set_uniform_mat4("model", &Matrix4::identity());
-    program_pbr.set_uniform_mat4("view", &camera_main.view);
-    program_pbr.set_uniform_mat4("projection", &camera_main.projection);
+    let camera_main = assets.get_camera("main");
 
     // unsafe {
     //     gl::StencilOp(gl::KEEP, gl::KEEP, gl::REPLACE);
     //     gl::StencilFunc(gl::ALWAYS, 1, 0xFF); // all fragments should pass the stencil test
     //     gl::StencilMask(0xFF); // enable writing to the stencil buffer
     // }
-    tree.draw();
-    program_pbr.set_uniform_mat4("model", &Matrix4::from_translation(vec3(0.0, 0.0, 4.0)));
-    cube.draw();
-    program_pbr.set_uniform_mat4("model", &Matrix4::from_translation(vec3(0.0, 0.0, -4.0)));
-    cube_textured.draw();
-    // program_pbr.set_uniform_mat4("model", &Matrix4::from_translation(vec3(0.0, 0.0, 8.0)));
-
+    {
+        program_pbr.use_program();
+        program_pbr.set_uniform_mat4("model", &Matrix4::identity());
+        program_pbr.set_uniform_mat4("view", &camera_main.view);
+        program_pbr.set_uniform_mat4("projection", &camera_main.projection);
+        cube_textured.draw();
+        program_pbr.set_uniform_mat4("model", &Matrix4::from_translation(vec3(0.0, 0.0, 4.0)));
+        tree.draw();
+        program_pbr.set_uniform_mat4("model", &Matrix4::from_translation(vec3(0.0, 0.0, -4.0)));
+        cube.draw();
+        program_pbr.set_uniform_mat4("model", &Matrix4::from_translation(vec3(0.0, 0.0, 8.0)));
+    }
+    {
+        program_outliner.use_program();
+        program_outliner.set_uniform_mat4("model", &Matrix4::from_scale(1.1));
+        program_outliner.set_uniform_mat4("view", &camera_main.view);
+        program_outliner.set_uniform_mat4("projection", &camera_main.projection);
+        cube_textured.draw();
+    }
     // unsafe {
     //     gl::StencilFunc(gl::NOTEQUAL, 1, 0xFF);
     //     gl::StencilMask(0x00); // disable writing to the stencil buffer
