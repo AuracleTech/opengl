@@ -17,6 +17,7 @@ serde_json = "1.0.94"
 serde_derive = "1.0"
 terminal_color_builder = "0.1.1"
 url = "2.3.1"
+base64 = "0.21.0"
 
 [profile.release]
 opt-level = 3

@@ -6,6 +6,7 @@ use super::{
     program::Program,
     texture::Texture,
 };
+use base64::{engine::general_purpose, Engine};
 use cgmath::{vec2, vec3};
 use gltf::{
     image::Source,
@@ -33,8 +34,17 @@ impl Model {
                     buffer_data.push(buffers[buffer.index()].clone());
                 }
                 gltf::buffer::Source::Uri(uri) => {
-                    let bin = std::fs::read(uri).expect("Failed to read buffer data");
-                    buffer_data.push(gltf::buffer::Data(bin));
+                    if path.extension().unwrap() != "glb" {
+                        let uri = uri.trim_start_matches("data:application/octet-stream;base64,");
+                        let data = uri.as_bytes();
+                        let bin = general_purpose::STANDARD
+                            .decode(data)
+                            .expect("Failed to decode buffer data");
+                        buffer_data.push(gltf::buffer::Data(bin));
+                    } else {
+                        let bin = std::fs::read(uri).expect("Failed to read buffer data");
+                        buffer_data.push(gltf::buffer::Data(bin));
+                    }
                 }
             }
         }
