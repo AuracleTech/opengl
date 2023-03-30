@@ -31,7 +31,7 @@
 - [x] Loading Model
 - [x] Model Textures
 - [x] Depth Testing
-- [ ] Stencil Testing
+- [x] Stencil Testing
 - [ ] Setup world environment playground
 - [ ] Client Server Architecture
 - [ ] Multiplayer
