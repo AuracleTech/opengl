@@ -36,9 +36,15 @@ fn main() {
     }
 }
 
+// OPTIMIZE test with inline, without and always inlined
 #[inline]
 fn init_assets(assets: &mut Assets) {
     assets.new_camera("main", Camera::perspective(point3(1.84, 0.8, 3.1)));
+
+    // FIX REMOVE TEMPORARY
+    assets.new_shader_foreign("ui", "vs");
+    // FIX REMOVE TEMPORARY
+    assets.new_shader_foreign("ui", "fs");
 
     assets.new_shader_foreign("pbr", "vs");
     assets.new_shader_foreign("pbr", "fs");
@@ -48,9 +54,8 @@ fn init_assets(assets: &mut Assets) {
     assets.new_shader_foreign("outliner", "fs");
     assets.new_program("outliner", vec!["outliner_vs", "outliner_fs"]);
 
-    assets.new_model_foreign("cube", "glb");
-    assets.new_model_foreign("tree", "glb");
     assets.new_model_foreign("cube_textured", "glb");
+    assets.new_model_foreign("window", "gltf");
 }
 
 #[inline]
@@ -147,10 +152,9 @@ fn input(revenant: &mut Revenant, assets: &mut Assets, camera_controller: &mut C
 fn render(assets: &mut Assets) {
     let program_pbr = assets.get_program("pbr");
     let program_outliner = assets.get_program("outliner");
-    let cube = assets.get_model("cube");
-    let tree = assets.get_model("tree");
     let cube_textured = assets.get_model("cube_textured");
     let camera_main = assets.get_camera("main");
+    let window = assets.get_model("window");
 
     unsafe {
         gl::Enable(gl::DEPTH_TEST);
@@ -167,10 +171,11 @@ fn render(assets: &mut Assets) {
         program_pbr.set_uniform_mat4("projection", &camera_main.projection);
         cube_textured.draw();
         program_pbr.set_uniform_mat4("model", &Matrix4::from_translation(vec3(0.0, 0.0, 4.0)));
-        tree.draw();
+        // tree.draw();
         program_pbr.set_uniform_mat4("model", &Matrix4::from_translation(vec3(0.0, 0.0, -4.0)));
-        cube.draw();
+        // cube.draw();
         program_pbr.set_uniform_mat4("model", &Matrix4::from_translation(vec3(0.0, 0.0, 8.0)));
+        window.draw();
     }
 
     unsafe {

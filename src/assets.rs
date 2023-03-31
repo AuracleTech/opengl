@@ -66,11 +66,11 @@ impl Assets {
         self.cameras.insert(name.to_owned(), camera);
     }
     pub fn new_program(&mut self, name: &str, shader_names: Vec<&str>) {
-        let mut shaders = Vec::new();
+        let mut shaders_gl_ids = Vec::new();
         for shader_name in shader_names {
-            shaders.push(self.get_shader(shader_name));
+            shaders_gl_ids.push(self.get_shader(shader_name).gl_id);
         }
-        let program = Program::new(shaders);
+        let program = Program::new(shaders_gl_ids);
         self.programs.insert(name.to_owned(), program);
     }
 

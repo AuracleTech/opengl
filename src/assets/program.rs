@@ -1,23 +1,26 @@
-use cgmath::{Matrix4, Point3, Vector3, Vector4};
+mod uniform;
+mod vertex_attribute;
+
+use self::{uniform::Uniform, vertex_attribute::VertexAttribute};
+use cgmath::Matrix4;
 use gl::types::{GLchar, GLuint};
 use serde::{Deserialize, Serialize};
-
-use super::shader::Shader; // TODO FIX everywhere it uses super it should use subcrate instead
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Program {
     pub gl_id: GLuint,
+    pub uniforms: Vec<Uniform>, // OPTIMIZE use hashmap
+    pub vertex_attributes: Vec<VertexAttribute>,
 }
 
-// TODO Verify on creation the inputs (vertex attributes, uniforms, etc.) and list them for the material linking creation
 impl Program {
-    pub fn new(shaders: Vec<&Shader>) -> Self {
+    pub fn new(shaders_gl_ids: Vec<GLuint>) -> Self {
         let gl_id = unsafe { gl::CreateProgram() };
 
-        for shader in shaders {
+        for shader_gl_id in shaders_gl_ids {
             // TODO verifications (shader already attached, shader not compiled, etc.)
             unsafe {
-                gl::AttachShader(gl_id, shader.gl_id);
+                gl::AttachShader(gl_id, shader_gl_id);
             }
         }
         unsafe {
@@ -28,9 +31,9 @@ impl Program {
             panic!("Failed to link shader program");
         }
 
-        verify_link(gl_id);
-
-        Self { gl_id }
+        let program = Self::verify_link(gl_id);
+        dbg!(program.uniforms.clone());
+        program
     }
 
     pub fn use_program(&self) {
@@ -39,133 +42,51 @@ impl Program {
         }
     }
 
-    /**
-     * Set a uniform boolean value.
-     * @param name The name of the uniform to set.
-     * @param value The value to set the uniform to.
-     */
-    pub fn set_uniform_bool(&self, name: &str, value: bool) {
+    fn verify_link(gl_id: GLuint) -> Self {
+        let mut success = 0;
         unsafe {
-            gl::Uniform1i(get_uniform_location(self.gl_id, name), value as i32);
+            gl::GetProgramiv(gl_id, gl::LINK_STATUS, &mut success);
+        }
+        if success == 0 {
+            let mut log_length = 0;
+            unsafe {
+                gl::GetProgramiv(gl_id, gl::INFO_LOG_LENGTH, &mut log_length);
+            }
+            let mut log = Vec::with_capacity(log_length as usize);
+            unsafe {
+                gl::GetProgramInfoLog(
+                    gl_id,
+                    log_length,
+                    std::ptr::null_mut(),
+                    log.as_mut_ptr() as *mut GLchar,
+                );
+                log.set_len(log_length as usize);
+            }
+            panic!(
+                "Failed to link shader program: {}",
+                String::from_utf8(log).expect("Shader program log is not valid UTF-8.")
+            );
+        }
+
+        Self {
+            gl_id,
+            uniforms: Uniform::get_all_uniforms(gl_id),
+            vertex_attributes: vec![], // TODO VertexAttribute::get_all_vertex_attributes(gl_id),
         }
     }
 
-    /**
-     * Set a uniform integer value.
-     * @param name The name of the uniform to set.
-     * @param value The value to set the uniform to.
-     */
     pub fn set_uniform_int(&self, name: &str, value: i32) {
-        unsafe {
-            gl::Uniform1i(get_uniform_location(self.gl_id, name), value);
+        // OPTIMIZE replace uniform ved by hashmap
+        if let Some(uniform) = self.uniforms.iter().find(|uniform| uniform.gl_name == name) {
+            uniform.set_uniform_int(value);
         }
     }
 
-    /**
-     * Set a uniform float value.
-     * @param name The name of the uniform to set.
-     * @param value The value to set the uniform to.
-     */
-    pub fn set_uniform_float(&self, name: &str, value: f32) {
-        unsafe {
-            gl::Uniform1f(get_uniform_location(self.gl_id, name), value);
-        }
-    }
-
-    /**
-     * Set a uniform Mat4 value.
-     * @param name The name of the uniform to set.
-     * @param value The value to set the uniform to.
-     */
-    // TODO rename to mat4fv
     pub fn set_uniform_mat4(&self, name: &str, value: &Matrix4<f32>) {
-        unsafe {
-            gl::UniformMatrix4fv(
-                get_uniform_location(self.gl_id, name),
-                1,
-                gl::FALSE,
-                value as *const _ as *const f32,
-            );
+        // OPTIMIZE replace uniform ved by hashmap
+        if let Some(uniform) = self.uniforms.iter().find(|uniform| uniform.gl_name == name) {
+            uniform.set_uniform_mat4(value);
         }
-    }
-
-    /**
-     * Set a uniform Vec3 value.
-     * @param name The name of the uniform to set.
-     * @param value The value to set the uniform to.
-     */
-    // TODO rename to vec3f
-    pub fn set_uniform_vec3(&self, name: &str, value: Vector3<f32>) {
-        unsafe {
-            gl::Uniform3f(
-                get_uniform_location(self.gl_id, name),
-                value.x,
-                value.y,
-                value.z,
-            );
-        }
-    }
-
-    pub fn set_uniform_vec4(&self, name: &str, value: Vector4<f32>) {
-        unsafe {
-            gl::Uniform4f(
-                get_uniform_location(self.gl_id, name),
-                value.x,
-                value.y,
-                value.z,
-                value.w,
-            );
-        }
-    }
-
-    // TODO rename to vec3f
-    pub fn set_uniform_point3(&self, name: &str, value: Point3<f32>) {
-        unsafe {
-            gl::Uniform3f(
-                get_uniform_location(self.gl_id, name),
-                value.x,
-                value.y,
-                value.z,
-            );
-        }
-    }
-}
-
-// TODO this should be a new file called uniform.rs
-// TODO during runtime this should be cached in a hashmap
-fn get_uniform_location(program_id: u32, name: &str) -> i32 {
-    let formatted_name =
-        std::ffi::CString::new(name).expect("Failed to convert uniform name to CString.");
-    match unsafe { gl::GetUniformLocation(program_id, formatted_name.as_ptr()) } {
-        -1 => panic!("Failed to find uniform location: {}", name),
-        location => location,
-    }
-}
-
-fn verify_link(gl_id: GLuint) {
-    let mut success = 0;
-    unsafe {
-        gl::GetProgramiv(gl_id, gl::LINK_STATUS, &mut success);
-    }
-    if success == 0 {
-        let mut log_length = 0;
-        unsafe {
-            gl::GetProgramiv(gl_id, gl::INFO_LOG_LENGTH, &mut log_length);
-        }
-        let mut log = Vec::with_capacity(log_length as usize);
-        unsafe {
-            gl::GetProgramInfoLog(
-                gl_id,
-                log_length,
-                std::ptr::null_mut(),
-                log.as_mut_ptr() as *mut GLchar,
-            );
-            log.set_len(log_length as usize);
-        }
-        panic!(
-            "Failed to link shader program: {}",
-            String::from_utf8(log).expect("Shader program log is not valid UTF-8.")
-        );
     }
 }
 

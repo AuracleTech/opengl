@@ -14,7 +14,7 @@ impl Shader {
         };
 
         let mut source = String::new();
-        let mut file = File::open(path).expect("Failed to open shader file.");
+        let mut file = File::open(&path).expect("Failed to open shader file.");
         file.read_to_string(&mut source)
             .expect("Failed to read shader file.");
 
