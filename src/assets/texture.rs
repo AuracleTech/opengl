@@ -1,6 +1,6 @@
-use super::image::{Image, ImageSize};
+use super::image::Image;
 use gl::types::{GLenum, GLint, GLuint, GLvoid};
-use serde::{Deserialize, Serialize}; // FIX TODO REPLACE IMAGE FORMAT BY GL_FORMAT OR SOMETHING
+use serde::{Deserialize, Serialize};
 
 // TODO remove debug everywhere
 #[non_exhaustive]
@@ -30,8 +30,16 @@ pub enum TextureKind {
 impl Texture {
     // TODO configurable tex options
     pub fn new(image: Image) -> Self {
-        let mut texture = Self::default();
-        texture.image = image;
+        let mut texture = Self {
+            gl_id: 0,
+            image,
+            kind: TextureKind::Diffuse,
+            gl_s_wrapping: gl::REPEAT,
+            gl_t_wrapping: gl::REPEAT,
+            gl_min_filtering: gl::LINEAR_MIPMAP_LINEAR,
+            gl_mag_filtering: gl::LINEAR,
+            mipmapping: true,
+        };
         texture.gl_register();
         texture
     }
@@ -65,34 +73,36 @@ impl Texture {
             gl::RGBA => 4,
             _ => panic!("Texture format not supported yet."),
         };
+        let gl_width: GLint = self
+            .image
+            .width
+            .try_into()
+            .expect("Texture Image width too big");
+        let gl_height: GLint = self
+            .image
+            .height
+            .try_into()
+            .expect("Texture Image height too big");
         unsafe {
             gl::PixelStorei(gl::UNPACK_ALIGNMENT, alignment);
-        }
-        unsafe {
+
+            // register texture
             gl::GenTextures(1, &mut self.gl_id);
             gl::BindTexture(self.image.gl_target, self.gl_id);
-        }
-        match self.image.size {
-            ImageSize::I2D { x, y } => {
-                unsafe {
-                    // texture data
-                    gl::TexImage2D(
-                        self.image.gl_target,
-                        0,
-                        self.image.gl_format as GLint,
-                        x,
-                        y,
-                        0,
-                        self.image.gl_format,
-                        gl::UNSIGNED_BYTE,
-                        self.image.data.as_ptr() as *const GLvoid,
-                    );
-                }
-            }
-            // TODO 3D texture
-            _ => panic!("Texture size not supported yet."),
-        }
-        unsafe {
+
+            // data
+            gl::TexImage2D(
+                self.image.gl_target,
+                0,
+                self.image.gl_format as GLint,
+                gl_width,
+                gl_height,
+                0,
+                self.image.gl_format,
+                gl::UNSIGNED_BYTE,
+                self.image.data.as_ptr() as *const GLvoid,
+            );
+
             // wrapping
             gl::TexParameteri(
                 self.image.gl_target,
@@ -124,20 +134,5 @@ impl Texture {
         }
 
         self.gl_unbind();
-    }
-}
-
-impl Default for Texture {
-    fn default() -> Self {
-        Self {
-            gl_id: 0,
-            image: Image::default(),
-            kind: TextureKind::Diffuse,
-            gl_s_wrapping: gl::REPEAT,
-            gl_t_wrapping: gl::REPEAT,
-            gl_min_filtering: gl::LINEAR_MIPMAP_LINEAR,
-            gl_mag_filtering: gl::LINEAR,
-            mipmapping: true,
-        }
     }
 }

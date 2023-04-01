@@ -20,7 +20,7 @@ pub mod shader;
 pub mod texture;
 use self::camera::Camera;
 use self::font::Font;
-use self::image::{Image, ImageSize};
+use self::image::Image;
 use self::light::{DirLight, PointLight, SpotLight};
 use self::mesh::Mesh;
 use self::model::Model;
@@ -284,12 +284,9 @@ where
 
 pub fn save_image_to_png(image: &Image, name: &str) -> Result<(), Box<dyn std::error::Error>> {
     let data = image.data.clone();
-    let (width, height) = match image.size {
-        ImageSize::I2D { x, y } => (x as u32, y as u32),
-        _ => panic!("Only 2D images are supported."),
-    };
     let path = get_path(FOREIGN_FOLDER, &name, "png");
-    let image_buffer = ImageBuffer::from_raw(width, height, data).ok_or("Invalid image data")?;
+    let image_buffer =
+        ImageBuffer::from_raw(image.width, image.height, data).ok_or("Invalid image data")?;
     let dynamic_image = DynamicImage::ImageRgba8(image_buffer);
     dynamic_image.save_with_format(path, ImageFormat::Png)?;
     Ok(())

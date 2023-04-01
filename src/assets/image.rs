@@ -1,4 +1,4 @@
-use gl::types::{GLenum, GLsizei};
+use gl::types::GLenum;
 use image::DynamicImage;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
@@ -7,19 +7,36 @@ use std::path::PathBuf;
 #[non_exhaustive]
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Image {
-    pub gl_format: GLenum,
-    pub gl_target: GLenum,
-    pub size: ImageSize,
-    pub data: Vec<u8>,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub enum ImageSize {
-    I2D { x: GLsizei, y: GLsizei },
-    I3D { x: GLsizei, y: GLsizei, z: GLsizei },
+    pub(crate) gl_format: GLenum,
+    // TODO support more than 2D textures
+    pub(crate) gl_target: GLenum,
+    pub(crate) width: u32,
+    pub(crate) height: u32,
+    pub(crate) data: Vec<u8>,
 }
 
 impl Image {
+    pub fn new(dynamic_image: DynamicImage) -> Self {
+        let image = Self {
+            gl_format: match dynamic_image.color() {
+                image::ColorType::Rgb8 => gl::RGB,
+                image::ColorType::Rgba8 => gl::RGBA,
+                _ => panic!("Texture format not supported."),
+            },
+            gl_target: gl::TEXTURE_2D,
+            width: dynamic_image.width(),
+            height: dynamic_image.height(),
+            data: match dynamic_image {
+                DynamicImage::ImageRgb8(texture_image) => texture_image.into_raw(),
+                DynamicImage::ImageRgba8(texture_image) => texture_image.into_raw(),
+                _ => panic!("Image format not supported"),
+            },
+        };
+        #[cfg(debug_assertions)]
+        integrity_check(&image);
+        image
+    }
+
     pub fn from_file(path: PathBuf, extension: &str) -> Self {
         let image = match extension.to_lowercase().as_str() {
             "jpg" | "png" => image::open(path).expect("Failed to load image."),
@@ -49,46 +66,7 @@ impl Image {
         Self::new(image_result)
     }
 
-    pub fn new(dynamic_image: DynamicImage) -> Self {
-        let mut image = Self::default();
-
-        // TODO support more than 3 channels
-        const MAX_TEXTURE_SIZE: u32 = std::i32::MAX as u32;
-        if dynamic_image.width() > MAX_TEXTURE_SIZE || dynamic_image.height() > MAX_TEXTURE_SIZE {
-            panic!(
-                "Texture size exceeds maximum allowed size of {} pixels",
-                MAX_TEXTURE_SIZE
-            );
-        }
-
-        // TODO support more than 3 channels
-        image.gl_format = match dynamic_image.color() {
-            image::ColorType::Rgb8 => gl::RGB,
-            image::ColorType::Rgba8 => gl::RGBA,
-            _ => panic!("Texture format not supported."),
-        };
-
-        // TODO 3D textures
-        image.size = ImageSize::I2D {
-            x: dynamic_image.width() as i32,
-            y: dynamic_image.height() as i32,
-        };
-
-        image.data = match dynamic_image {
-            DynamicImage::ImageRgb8(texture_image) => texture_image.into_raw(),
-            DynamicImage::ImageRgba8(texture_image) => texture_image.into_raw(),
-            _ => panic!("Image format not supported"),
-        };
-
-        image
-    }
-
     pub fn to_glfw_pixelimage(&self) -> glfw::PixelImage {
-        let (width, height) = match self.size {
-            ImageSize::I2D { x, y } => (x, y),
-            _ => panic!("Icon size is not 2D."),
-        };
-
         let mut icon_pixels: Vec<u32> = vec![];
         for chunk in self.data.chunks_exact(4) {
             let u32_value = u32::from_le_bytes([chunk[0], chunk[1], chunk[2], chunk[3]]);
@@ -96,21 +74,36 @@ impl Image {
         }
 
         glfw::PixelImage {
-            width: width as u32,
-            height: height as u32,
+            width: self.width,
+            height: self.height,
             pixels: icon_pixels,
         }
     }
 }
 
-impl Default for Image {
-    fn default() -> Self {
-        Self {
-            gl_format: gl::RGB,
-            // TODO support more than 2D textures
-            gl_target: gl::TEXTURE_2D,
-            size: ImageSize::I2D { x: 0, y: 0 },
-            data: vec![],
-        }
+fn integrity_check(image: &Image) {
+    dbg!(image.width, image.height, image.gl_format, image.data.len());
+
+    let expected_size = image.width
+        * image.height
+        * match image.gl_format {
+            gl::RGB => 3,
+            gl::RGBA => 4,
+            _ => panic!("Texture format not supported yet."),
+        };
+
+    if image.data.len() != expected_size as usize {
+        panic!(
+            "Image data size does not match expected size. Expected: {}, Actual: {}",
+            expected_size,
+            image.data.len()
+        );
+    }
+
+    if image.width <= 0 || image.height <= 0 {
+        panic!(
+            "Image dimensions are invalid. Width: {}, Height: {}",
+            image.width, image.height
+        );
     }
 }
