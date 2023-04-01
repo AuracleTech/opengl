@@ -109,7 +109,7 @@ impl Assets {
     pub fn new_model_foreign(&mut self, name: &str, extension: &str) -> &Model {
         let path = get_path(FOREIGN_FOLDER, &name, extension);
         let model = match extension.to_lowercase().as_str() {
-            "glb" | "gltf" => Model::from_gltf(path, &self.programs),
+            "glb" | "gltf" => Model::from_gltf(path),
             _ => panic!("Unsupported file extension"),
         };
         self.models.insert(name.to_owned(), model);

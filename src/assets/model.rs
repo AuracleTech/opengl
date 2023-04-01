@@ -1,6 +1,6 @@
 use super::{
     image::Image,
-    material::{Material, MaterialFormat},
+    material::Material,
     // TODO remove Vertex and create a function inside mesh to load the mesh 🧠
     mesh::{Mesh, Vertex},
     program::Program,
@@ -24,7 +24,7 @@ pub struct Model {
 }
 
 impl Model {
-    pub fn from_gltf(path: PathBuf, programs: &HashMap<String, Program>) -> Self {
+    pub fn from_gltf(path: PathBuf) -> Self {
         let (gltf, buffers, _) = gltf::import(&path).expect("Failed to import gltf file");
 
         let mut buffer_data = Vec::new();
@@ -53,27 +53,24 @@ impl Model {
         let mut material_meshes_pairs = HashMap::new();
         for gltf_material in gltf.materials() {
             let pbr = gltf_material.pbr_metallic_roughness();
-            let base_color_texture = &pbr.base_color_texture();
-            if let Some(texture_source) = &pbr
-                .base_color_texture()
-                .map(|tex| tex.texture().source().source())
-            {
-                let texture = base_color_texture
-                    .as_ref()
-                    .expect("Expected a texture but found none")
-                    .texture();
+            if let Some(gltf_texture) = &pbr.base_color_texture().map(|tex| tex.texture()) {
+                // println!(
+                //     "Loading PBR for model {} with texture {}",
+                //     path.display(),
+                //     gltf_texture.index()
+                // );
 
-                let wrap_s = match texture.sampler().wrap_s() {
+                let wrap_s = match gltf_texture.sampler().wrap_s() {
                     WrappingMode::ClampToEdge => gl::CLAMP_TO_EDGE,
                     WrappingMode::MirroredRepeat => gl::MIRRORED_REPEAT,
                     WrappingMode::Repeat => gl::REPEAT,
                 };
-                let wrap_t = match texture.sampler().wrap_t() {
+                let wrap_t = match gltf_texture.sampler().wrap_t() {
                     WrappingMode::ClampToEdge => gl::CLAMP_TO_EDGE,
                     WrappingMode::MirroredRepeat => gl::MIRRORED_REPEAT,
                     WrappingMode::Repeat => gl::REPEAT,
                 };
-                if let Some(filter_min) = texture.sampler().min_filter() {
+                if let Some(filter_min) = gltf_texture.sampler().min_filter() {
                     match filter_min {
                         MinFilter::Nearest => gl::NEAREST,
                         MinFilter::Linear => gl::LINEAR,
@@ -83,12 +80,15 @@ impl Model {
                         MinFilter::LinearMipmapLinear => gl::LINEAR_MIPMAP_LINEAR,
                     };
                 }
-                if let Some(filter_mag) = texture.sampler().mag_filter() {
+                if let Some(filter_mag) = gltf_texture.sampler().mag_filter() {
                     match filter_mag {
                         MagFilter::Nearest => gl::NEAREST,
                         MagFilter::Linear => gl::LINEAR,
                     };
                 }
+
+                let texture_source = gltf_texture.source().source();
+
                 let albedo_image = match texture_source {
                     Source::Uri { uri, .. } => Image::from_uri(uri),
                     Source::View { view, .. } => {
@@ -100,18 +100,69 @@ impl Model {
                 albedo.gl_s_wrapping = wrap_s;
                 albedo.gl_t_wrapping = wrap_t;
                 // TODO add min and mag filter
-                // TODO mipmaps?
+                // TODO mipmaps? and all the other texture options
 
-                let program = programs.get("pbr").expect("Failed to find pbr program");
-
-                materials.push(Material {
-                    program: program.clone(),
-                    format: MaterialFormat::Pbr { albedo },
-                });
+                materials.push(Material::Pbr { albedo });
 
                 // TEMPORARY - ASSIGN EVERY MESH TO THE FIRST MATERIAL
                 material_meshes_pairs.insert(0, vec![0]);
             }
+
+            // if let Some(normal_texture) = gltf_material.normal_texture() {
+            //     println!(
+            //         "Loading normal texture for model {} with texture {}",
+            //         path.display(),
+            //         normal_texture.texture().index()
+            //     );
+
+            //     let wrap_s = match normal_texture.texture().sampler().wrap_s() {
+            //         WrappingMode::ClampToEdge => gl::CLAMP_TO_EDGE,
+            //         WrappingMode::MirroredRepeat => gl::MIRRORED_REPEAT,
+            //         WrappingMode::Repeat => gl::REPEAT,
+            //     };
+
+            //     let wrap_t = match normal_texture.texture().sampler().wrap_t() {
+            //         WrappingMode::ClampToEdge => gl::CLAMP_TO_EDGE,
+            //         WrappingMode::MirroredRepeat => gl::MIRRORED_REPEAT,
+            //         WrappingMode::Repeat => gl::REPEAT,
+            //     };
+
+            //     if let Some(filter_min) = normal_texture.texture().sampler().min_filter() {
+            //         match filter_min {
+            //             MinFilter::Nearest => gl::NEAREST,
+            //             MinFilter::Linear => gl::LINEAR,
+            //             MinFilter::NearestMipmapNearest => gl::NEAREST_MIPMAP_NEAREST,
+            //             MinFilter::LinearMipmapNearest => gl::LINEAR_MIPMAP_NEAREST,
+            //             MinFilter::NearestMipmapLinear => gl::NEAREST_MIPMAP_LINEAR,
+            //             MinFilter::LinearMipmapLinear => gl::LINEAR_MIPMAP_LINEAR,
+            //         };
+            //     }
+
+            //     if let Some(filter_mag) = normal_texture.texture().sampler().mag_filter() {
+            //         match filter_mag {
+            //             MagFilter::Nearest => gl::NEAREST,
+            //             MagFilter::Linear => gl::LINEAR,
+            //         };
+            //     }
+
+            //     let texture_source = normal_texture.texture().source().source();
+
+            //     let normal_image = match texture_source {
+            //         Source::Uri { uri, .. } => Image::from_uri(uri),
+            //         Source::View { view, .. } => {
+            //             let data = &buffer_data[view.buffer().index()][view.offset()..];
+            //             Image::from_data(data)
+            //         }
+            //     };
+
+            //     let mut normal = Texture::new(normal_image);
+            //     normal.gl_s_wrapping = wrap_s;
+            //     normal.gl_t_wrapping = wrap_t;
+            //     // TODO add min and mag filter
+            //     // TODO mipmaps? and all the other texture options
+
+            //     materials.push(Material::Normal { normal });
+            // }
         }
 
         let mut meshes = Vec::new();
@@ -171,11 +222,11 @@ impl Model {
         }
     }
 
-    pub fn draw(&self) {
+    pub fn draw(&self, program: &Program) {
         // TODO draw default objects with a hardcoded material program
         for (mat_index, mesh_indexes) in &self.material_meshes_pairs {
             let material = &self.materials[*mat_index as usize];
-            material.activate();
+            material.activate(&program);
             for mesh_index in mesh_indexes {
                 let mesh = &self.meshes[*mesh_index as usize];
                 match mesh.gl_mode {

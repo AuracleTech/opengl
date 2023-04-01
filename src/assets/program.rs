@@ -76,14 +76,14 @@ impl Program {
     pub fn set_uniform_int(&self, name: &str, value: i32) {
         // OPTIMIZE replace uniform ved by hashmap
         if let Some(uniform) = self.uniforms.iter().find(|uniform| uniform.gl_name == name) {
-            uniform.set_uniform_int(value);
+            uniform.set_int(value);
         }
     }
 
     pub fn set_uniform_mat4(&self, name: &str, value: &Matrix4<f32>) {
         // OPTIMIZE replace uniform ved by hashmap
         if let Some(uniform) = self.uniforms.iter().find(|uniform| uniform.gl_name == name) {
-            uniform.set_uniform_mat4(value);
+            uniform.set_mat4f32(value);
         }
     }
 }

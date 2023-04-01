@@ -41,11 +41,6 @@ fn main() {
 fn init_assets(assets: &mut Assets) {
     assets.new_camera("main", Camera::perspective(point3(1.84, 0.8, 3.1)));
 
-    // FIX REMOVE TEMPORARY
-    assets.new_shader_foreign("ui", "vs");
-    // FIX REMOVE TEMPORARY
-    assets.new_shader_foreign("ui", "fs");
-
     assets.new_shader_foreign("pbr", "vs");
     assets.new_shader_foreign("pbr", "fs");
     assets.new_program("pbr", vec!["pbr_vs", "pbr_fs"]);
@@ -54,8 +49,9 @@ fn init_assets(assets: &mut Assets) {
     assets.new_shader_foreign("outliner", "fs");
     assets.new_program("outliner", vec!["outliner_vs", "outliner_fs"]);
 
-    assets.new_model_foreign("cube_textured", "glb");
+    assets.new_model_foreign("cube", "gltf");
     assets.new_model_foreign("window", "gltf");
+    assets.new_model_foreign("grass", "gltf");
 }
 
 #[inline]
@@ -152,9 +148,10 @@ fn input(revenant: &mut Revenant, assets: &mut Assets, camera_controller: &mut C
 fn render(assets: &mut Assets) {
     let program_pbr = assets.get_program("pbr");
     let program_outliner = assets.get_program("outliner");
-    let cube_textured = assets.get_model("cube_textured");
+    let cube = assets.get_model("cube");
     let camera_main = assets.get_camera("main");
     let window = assets.get_model("window");
+    let grass = assets.get_model("grass");
 
     unsafe {
         gl::Enable(gl::DEPTH_TEST);
@@ -169,13 +166,23 @@ fn render(assets: &mut Assets) {
         program_pbr.set_uniform_mat4("model", &Matrix4::identity());
         program_pbr.set_uniform_mat4("view", &camera_main.view);
         program_pbr.set_uniform_mat4("projection", &camera_main.projection);
-        cube_textured.draw();
-        program_pbr.set_uniform_mat4("model", &Matrix4::from_translation(vec3(0.0, 0.0, 4.0)));
-        // tree.draw();
-        program_pbr.set_uniform_mat4("model", &Matrix4::from_translation(vec3(0.0, 0.0, -4.0)));
-        // cube.draw();
-        program_pbr.set_uniform_mat4("model", &Matrix4::from_translation(vec3(0.0, 0.0, 8.0)));
-        window.draw();
+        cube.draw(program_pbr);
+        program_pbr.set_uniform_mat4("model", &Matrix4::from_translation(vec3(-4.0, 0.0, 0.0)));
+        window.draw(program_pbr);
+
+        let grass_positions = vec![
+            vec3(-8.0, 0.0, 0.0),
+            vec3(-8.5, 0.01, 2.0),
+            vec3(-8.2, -0.01, 2.0),
+            vec3(-7.2, 0.015, 1.1),
+            vec3(-7.5, -0.015, 1.6),
+            vec3(-6.0, 0.02, 2.5),
+            vec3(-7.0, -0.02, 1.4),
+        ];
+        for pos in grass_positions {
+            program_pbr.set_uniform_mat4("model", &Matrix4::from_translation(pos));
+            grass.draw(program_pbr);
+        }
     }
 
     unsafe {
@@ -188,7 +195,7 @@ fn render(assets: &mut Assets) {
         program_outliner.set_uniform_mat4("model", &Matrix4::from_scale(1.1));
         program_outliner.set_uniform_mat4("view", &camera_main.view);
         program_outliner.set_uniform_mat4("projection", &camera_main.projection);
-        cube_textured.draw();
+        cube.draw(program_outliner);
     }
 
     unsafe {

@@ -145,13 +145,13 @@ impl Revenant {
         unsafe {
             gl::ClearColor(0.0, 0.0, 0.0, 1.0);
             gl::Enable(gl::STENCIL_TEST);
-            gl::Enable(gl::BLEND);
+            // gl::Enable(gl::BLEND);
             gl::BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
         }
 
         #[cfg(debug_assertions)]
         unsafe {
-            gl::Enable(gl::DEBUG_OUTPUT);
+            // gl::Enable(gl::DEBUG_OUTPUT);
             gl::DebugMessageCallback(
                 Some(
                     debug_callback
