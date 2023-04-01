@@ -31,9 +31,7 @@ impl Program {
             panic!("Failed to link shader program");
         }
 
-        let program = Self::verify_link(gl_id);
-        dbg!(program.uniforms.clone());
-        program
+        Self::verify_link(gl_id)
     }
 
     pub fn use_program(&self) {

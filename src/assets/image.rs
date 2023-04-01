@@ -82,8 +82,6 @@ impl Image {
 }
 
 fn integrity_check(image: &Image) {
-    dbg!(image.width, image.height, image.gl_format, image.data.len());
-
     let expected_size = image.width
         * image.height
         * match image.gl_format {
