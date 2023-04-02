@@ -30,6 +30,7 @@ impl Material {
         }
     }
 
+    #[cfg(feature = "pillow")]
     pub fn deactivate(&self) {
         match self {
             Material::Pbr { ref albedo, .. } => {

@@ -1,5 +1,7 @@
 pub mod assets;
+#[cfg(feature = "pillow")]
 mod benchmark;
+mod framebuffer;
 mod inputs;
 mod types;
 use gl::types::{GLenum, GLuint};
@@ -120,6 +122,7 @@ impl Revenant {
         // TODO make this a setting or function
         revenant.set_position_center();
         // TODO make this configurable
+
         revenant
     }
 
@@ -188,9 +191,9 @@ impl Revenant {
             gl::BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
         }
 
-        #[cfg(debug_assertions)]
+        #[cfg(feature = "pillow")]
         unsafe {
-            // gl::Enable(gl::DEBUG_OUTPUT);
+            gl::Enable(gl::DEBUG_OUTPUT);
             gl::DebugMessageCallback(
                 Some(
                     debug_callback

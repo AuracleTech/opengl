@@ -10,9 +10,9 @@ pub struct Mesh {
     pub(crate) vertices: Vec<Vertex>,
     pub(crate) indices: Vec<Indice>,
 
-    pub(crate) vao: GLuint,
-    pub(crate) vbo: GLuint,
-    pub(crate) ebo: GLuint,
+    pub vao: GLuint, // FIX set private
+    pub vbo: GLuint, // FIX set private
+    pub ebo: GLuint, // FIX set private
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -34,16 +34,67 @@ impl Mesh {
             vbo: 0,
             ebo: 0,
         };
-        mesh.setup_mesh();
+        mesh.setup_vao_vbo_ebo();
+        mesh.gl_setup_vertex_attribs();
         mesh
     }
 
-    pub fn setup_mesh(&mut self) {
+    // TEMP needs to make vertex attrib more flexible
+    // FIX remake this whole thing ( DISGUSTANG )
+    pub fn quad() -> Self {
+        let mut mesh = Self {
+            vao: 0,
+            vbo: 0,
+            ebo: 0,
+            vertices: vec![
+                Vertex {
+                    position: Position::new(1.0, 1.0, 0.0),
+                    normal: Normal::new(0.0, 0.0, 1.0),
+                    tex_coord: TexCoord::new(1.0, 1.0),
+                },
+                Vertex {
+                    position: Position::new(1.0, -1.0, 0.0),
+                    normal: Normal::new(0.0, 0.0, 1.0),
+                    tex_coord: TexCoord::new(1.0, 0.0),
+                },
+                Vertex {
+                    position: Position::new(-1.0, -1.0, 0.0),
+                    normal: Normal::new(0.0, 0.0, 1.0),
+                    tex_coord: TexCoord::new(0.0, 0.0),
+                },
+                Vertex {
+                    position: Position::new(-1.0, 1.0, 0.0),
+                    normal: Normal::new(0.0, 0.0, 1.0),
+                    tex_coord: TexCoord::new(0.0, 1.0),
+                },
+            ],
+            indices: vec![0, 1, 3, 1, 2, 3],
+            gl_mode: gl::TRIANGLES,
+        };
+        mesh.setup_vao_vbo_ebo();
+        let stride = std::mem::size_of::<Vertex>() as GLsizei;
+        let offset_tex_coords = std::mem::size_of::<Position>() + std::mem::size_of::<Normal>();
+        unsafe {
+            // vertex positions
+            gl::EnableVertexAttribArray(0);
+            gl::VertexAttribPointer(0, 3, gl::FLOAT, gl::FALSE, stride, std::ptr::null());
+            // vertex texture coords
+            gl::EnableVertexAttribArray(1);
+            gl::VertexAttribPointer(
+                1,
+                2,
+                gl::FLOAT,
+                gl::FALSE,
+                stride,
+                offset_tex_coords as *const c_void,
+            );
+        }
+        mesh
+    }
+
+    pub fn setup_vao_vbo_ebo(&mut self) {
         let size = (self.vertices.len() * std::mem::size_of::<Vertex>()) as GLsizeiptr;
         let data = self.vertices.as_ptr();
-        let stride = std::mem::size_of::<Vertex>() as GLsizei;
-        let offset_normals = std::mem::size_of::<Position>();
-        let offset_tex_coords = std::mem::size_of::<Position>() + std::mem::size_of::<Normal>();
         let ebo_size = (self.indices.len() * std::mem::size_of::<Indice>()) as GLsizeiptr;
         unsafe {
             gl::GenBuffers(1, &mut self.vbo);
@@ -70,15 +121,24 @@ impl Mesh {
                 self.indices.as_ptr() as *const GLvoid,
                 gl::STATIC_DRAW,
             );
+        }
+    }
 
-            /*
-            // TODO check if current_vertex_attribs <= max_vertex_attribs before initializing each vertex attributes
-            let mut gl_max_vertex_attribs = 0;
-            unsafe {
-                gl::GetIntegerv(gl::MAX_VERTEX_ATTRIBS, &mut gl_max_vertex_attribs);
-            }
-             */
+    #[inline]
+    fn gl_setup_vertex_attribs(&self) {
+        /*
+        // TODO check if current_vertex_attribs <= max_vertex_attribs before initializing each vertex attributes
+        let mut gl_max_vertex_attribs = 0;
+        unsafe {
+            gl::GetIntegerv(gl::MAX_VERTEX_ATTRIBS, &mut gl_max_vertex_attribs);
+        }
+         */
 
+        let stride = std::mem::size_of::<Vertex>() as GLsizei;
+        let offset_normals = std::mem::size_of::<Position>();
+        let offset_tex_coords = std::mem::size_of::<Position>() + std::mem::size_of::<Normal>();
+        unsafe {
+            // FIX flexiblity of vertex attributes
             // vertex positions
             gl::EnableVertexAttribArray(0);
             gl::VertexAttribPointer(0, 3, gl::FLOAT, gl::FALSE, stride, std::ptr::null());
@@ -92,7 +152,7 @@ impl Mesh {
                 stride,
                 offset_normals as *const c_void,
             );
-            // // vertex texture coords
+            // vertex texture coords
             gl::EnableVertexAttribArray(2);
             gl::VertexAttribPointer(
                 2,
@@ -133,13 +193,13 @@ impl Mesh {
         self.gl_unbind_vao();
     }
 
-    fn gl_bind_vao(&self) {
+    pub fn gl_bind_vao(&self) {
         unsafe {
             gl::BindVertexArray(self.vao);
         }
     }
 
-    fn gl_unbind_vao(&self) {
+    pub fn gl_unbind_vao(&self) {
         unsafe {
             gl::BindVertexArray(0);
         }

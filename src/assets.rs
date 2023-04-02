@@ -18,6 +18,10 @@ pub mod model;
 pub mod program;
 pub mod shader;
 pub mod texture;
+use crate::framebuffer::renderbuffer::Renderbuffer;
+use crate::framebuffer::texturebuffer::TextureFramebuffer;
+use crate::framebuffer::Framebuffer;
+
 use self::camera::Camera;
 use self::font::Font;
 use self::image::Image;
@@ -41,6 +45,7 @@ pub struct Assets {
     pub(crate) models: HashMap<String, Model>,
     pub(crate) shaders: HashMap<String, Shader>,
     pub(crate) programs: HashMap<String, Program>,
+    pub(crate) framebuffers: HashMap<String, Framebuffer>,
 }
 
 impl Assets {
@@ -57,11 +62,15 @@ impl Assets {
             models: HashMap::new(),
             shaders: HashMap::new(),
             programs: HashMap::new(),
+            framebuffers: HashMap::new(),
         }
     }
 
     // SECTION NEW
 
+    pub fn new_mesh(&mut self, name: &str, mesh: Mesh) {
+        self.meshes.insert(name.to_owned(), mesh);
+    }
     pub fn new_camera(&mut self, name: &str, camera: Camera) {
         self.cameras.insert(name.to_owned(), camera);
     }
@@ -72,6 +81,18 @@ impl Assets {
         }
         let program = Program::new(shaders_gl_ids);
         self.programs.insert(name.to_owned(), program);
+    }
+    pub fn new_framebuffer(&mut self, name: &str, width: u32, height: u32) {
+        let mut framebuffer = Framebuffer::new();
+
+        let framebuffer_texture = TextureFramebuffer::new(width as i32, height as i32);
+        framebuffer.gl_attach_texture(framebuffer_texture);
+
+        let renderbuffer = Renderbuffer::new(width as i32, height as i32);
+        framebuffer.gl_attach_renderbuffer(renderbuffer);
+
+        framebuffer.gl_unbind();
+        self.framebuffers.insert(name.to_owned(), framebuffer);
     }
 
     // SECTION NEW FOREIGN
@@ -173,6 +194,11 @@ impl Assets {
             .get(name)
             .expect(&format!("Program '{}' not found.", name))
     }
+    pub fn get_framebuffer(&self, name: &str) -> &Framebuffer {
+        self.framebuffers
+            .get(name)
+            .expect(&format!("Framebuffer '{}' not found.", name))
+    }
 
     // SECTION GET MUT
 
@@ -220,6 +246,16 @@ impl Assets {
         self.models
             .get_mut(name)
             .expect(&format!("Model '{}' not found.", name))
+    }
+    pub fn get_mut_shader(&mut self, name: &str) -> &mut Shader {
+        self.shaders
+            .get_mut(name)
+            .expect(&format!("Shader '{}' not found.", name))
+    }
+    pub fn get_mut_framebuffer(&mut self, name: &str) -> &mut Framebuffer {
+        self.framebuffers
+            .get_mut(name)
+            .expect(&format!("Framebuffer '{}' not found.", name))
     }
 }
 

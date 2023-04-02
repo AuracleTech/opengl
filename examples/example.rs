@@ -1,17 +1,14 @@
-use std::{cmp::Ordering, ops::Mul, time::Instant};
-
-use cgmath::{
-    point3, vec3, Deg, EuclideanSpace, InnerSpace, Matrix4, Quaternion, Rotation3, SquareMatrix,
-    Vector3,
-};
+use cgmath::{point3, vec3, Deg, Matrix4, Quaternion, Rotation3, SquareMatrix, Vector3};
 use glfw::Key;
 use revenant::{
     assets::{
         camera::{Camera, CameraProjectionKind},
+        mesh::Mesh,
         Assets,
     },
     Revenant,
 };
+use std::time::Instant;
 
 fn main() {
     let mut revenant = Revenant::new();
@@ -56,6 +53,8 @@ fn main() {
 // OPTIMIZE test with inline, without and always inlined
 #[inline]
 fn init_assets(assets: &mut Assets) {
+    assets.new_mesh("quad", Mesh::quad());
+
     assets.new_camera("main", Camera::perspective(point3(1.84, 0.8, 3.1)));
 
     assets.new_shader_foreign("pbr", "vs");
@@ -65,6 +64,15 @@ fn init_assets(assets: &mut Assets) {
     assets.new_shader_foreign("outliner", "vs");
     assets.new_shader_foreign("outliner", "fs");
     assets.new_program("outliner", vec!["outliner_vs", "outliner_fs"]);
+
+    assets.new_shader_foreign("debug", "vs");
+    assets.new_shader_foreign("debug", "fs");
+    assets.new_program("debug", vec!["debug_vs", "debug_fs"]);
+
+    // FIX use actual window size
+    const WIN_DIM_X: u32 = 1600;
+    const WIN_DIM_Y: u32 = 900;
+    assets.new_framebuffer("main", WIN_DIM_X, WIN_DIM_Y);
 
     assets.new_model_foreign("cube", "gltf");
     assets.new_model_foreign("window", "gltf");
@@ -163,77 +171,60 @@ fn input(revenant: &mut Revenant, assets: &mut Assets, camera_controller: &mut C
 
 #[inline]
 fn render(assets: &mut Assets) {
+    let quad = assets.get_mesh("quad");
+
     let program_pbr = assets.get_program("pbr");
+    let program_debug = assets.get_program("debug");
     // let program_outliner = assets.get_program("outliner");
     let cube = assets.get_model("cube");
     let camera_main = assets.get_camera("main");
-    let window = assets.get_model("window");
-    let grass = assets.get_model("grass");
-    let mut window_positions = vec![
-        point3(-1.5, 0.0, -0.48),
-        point3(1.5, 0.0, 0.51),
-        point3(0.0, 0.0, 0.7),
-        point3(-0.3, 0.0, -2.3),
-        point3(0.5, 0.0, -0.6),
-    ];
-    window_positions.sort_unstable_by(|a, b| {
-        let distance_a = (camera_main.pos - *a).magnitude();
-        let distance_b = (camera_main.pos - *b).magnitude();
-        distance_b
-            .partial_cmp(&distance_a)
-            .unwrap_or(Ordering::Equal)
-    });
+    let framebuffer_main = assets.get_framebuffer("main");
 
+    framebuffer_main.gl_bind();
     unsafe {
         gl::Enable(gl::DEPTH_TEST);
-        gl::Enable(gl::CULL_FACE);
-        // gl::Enable(gl::STENCIL_TEST);
+        gl::ClearColor(0.5, 0.0, 1.0, 1.0);
         gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
-        // CLEAR | gl::STENCIL_BUFFER_BIT
-        // gl::StencilOp(gl::KEEP, gl::KEEP, gl::REPLACE);
-        // gl::StencilMask(0xFF);
-        // gl::StencilFunc(gl::ALWAYS, 1, 0xFF);
     }
     {
+        // first pass
         program_pbr.use_program();
         program_pbr.set_uniform_mat4("model", &Matrix4::identity());
         program_pbr.set_uniform_mat4("view", &camera_main.view);
         program_pbr.set_uniform_mat4("projection", &camera_main.projection);
         program_pbr.set_uniform_mat4("model", &Matrix4::from_translation(vec3(12.0, 0.0, 0.0)));
         cube.draw(program_pbr);
-        program_pbr.set_uniform_mat4("model", &Matrix4::from_translation(vec3(-12.0, 0.0, 0.0)));
-    }
-    unsafe {
-        gl::Disable(gl::CULL_FACE);
-    }
-    {
-        grass.draw(program_pbr);
 
-        for window_pos in window_positions {
-            let mut model = Matrix4::from_translation(window_pos.to_vec());
-            model = model.mul(&Matrix4::from_scale(0.25));
-            program_pbr.set_uniform_mat4("model", &model);
-            window.draw(program_pbr);
+        framebuffer_main.gl_unbind();
+        unsafe {
+            gl::Disable(gl::DEPTH_TEST);
+            gl::ClearColor(1.0, 1.0, 1.0, 1.0);
+            gl::Clear(gl::COLOR_BUFFER_BIT);
+            // disable depth test
+        };
+
+        program_debug.use_program();
+        quad.gl_bind_vao();
+        unsafe {
+            gl::BindTexture(gl::TEXTURE_2D, framebuffer_main.gl_texturebuffer_id);
         }
+        quad.draw();
+
+        // second pass
+        // framebuffer_main.gl_unbind();
+        // unsafe {
+        //     gl::ClearColor(1.0, 1.0, 1.0, 1.0);
+        //     gl::Clear(gl::COLOR_BUFFER_BIT);
+        // };
+
+        // program_debug.use_program();
+        // unsafe {
+        //     gl::BindVertexArray(quad.vao);
+        //     gl::Disable(gl::DEPTH_TEST);
+        //     gl::BindTexture(gl::TEXTURE_2D, framebuffer_main.gl_texturebuffer_id);
+        //     gl::DrawArrays(gl::TRIANGLES, 0, 6);
+        // };
     }
-
-    // unsafe {
-    //     gl::StencilFunc(gl::NOTEQUAL, 1, 0xFF);
-    //     gl::StencilMask(0x00);
-    //     gl::Disable(gl::DEPTH_TEST);
-    // }
-    // {
-    //     program_outliner.use_program();
-    //     program_outliner.set_uniform_mat4("model", &Matrix4::from_scale(1.1));
-    //     program_outliner.set_uniform_mat4("view", &camera_main.view);
-    //     program_outliner.set_uniform_mat4("projection", &camera_main.projection);
-    //     cube.draw(program_outliner);
-    // }
-
-    // unsafe {
-    //     gl::StencilMask(0xFF);
-    //     gl::Enable(gl::DEPTH_TEST);
-    // }
 }
 
 struct CameraController {

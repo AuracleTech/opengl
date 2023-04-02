@@ -236,6 +236,8 @@ impl Model {
                     _ => panic!("Unsupported gl_mode yet!"),
                 }
             }
+
+            #[cfg(feature = "pillow")]
             material.deactivate();
         }
     }
