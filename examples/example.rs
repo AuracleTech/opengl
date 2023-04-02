@@ -1,14 +1,13 @@
-use std::{cmp::Ordering, collections::BTreeMap, ops::Mul, time::Instant};
+use std::{cmp::Ordering, ops::Mul, time::Instant};
 
 use cgmath::{
-    point3, vec3, Deg, EuclideanSpace, InnerSpace, Matrix4, Point3, Quaternion, Rotation3,
-    SquareMatrix, Vector3,
+    point3, vec3, Deg, EuclideanSpace, InnerSpace, Matrix4, Quaternion, Rotation3, SquareMatrix,
+    Vector3,
 };
 use glfw::Key;
 use revenant::{
     assets::{
         camera::{Camera, CameraProjectionKind},
-        model::Model,
         Assets,
     },
     Revenant,
@@ -187,6 +186,7 @@ fn render(assets: &mut Assets) {
 
     unsafe {
         gl::Enable(gl::DEPTH_TEST);
+        gl::Enable(gl::CULL_FACE);
         // gl::Enable(gl::STENCIL_TEST);
         gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
         // CLEAR | gl::STENCIL_BUFFER_BIT
@@ -202,6 +202,11 @@ fn render(assets: &mut Assets) {
         program_pbr.set_uniform_mat4("model", &Matrix4::from_translation(vec3(12.0, 0.0, 0.0)));
         cube.draw(program_pbr);
         program_pbr.set_uniform_mat4("model", &Matrix4::from_translation(vec3(-12.0, 0.0, 0.0)));
+    }
+    unsafe {
+        gl::Disable(gl::CULL_FACE);
+    }
+    {
         grass.draw(program_pbr);
 
         for window_pos in window_positions {

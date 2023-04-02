@@ -32,11 +32,11 @@
 - [x] Model Textures
 - [x] Depth Testing
 - [x] Stencil Testing
+- [x] Blending
+- [x] Face Culling
 - [ ] Setup world environment playground
 - [ ] Client Server Architecture
 - [ ] Multiplayer
-- [ ] Blending
-- [ ] Face Culling
 - [ ] Hotkey Register
 - [ ] Framebuffers
 - [ ] Audio
