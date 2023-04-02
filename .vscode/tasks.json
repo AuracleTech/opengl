@@ -2,11 +2,11 @@
 	"version": "2.0.0",
 	"tasks": [
 		{
+			"label": "Run example example with feature \"pillow\"",
 			"type": "cargo",
 			"command": "run",
-			"args": ["--example", "example"],
+			"args": ["--example", "example", "--features", "pillow"],
 			"problemMatcher": ["$rustc"],
-			"label": "Run example example",
 			"group": {
 				"kind": "build",
 				"isDefault": true
