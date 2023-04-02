@@ -27,14 +27,11 @@ float dither(vec2 uv)
 
 void main()
 {
-    vec4 result = vec4(0.0);
+    // vec4 result = vec4(0.0);
 
     // MATERIAL ALBEDO
-    vec3 norm = normalize(normal);
-    vec4 albedo = texture(material.albedo, tex_coord);
-    if(albedo.a < 0.1)
-        discard;
-    result += albedo;
+    // vec3 norm = normalize(normal);
+    // vec4 albedo = texture(material.albedo, tex_coord);
     
     // DEPTH
     // float depth = LinearizeDepth(gl_FragCoord.z) / far; // divide by far for demonstration
@@ -43,5 +40,5 @@ void main()
     // DITHER
     // result += vec4(vec3(dither(tex_coord)), 1.0);
 
-    frag_color = result;
+    frag_color = texture(material.albedo, tex_coord);
 }

@@ -1,8 +1,14 @@
-use cgmath::{point3, vec3, Deg, Matrix4, Quaternion, Rotation3, SquareMatrix, Vector3};
+use std::{cmp::Ordering, collections::BTreeMap, ops::Mul, time::Instant};
+
+use cgmath::{
+    point3, vec3, Deg, EuclideanSpace, InnerSpace, Matrix4, Point3, Quaternion, Rotation3,
+    SquareMatrix, Vector3,
+};
 use glfw::Key;
 use revenant::{
     assets::{
         camera::{Camera, CameraProjectionKind},
+        model::Model,
         Assets,
     },
     Revenant,
@@ -30,9 +36,21 @@ fn main() {
 
     init_assets(&mut assets);
 
+    let mut last_cycle_time = Instant::now();
+    let mut last_frame_count_total = 0;
+
     while !revenant.should_close() {
         input(&mut revenant, &mut assets, &mut camera_controller);
         render(&mut assets);
+
+        if Instant::now().duration_since(last_cycle_time).as_secs() > 0 {
+            println!(
+                "FPS: {}",
+                revenant.frame_count_total - last_frame_count_total
+            );
+            last_frame_count_total = revenant.frame_count_total;
+            last_cycle_time = Instant::now();
+        }
     }
 }
 
@@ -147,61 +165,70 @@ fn input(revenant: &mut Revenant, assets: &mut Assets, camera_controller: &mut C
 #[inline]
 fn render(assets: &mut Assets) {
     let program_pbr = assets.get_program("pbr");
-    let program_outliner = assets.get_program("outliner");
+    // let program_outliner = assets.get_program("outliner");
     let cube = assets.get_model("cube");
     let camera_main = assets.get_camera("main");
     let window = assets.get_model("window");
     let grass = assets.get_model("grass");
+    let mut window_positions = vec![
+        point3(-1.5, 0.0, -0.48),
+        point3(1.5, 0.0, 0.51),
+        point3(0.0, 0.0, 0.7),
+        point3(-0.3, 0.0, -2.3),
+        point3(0.5, 0.0, -0.6),
+    ];
+    window_positions.sort_unstable_by(|a, b| {
+        let distance_a = (camera_main.pos - *a).magnitude();
+        let distance_b = (camera_main.pos - *b).magnitude();
+        distance_b
+            .partial_cmp(&distance_a)
+            .unwrap_or(Ordering::Equal)
+    });
 
     unsafe {
         gl::Enable(gl::DEPTH_TEST);
-        gl::Enable(gl::STENCIL_TEST);
-        gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT | gl::STENCIL_BUFFER_BIT);
-        gl::StencilOp(gl::KEEP, gl::KEEP, gl::REPLACE);
-        gl::StencilMask(0xFF);
-        gl::StencilFunc(gl::ALWAYS, 1, 0xFF);
+        // gl::Enable(gl::STENCIL_TEST);
+        gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
+        // CLEAR | gl::STENCIL_BUFFER_BIT
+        // gl::StencilOp(gl::KEEP, gl::KEEP, gl::REPLACE);
+        // gl::StencilMask(0xFF);
+        // gl::StencilFunc(gl::ALWAYS, 1, 0xFF);
     }
     {
         program_pbr.use_program();
         program_pbr.set_uniform_mat4("model", &Matrix4::identity());
         program_pbr.set_uniform_mat4("view", &camera_main.view);
         program_pbr.set_uniform_mat4("projection", &camera_main.projection);
+        program_pbr.set_uniform_mat4("model", &Matrix4::from_translation(vec3(12.0, 0.0, 0.0)));
         cube.draw(program_pbr);
-        program_pbr.set_uniform_mat4("model", &Matrix4::from_translation(vec3(-4.0, 0.0, 0.0)));
-        window.draw(program_pbr);
+        program_pbr.set_uniform_mat4("model", &Matrix4::from_translation(vec3(-12.0, 0.0, 0.0)));
+        grass.draw(program_pbr);
 
-        let grass_positions = vec![
-            vec3(-8.0, 0.0, 0.0),
-            vec3(-8.5, 0.01, 2.0),
-            vec3(-8.2, -0.01, 2.0),
-            vec3(-7.2, 0.015, 1.1),
-            vec3(-7.5, -0.015, 1.6),
-            vec3(-6.0, 0.02, 2.5),
-            vec3(-7.0, -0.02, 1.4),
-        ];
-        for pos in grass_positions {
-            program_pbr.set_uniform_mat4("model", &Matrix4::from_translation(pos));
-            grass.draw(program_pbr);
+        for window_pos in window_positions {
+            let mut model = Matrix4::from_translation(window_pos.to_vec());
+            model = model.mul(&Matrix4::from_scale(0.25));
+            program_pbr.set_uniform_mat4("model", &model);
+            window.draw(program_pbr);
         }
     }
 
-    unsafe {
-        gl::StencilFunc(gl::NOTEQUAL, 1, 0xFF);
-        gl::StencilMask(0x00);
-        gl::Disable(gl::DEPTH_TEST);
-    }
-    {
-        program_outliner.use_program();
-        program_outliner.set_uniform_mat4("model", &Matrix4::from_scale(1.1));
-        program_outliner.set_uniform_mat4("view", &camera_main.view);
-        program_outliner.set_uniform_mat4("projection", &camera_main.projection);
-        cube.draw(program_outliner);
-    }
+    // unsafe {
+    //     gl::StencilFunc(gl::NOTEQUAL, 1, 0xFF);
+    //     gl::StencilMask(0x00);
+    //     gl::Disable(gl::DEPTH_TEST);
+    // }
+    // {
+    //     program_outliner.use_program();
+    //     program_outliner.set_uniform_mat4("model", &Matrix4::from_scale(1.1));
+    //     program_outliner.set_uniform_mat4("view", &camera_main.view);
+    //     program_outliner.set_uniform_mat4("projection", &camera_main.projection);
+    //     cube.draw(program_outliner);
+    // }
 
-    unsafe {
-        gl::StencilMask(0xFF);
-        gl::Enable(gl::DEPTH_TEST);
-    }
+    // unsafe {
+    //     gl::StencilMask(0xFF);
+    //     gl::Enable(gl::DEPTH_TEST);
+    // }
 }
 
 struct CameraController {

@@ -140,38 +140,7 @@ impl Revenant {
         );
     }
 
-    fn gl_init(&mut self) {
-        // TODO make all this configurable
-        unsafe {
-            gl::ClearColor(0.0, 0.0, 0.0, 1.0);
-            gl::Enable(gl::STENCIL_TEST);
-            // gl::Enable(gl::BLEND);
-            gl::BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
-        }
-
-        #[cfg(debug_assertions)]
-        unsafe {
-            // gl::Enable(gl::DEBUG_OUTPUT);
-            gl::DebugMessageCallback(
-                Some(
-                    debug_callback
-                        as extern "system" fn(
-                            GLenum,
-                            GLenum,
-                            GLuint,
-                            GLenum,
-                            i32,
-                            *const i8,
-                            *mut c_void,
-                        ),
-                ),
-                std::ptr::null(),
-            );
-        }
-    }
-
     pub fn should_close(&mut self) -> bool {
-        // END FRAME
         self.window.swap_buffers();
         self.frame_count_total += 1;
         self.frame_time_last = self.frame_time;
@@ -207,5 +176,36 @@ impl Revenant {
             _ => panic!("Unknown polygon mode"),
         };
         println!("Polygon mode: {}", text);
+    }
+
+    #[inline]
+    fn gl_init(&mut self) {
+        // TODO make all this configurable
+        unsafe {
+            gl::ClearColor(0.0, 0.0, 0.0, 1.0);
+            gl::Enable(gl::STENCIL_TEST);
+            gl::Enable(gl::BLEND);
+            gl::BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
+        }
+
+        #[cfg(debug_assertions)]
+        unsafe {
+            // gl::Enable(gl::DEBUG_OUTPUT);
+            gl::DebugMessageCallback(
+                Some(
+                    debug_callback
+                        as extern "system" fn(
+                            GLenum,
+                            GLenum,
+                            GLuint,
+                            GLenum,
+                            i32,
+                            *const i8,
+                            *mut c_void,
+                        ),
+                ),
+                std::ptr::null(),
+            );
+        }
     }
 }
