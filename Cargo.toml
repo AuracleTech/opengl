@@ -21,3 +21,6 @@ glsl = "6.0.2"
 
 [profile.release]
 opt-level = 3
+
+[features]
+pillow = [] # Pillow decrease performance but increase code solidity (e.g. force gl_unbind, etc.) do not use on production
