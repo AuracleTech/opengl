@@ -183,7 +183,7 @@ fn render(assets: &mut Assets) {
     framebuffer_main.gl_bind();
     unsafe {
         gl::Enable(gl::DEPTH_TEST);
-        gl::ClearColor(0.5, 0.0, 1.0, 1.0);
+        gl::ClearColor(0.1, 0.0, 0.1, 1.0);
         gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
     }
     {
