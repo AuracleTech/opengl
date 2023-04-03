@@ -34,11 +34,11 @@
 - [x] Stencil Testing
 - [x] Blending
 - [x] Face Culling
+- [x] Framebuffers
 - [ ] Setup world environment playground
 - [ ] Client Server Architecture
 - [ ] Multiplayer
 - [ ] Hotkey Register
-- [ ] Framebuffers
 - [ ] Audio
 - [ ] Profiling
 - [ ] Cubemaps
