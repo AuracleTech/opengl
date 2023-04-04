@@ -35,13 +35,13 @@
 - [x] Blending
 - [x] Face Culling
 - [x] Framebuffers
+- [x] Cubemaps
+- [x] Skybox
 - [ ] Setup world environment playground
 - [ ] Client Server Architecture
 - [ ] Multiplayer
 - [ ] Hotkey Register
 - [ ] Audio
-- [ ] Profiling
-- [ ] Cubemaps
 - [ ] Advanced Data
 - [ ] Advanced GLSL
 - [ ] Text Rendering
@@ -62,10 +62,6 @@
 - [ ] Irradiance Convolution
 - [ ] Prefilter Environment Map
 - [ ] BRDF Lookup Texture
-- [ ] Skybox
 - [ ] Test laboratory
-- [ ] Dead code elimination
-- [ ] Performance monitoring
 - [ ] Asset allocator
-- [ ] Optimizations
 - [ ] Loading screen
