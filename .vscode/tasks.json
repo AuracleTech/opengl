@@ -11,6 +11,17 @@
 				"kind": "build",
 				"isDefault": true
 			}
+		},
+		{
+			"label": "Run example",
+			"type": "cargo",
+			"command": "run",
+			"args": ["--example", "example"],
+			"problemMatcher": ["$rustc"],
+			"group": {
+				"kind": "build",
+				"isDefault": false
+			}
 		}
 	]
 }
