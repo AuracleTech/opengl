@@ -1,6 +1,7 @@
 pub mod assets;
 #[cfg(feature = "pillow")]
 mod benchmark;
+mod cubemap;
 mod framebuffer;
 mod inputs;
 mod types;

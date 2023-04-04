@@ -18,6 +18,7 @@ pub mod model;
 pub mod program;
 pub mod shader;
 pub mod texture;
+use crate::cubemap::Cubemap;
 use crate::framebuffer::renderbuffer::Renderbuffer;
 use crate::framebuffer::texturebuffer::TextureFramebuffer;
 use crate::framebuffer::Framebuffer;
@@ -46,6 +47,7 @@ pub struct Assets {
     pub(crate) shaders: HashMap<String, Shader>,
     pub(crate) programs: HashMap<String, Program>,
     pub(crate) framebuffers: HashMap<String, Framebuffer>,
+    pub(crate) cubemaps: HashMap<String, Cubemap>,
 }
 
 impl Assets {
@@ -63,6 +65,7 @@ impl Assets {
             shaders: HashMap::new(),
             programs: HashMap::new(),
             framebuffers: HashMap::new(),
+            cubemaps: HashMap::new(),
         }
     }
 
@@ -136,6 +139,33 @@ impl Assets {
         self.models.insert(name.to_owned(), model);
         self.get_model(name)
     }
+    pub fn new_cubemap_foreign(
+        &mut self,
+        name: &str,
+        images_pos_x: (&str, &str),
+        images_neg_x: (&str, &str),
+        images_pos_y: (&str, &str),
+        images_neg_y: (&str, &str),
+        images_pos_z: (&str, &str),
+        images_neg_z: (&str, &str),
+    ) {
+        // TODO improve this
+        let path_pos_x = get_path(FOREIGN_FOLDER, images_pos_x.0, images_pos_x.1);
+        let path_neg_x = get_path(FOREIGN_FOLDER, images_neg_x.0, images_neg_x.1);
+        let path_pos_y = get_path(FOREIGN_FOLDER, images_pos_y.0, images_pos_y.1);
+        let path_neg_y = get_path(FOREIGN_FOLDER, images_neg_y.0, images_neg_y.1);
+        let path_pos_z = get_path(FOREIGN_FOLDER, images_pos_z.0, images_pos_z.1);
+        let path_neg_z = get_path(FOREIGN_FOLDER, images_neg_z.0, images_neg_z.1);
+        let cubemap = Cubemap::from_images(
+            Image::from_file(path_pos_x, images_pos_x.1),
+            Image::from_file(path_neg_x, images_neg_x.1),
+            Image::from_file(path_pos_y, images_pos_y.1),
+            Image::from_file(path_neg_y, images_neg_y.1),
+            Image::from_file(path_pos_z, images_pos_z.1),
+            Image::from_file(path_neg_z, images_neg_z.1),
+        );
+        self.cubemaps.insert(name.to_owned(), cubemap);
+    }
 
     // SECTION GET
 
@@ -198,6 +228,11 @@ impl Assets {
         self.framebuffers
             .get(name)
             .expect(&format!("Framebuffer '{}' not found.", name))
+    }
+    pub fn get_cubemap(&self, name: &str) -> &Cubemap {
+        self.cubemaps
+            .get(name)
+            .expect(&format!("Cubemap '{}' not found.", name))
     }
 
     // SECTION GET MUT

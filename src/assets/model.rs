@@ -2,7 +2,7 @@ use super::{
     image::Image,
     material::Material,
     // TODO remove Vertex and create a function inside mesh to load the mesh 🧠
-    mesh::{Mesh, Vertex},
+    mesh::{Mesh, MeshDrawType, Vertex},
     program::Program,
     texture::Texture,
 };
@@ -211,7 +211,12 @@ impl Model {
                     indices.append(&mut indices_raw.into_u32().collect::<Vec<u32>>());
                 }
 
-                meshes.push(Mesh::new(gl_mode, vertices, indices));
+                meshes.push(Mesh::new(
+                    gl_mode,
+                    vertices,
+                    indices,
+                    MeshDrawType::DrawElements,
+                ));
             }
         }
 

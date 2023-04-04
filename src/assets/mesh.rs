@@ -13,6 +13,20 @@ pub struct Mesh {
     pub vao: GLuint, // FIX set private
     pub vbo: GLuint, // FIX set private
     pub ebo: GLuint, // FIX set private
+
+    pub draw_type: MeshDrawType,
+}
+
+// IMPLEMENT
+pub enum MeshDrawMode {
+    Static,
+    Dynamic,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub enum MeshDrawType {
+    DrawElements,
+    DrawArrays,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -25,7 +39,12 @@ pub struct Vertex {
 
 // TODO default texture similar to garry's mod (white & black checkerboard)
 impl Mesh {
-    pub fn new(gl_mode: GLenum, vertices: Vec<Vertex>, indices: Vec<Indice>) -> Self {
+    pub fn new(
+        gl_mode: GLenum,
+        vertices: Vec<Vertex>,
+        indices: Vec<Indice>,
+        draw_type: MeshDrawType,
+    ) -> Self {
         let mut mesh = Self {
             gl_mode,
             vertices,
@@ -33,6 +52,7 @@ impl Mesh {
             vao: 0,
             vbo: 0,
             ebo: 0,
+            draw_type,
         };
         mesh.setup_vao_vbo_ebo();
         mesh.gl_setup_vertex_attribs();
@@ -70,6 +90,59 @@ impl Mesh {
             ],
             indices: vec![0, 1, 3, 1, 2, 3],
             gl_mode: gl::TRIANGLES,
+            draw_type: MeshDrawType::DrawElements,
+        };
+        mesh.setup_vao_vbo_ebo();
+        let stride = std::mem::size_of::<Vertex>() as GLsizei;
+        let offset_tex_coords = std::mem::size_of::<Position>() + std::mem::size_of::<Normal>();
+        unsafe {
+            // vertex positions
+            gl::EnableVertexAttribArray(0);
+            gl::VertexAttribPointer(0, 3, gl::FLOAT, gl::FALSE, stride, std::ptr::null());
+            // vertex texture coords
+            gl::EnableVertexAttribArray(1);
+            gl::VertexAttribPointer(
+                1,
+                2,
+                gl::FLOAT,
+                gl::FALSE,
+                stride,
+                offset_tex_coords as *const c_void,
+            );
+        }
+        mesh
+    }
+
+    pub fn skybox() -> Self {
+        let vertices_positions = [
+            -1.0, 1.0, -1.0, -1.0, -1.0, -1.0, 1.0, -1.0, -1.0, 1.0, -1.0, -1.0, 1.0, 1.0, -1.0,
+            -1.0, 1.0, -1.0, -1.0, -1.0, 1.0, -1.0, -1.0, -1.0, -1.0, 1.0, -1.0, -1.0, 1.0, -1.0,
+            -1.0, 1.0, 1.0, -1.0, -1.0, 1.0, 1.0, -1.0, -1.0, 1.0, -1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
+            1.0, 1.0, 1.0, 1.0, -1.0, 1.0, -1.0, -1.0, -1.0, -1.0, 1.0, -1.0, 1.0, 1.0, 1.0, 1.0,
+            1.0, 1.0, 1.0, 1.0, 1.0, -1.0, 1.0, -1.0, -1.0, 1.0, -1.0, 1.0, -1.0, 1.0, 1.0, -1.0,
+            1.0, 1.0, 1.0, 1.0, 1.0, 1.0, -1.0, 1.0, 1.0, -1.0, 1.0, -1.0, -1.0, -1.0, -1.0, -1.0,
+            -1.0, 1.0, 1.0, -1.0, -1.0, 1.0, -1.0, -1.0, -1.0, -1.0, 1.0, 1.0, -1.0, 1.0,
+        ];
+        let mut vertices = Vec::new();
+        for i in 0..vertices_positions.len() / 3 {
+            vertices.push(Vertex {
+                position: Position::new(
+                    vertices_positions[i * 3],
+                    vertices_positions[i * 3 + 1],
+                    vertices_positions[i * 3 + 2],
+                ),
+                normal: Normal::new(0.0, 0.0, 0.0),
+                tex_coord: TexCoord::new(0.0, 0.0),
+            });
+        }
+        let mut mesh = Mesh {
+            vao: 0,
+            vbo: 0,
+            ebo: 0,
+            vertices,
+            indices: vec![],
+            gl_mode: gl::TRIANGLES,
+            draw_type: MeshDrawType::DrawArrays,
         };
         mesh.setup_vao_vbo_ebo();
         let stride = std::mem::size_of::<Vertex>() as GLsizei;
@@ -165,21 +238,23 @@ impl Mesh {
         }
     }
 
-    #[inline]
-    fn gl_draw_elements(&self) {
-        unsafe {
-            gl::DrawElements(
-                self.gl_mode,
-                self.indices.len() as GLsizei,
-                gl::UNSIGNED_INT,
-                std::ptr::null(),
-            );
-        }
-    }
-
     pub fn draw(&self) {
         self.gl_bind_vao();
-        self.gl_draw_elements();
+
+        match self.draw_type {
+            MeshDrawType::DrawArrays => unsafe {
+                gl::DrawArrays(self.gl_mode, 0, self.vertices.len() as GLsizei);
+            },
+            MeshDrawType::DrawElements => unsafe {
+                gl::DrawElements(
+                    self.gl_mode,
+                    self.indices.len() as GLsizei,
+                    gl::UNSIGNED_INT,
+                    std::ptr::null(),
+                );
+            },
+        }
+
         #[cfg(debug_assertions)]
         {
             let error;

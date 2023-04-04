@@ -55,19 +55,35 @@ fn main() {
 fn init_assets(assets: &mut Assets) {
     assets.new_mesh("quad", Mesh::quad());
 
+    assets.new_cubemap_foreign(
+        "skybox",
+        ("right", "jpg"),
+        ("left", "jpg"),
+        ("top", "jpg"),
+        ("bottom", "jpg"),
+        ("front", "jpg"),
+        ("back", "jpg"),
+    );
+    assets.new_mesh("skybox", Mesh::skybox());
+
     assets.new_camera("main", Camera::perspective(point3(1.84, 0.8, 3.1)));
 
     assets.new_shader_foreign("pbr", "vs");
     assets.new_shader_foreign("pbr", "fs");
+    // TODO remove extension from shader names
     assets.new_program("pbr", vec!["pbr_vs", "pbr_fs"]);
 
     assets.new_shader_foreign("outliner", "vs");
     assets.new_shader_foreign("outliner", "fs");
     assets.new_program("outliner", vec!["outliner_vs", "outliner_fs"]);
 
-    assets.new_shader_foreign("debug", "vs");
-    assets.new_shader_foreign("debug", "fs");
-    assets.new_program("debug", vec!["debug_vs", "debug_fs"]);
+    assets.new_shader_foreign("skybox", "vs");
+    assets.new_shader_foreign("skybox", "fs");
+    assets.new_program("skybox", vec!["skybox_vs", "skybox_fs"]);
+
+    assets.new_shader_foreign("retouching", "vs");
+    assets.new_shader_foreign("retouching", "fs");
+    assets.new_program("retouching", vec!["retouching_vs", "retouching_fs"]);
 
     // FIX use actual window size
     const WIN_DIM_X: u32 = 1600;
@@ -172,10 +188,12 @@ fn input(revenant: &mut Revenant, assets: &mut Assets, camera_controller: &mut C
 #[inline]
 fn render(assets: &mut Assets) {
     let quad = assets.get_mesh("quad");
+    let mesh_skybox = assets.get_mesh("skybox");
+    let cubemap_skybox = assets.get_cubemap("skybox");
 
     let program_pbr = assets.get_program("pbr");
-    let program_debug = assets.get_program("debug");
-    // let program_outliner = assets.get_program("outliner");
+    let program_retouching = assets.get_program("retouching");
+    let program_skybox = assets.get_program("skybox");
     let cube = assets.get_model("cube");
     let camera_main = assets.get_camera("main");
     let framebuffer_main = assets.get_framebuffer("main");
@@ -185,46 +203,41 @@ fn render(assets: &mut Assets) {
         gl::Enable(gl::DEPTH_TEST);
         gl::ClearColor(0.1, 0.0, 0.1, 1.0);
         gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
+        gl::DepthMask(gl::FALSE);
     }
-    {
-        // first pass
-        program_pbr.use_program();
-        program_pbr.set_uniform_mat4("model", &Matrix4::identity());
-        program_pbr.set_uniform_mat4("view", &camera_main.view);
-        program_pbr.set_uniform_mat4("projection", &camera_main.projection);
-        program_pbr.set_uniform_mat4("model", &Matrix4::from_translation(vec3(12.0, 0.0, 0.0)));
-        cube.draw(program_pbr);
 
-        framebuffer_main.gl_unbind();
-        unsafe {
-            gl::Disable(gl::DEPTH_TEST);
-            gl::ClearColor(1.0, 1.0, 1.0, 1.0);
-            gl::Clear(gl::COLOR_BUFFER_BIT);
-            // disable depth test
-        };
+    // first pass
+    program_skybox.use_program();
+    program_skybox.set_uniform_mat4("view", &camera_main.view_skybox);
+    program_skybox.set_uniform_mat4("projection", &camera_main.projection);
+    cubemap_skybox.gl_bind(0);
+    program_skybox.set_uniform_int("skybox", 0);
+    mesh_skybox.draw();
 
-        program_debug.use_program();
-        quad.gl_bind_vao();
-        unsafe {
-            gl::BindTexture(gl::TEXTURE_2D, framebuffer_main.gl_texturebuffer_id);
-        }
-        quad.draw();
-
-        // second pass
-        // framebuffer_main.gl_unbind();
-        // unsafe {
-        //     gl::ClearColor(1.0, 1.0, 1.0, 1.0);
-        //     gl::Clear(gl::COLOR_BUFFER_BIT);
-        // };
-
-        // program_debug.use_program();
-        // unsafe {
-        //     gl::BindVertexArray(quad.vao);
-        //     gl::Disable(gl::DEPTH_TEST);
-        //     gl::BindTexture(gl::TEXTURE_2D, framebuffer_main.gl_texturebuffer_id);
-        //     gl::DrawArrays(gl::TRIANGLES, 0, 6);
-        // };
+    unsafe {
+        gl::DepthMask(gl::TRUE);
     }
+
+    program_pbr.use_program();
+    program_pbr.set_uniform_mat4("model", &Matrix4::identity());
+    program_pbr.set_uniform_mat4("view", &camera_main.view);
+    program_pbr.set_uniform_mat4("projection", &camera_main.projection);
+    program_pbr.set_uniform_mat4("model", &Matrix4::from_translation(vec3(12.0, 0.0, 0.0)));
+    cube.draw(program_pbr);
+
+    framebuffer_main.gl_unbind();
+    unsafe {
+        gl::Disable(gl::DEPTH_TEST);
+        gl::ClearColor(1.0, 1.0, 1.0, 1.0);
+        gl::Clear(gl::COLOR_BUFFER_BIT);
+    };
+
+    program_retouching.use_program();
+    quad.gl_bind_vao();
+    unsafe {
+        gl::BindTexture(gl::TEXTURE_2D, framebuffer_main.gl_texturebuffer_id);
+    }
+    quad.draw();
 }
 
 struct CameraController {
