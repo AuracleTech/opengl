@@ -5,14 +5,14 @@ mod cubemap;
 mod framebuffer;
 mod inputs;
 mod types;
-use gl::types::{GLenum, GLuint};
 use glfw::{Context, Glfw, PixelImage, Window, WindowEvent};
 use inputs::Inputs;
-use std::{
-    env,
-    ffi::{c_void, CStr},
-    sync::mpsc::Receiver,
-};
+use std::{env, sync::mpsc::Receiver};
+
+#[cfg(feature = "pillow")]
+use gl::types::{GLenum, GLuint};
+#[cfg(feature = "pillow")]
+use std::ffi::{c_void, CStr};
 
 // TODO flexible window size
 const WIN_DIM_X: u32 = 1600;
@@ -29,6 +29,7 @@ pub struct Revenant {
     pub inputs: Inputs,
 }
 
+#[cfg(feature = "pillow")]
 extern "system" fn debug_callback(
     source: GLenum,
     gltype: GLenum,
