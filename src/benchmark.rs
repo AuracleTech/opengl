@@ -5,11 +5,13 @@ use terminal_color_builder::OutputFormatter as tcb;
 let mut benchmark = Benchmark::start(&["EXAMPLE_ONE", "EXAMPLE_TWO"]);
 benchmark.stop();
 */
+#[allow(dead_code)]
 pub struct Benchmark {
     pub text: String,
     pub start: Instant,
 }
 
+#[allow(dead_code)]
 impl Benchmark {
     pub fn start(args: &[&str]) -> Self {
         let text = args.join(" ");
