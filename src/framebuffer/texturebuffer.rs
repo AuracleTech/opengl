@@ -5,8 +5,6 @@ pub struct TextureFramebuffer {
     pub(crate) gl_target: GLenum,
     pub(crate) gl_format: GLenum,
     pub(crate) gl_type: GLenum,
-    pub(crate) width: GLsizei,
-    pub(crate) height: GLsizei,
 }
 
 impl TextureFramebuffer {
@@ -19,8 +17,6 @@ impl TextureFramebuffer {
             gl_format: gl::RGBA,
             // TODO configurable gl_type
             gl_type: gl::UNSIGNED_BYTE,
-            width,
-            height,
         };
 
         unsafe {

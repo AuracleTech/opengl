@@ -3,9 +3,6 @@ use gl::types::{GLenum, GLsizei, GLuint};
 pub struct Renderbuffer {
     pub(crate) gl_id: GLuint,
     pub(crate) gl_target: GLenum,
-    pub(crate) gl_format: GLenum,
-    pub(crate) width: GLsizei,
-    pub(crate) height: GLsizei,
 }
 
 impl Renderbuffer {
@@ -23,13 +20,7 @@ impl Renderbuffer {
             gl::BindRenderbuffer(gl_target, 0);
         }
 
-        Self {
-            gl_id,
-            gl_target,
-            gl_format,
-            width,
-            height,
-        }
+        Self { gl_id, gl_target }
     }
 
     pub fn gl_bind(&self) {

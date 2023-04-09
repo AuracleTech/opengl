@@ -1,6 +1,6 @@
 use gl::types::{GLenum, GLint, GLuint, GLvoid};
 
-use crate::assets::{image::Image, texture::TextureKind};
+use crate::assets::image::Image;
 
 pub struct Cubemap {
     gl_id: GLuint,
@@ -10,7 +10,6 @@ pub struct Cubemap {
     images_neg_y: Image,
     images_pos_z: Image,
     images_neg_z: Image,
-    pub(crate) kind: TextureKind,
     pub(crate) gl_s_wrapping: GLenum,
     pub(crate) gl_t_wrapping: GLenum,
     pub(crate) gl_r_wrapping: GLenum,
@@ -36,7 +35,6 @@ impl Cubemap {
             images_neg_y,
             images_pos_z,
             images_neg_z,
-            kind: TextureKind::Diffuse,
             gl_s_wrapping: gl::CLAMP_TO_EDGE,
             gl_t_wrapping: gl::CLAMP_TO_EDGE,
             gl_r_wrapping: gl::CLAMP_TO_EDGE,
@@ -58,7 +56,7 @@ impl Cubemap {
     }
 
     // TODO deal with max amount of texture units
-    pub fn gl_bind(&self, bind_position: GLuint) {
+    pub fn gl_bind(&self) {
         unsafe {
             gl::BindTexture(gl::TEXTURE_CUBE_MAP, self.gl_id);
         }
