@@ -210,7 +210,7 @@ fn render(assets: &mut Assets) {
     program_skybox.use_program();
     program_skybox.set_uniform_mat4("view", &camera_main.view_skybox);
     program_skybox.set_uniform_mat4("projection", &camera_main.projection);
-    cubemap_skybox.gl_bind(0);
+    cubemap_skybox.gl_bind();
     program_skybox.set_uniform_int("skybox", 0);
     mesh_skybox.draw();
 
